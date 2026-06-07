@@ -38,12 +38,15 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
           </CardHeader>
           <CardContent>
             <Tabs value={tab} onValueChange={(v) => setTab(v as "create" | "import")}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="create">
                   <Sparkles className="mr-2 h-4 w-4" /> Create new
                 </TabsTrigger>
                 <TabsTrigger value="import">
                   <KeyRound className="mr-2 h-4 w-4" /> Import phrase
+                </TabsTrigger>
+                <TabsTrigger value="restore">
+                  <Upload className="mr-2 h-4 w-4" /> Restore file
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="create" className="pt-4">
