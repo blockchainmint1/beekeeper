@@ -25,6 +25,7 @@ import {
 } from "@/lib/wallet/evm";
 import { erc20Balance, erc20Transfer, formatToken } from "@/lib/wallet/erc20";
 import { useContacts } from "@/lib/wallet/contacts";
+import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/security";
 import type { Address } from "viem";
 
 type Account =
@@ -59,6 +60,8 @@ export function SendDialog({
     evmChain && asset !== "native" ? (evmChain.tokens.find((t) => t.symbol === asset) ?? null) : null;
 
   const contacts = useContacts(chain.id);
+  const securityPrefs = useSecurityPrefs();
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
   const ownAddress =
     account.kind === "utxo" ? account.account.address : (account.account.address as string);
 
@@ -100,6 +103,18 @@ export function SendDialog({
   }
 
   async function handleSend() {
+    // First-send-to-new-address guard
+    const inContacts = contacts.some((c) => c.address.toLowerCase() === to.trim().toLowerCase());
+    if (
+      securityPrefs.firstSendWarning &&
+      !pendingConfirmation &&
+      !inContacts &&
+      !isKnownAddress(to.trim())
+    ) {
+      setPendingConfirmation(true);
+      return;
+    }
+    setPendingConfirmation(false);
     setBusy(true);
     try {
       if (chain.kind === "utxo" && account.kind === "utxo") {
@@ -118,6 +133,7 @@ export function SendDialog({
         });
         const id = await esplora.broadcast(chain, hex);
         setTxid(id);
+        rememberAddress(to.trim());
         toast.success("Transaction broadcast");
       } else if (evmChain && account.kind === "evm") {
         const toAddr = to.trim() as Address;
@@ -125,6 +141,7 @@ export function SendDialog({
         if (token) {
           const hash = await erc20Transfer({ account: account.account, token, to: toAddr, amount });
           setTxid(hash);
+          rememberAddress(toAddr);
           toast.success(`${token.symbol} transfer sent`);
         } else {
           const wei = ethToWei(amount);
@@ -132,6 +149,7 @@ export function SendDialog({
           if (bal < wei) throw new Error(`Balance ${weiToEth(bal)} too low`);
           const hash = await sendEvm({ account: account.account, to: toAddr, amountWei: wei });
           setTxid(hash);
+          rememberAddress(toAddr);
           toast.success("Transaction sent");
         }
       }
