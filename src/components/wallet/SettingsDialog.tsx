@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
 import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
-import { evmPrivateKey } from "@/lib/wallet/evm";
+import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, toggleChainVisible } from "@/lib/wallet/visible-chains";
 
@@ -35,12 +35,13 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="security">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
+            <TabsTrigger value="xpub"><Share2 className="mr-1 h-3.5 w-3.5" />xpub</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
           </TabsList>
 
@@ -49,6 +50,7 @@ export function SettingsDialog({
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
+          <TabsContent value="xpub" className="pt-4"><XpubPanel /></TabsContent>
           <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
         </Tabs>
       </DialogContent>
