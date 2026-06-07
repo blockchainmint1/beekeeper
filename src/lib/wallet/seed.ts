@@ -1,7 +1,7 @@
 // Single BIP39 mnemonic vault. Encrypted with the user's passphrase and
 // persisted in localStorage. Powers TXC, ISK, and EVM derivation.
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
 
 const VAULT_KEY = "lovable-multi-wallet-vault-v1";
@@ -64,7 +64,7 @@ export function isValidMnemonic(m: string): boolean {
 }
 
 export async function createVault(mnemonic: string, passphrase: string): Promise<void> {
-  const blob = await encryptJson<VaultPayload>(
+  const blob = await encryptJson(
     { mnemonic, createdAt: Date.now() },
     passphrase,
   );
