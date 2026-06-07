@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2 } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/see
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
-import { useVisibleChainIds, toggleChainVisible } from "@/lib/wallet/visible-chains";
+import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
 
 export function SettingsDialog({
   open,
@@ -60,40 +60,95 @@ export function SettingsDialog({
 
 function WalletsPanel() {
   const visible = useVisibleChainIds();
+  const visibleChains = visible
+    .map((id) => CHAIN_LIST.find((c) => c.id === id))
+    .filter((c): c is (typeof CHAIN_LIST)[number] => !!c);
+  const hiddenChains = CHAIN_LIST.filter((c) => !visible.includes(c.id));
+
+  function move(idx: number, delta: number) {
+    const next = [...visible];
+    const target = idx + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setVisibleChainIds(next);
+  }
+  function remove(id: ChainId) {
+    if (visible.length <= 1) return;
+    setVisibleChainIds(visible.filter((x) => x !== id));
+  }
+  function add(id: ChainId) {
+    if (visible.includes(id)) return;
+    setVisibleChainIds([...visible, id]);
+  }
+
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Choose which chains appear on your dashboard. Hidden chains keep working — addresses and keys are still derived from your seed — they just don't render.
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Reorder to control swipe order. Hidden chains stay derived from your seed — they just don't render.
       </p>
-      <div className="space-y-2">
-        {CHAIN_LIST.map((c) => {
-          const on = visible.includes(c.id);
-          const last = visible.length === 1 && on;
-          return (
-            <label
-              key={c.id}
-              className={`flex items-center justify-between gap-3 rounded-md border p-2.5 ${on ? "bg-muted/40" : "bg-background"} ${last ? "opacity-80" : ""}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="inline-block h-3 w-3 rounded-full" style={{ background: c.color }} />
-                <div>
-                  <p className="text-sm font-medium leading-tight">{c.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">On dashboard</p>
+        <div className="space-y-1.5">
+          {visibleChains.map((c, idx) => {
+            const last = visible.length === 1;
+            return (
+              <div
+                key={c.id}
+                className="flex w-full min-w-0 items-center gap-2 rounded-md border bg-muted/30 p-2"
+              >
+                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium leading-tight">{c.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => move(idx, -1)} aria-label="Move up">
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === visibleChains.length - 1} onClick={() => move(idx, 1)} aria-label="Move down">
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    disabled={last}
+                    onClick={() => remove(c.id)}
+                    aria-label="Hide"
+                    title={last ? "At least one chain must stay visible" : "Hide"}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
-              <input
-                type="checkbox"
-                checked={on}
-                disabled={last}
-                onChange={() => toggleChainVisible(c.id)}
-                className="h-4 w-4"
-                title={last ? "At least one chain must stay visible" : ""}
-              />
-            </label>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-      <p className="text-[11px] text-muted-foreground">At least one chain must stay visible.</p>
+
+      {hiddenChains.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Add</p>
+          <div className="space-y-1.5">
+            {hiddenChains.map((c) => (
+              <div
+                key={c.id}
+                className="flex w-full min-w-0 items-center gap-2 rounded-md border p-2"
+              >
+                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium leading-tight">{c.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+                </div>
+                <Button variant="outline" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => add(c.id)}>
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
