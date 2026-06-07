@@ -77,6 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "referrer", content: "no-referrer" },
       { title: "Quad Wallet" },
       { name: "description", content: "A browser-based wallet supporting TEXITcoin, Iskander Coin, and EVM-compatible chains like Zero Chill." },
       { name: "author", content: "Lovable" },
