@@ -108,7 +108,26 @@ export function downloadVaultBackup(filename = `wallet-backup-${new Date().toISO
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  markVaultBackedUp();
   return true;
+}
+
+const BACKUP_KEY = "quad-wallet-backed-up";
+
+/** Record that the user has downloaded an encrypted backup at least once. */
+export function markVaultBackedUp(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(BACKUP_KEY, new Date().toISOString());
+}
+
+/** Returns ISO timestamp of the last backup download, or null if never. */
+export function getLastBackupAt(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem(BACKUP_KEY);
+}
+
+export function isVaultBackedUp(): boolean {
+  return getLastBackupAt() !== null;
 }
 
 /** Import an encrypted vault JSON and replace the current one (passphrase still required to unlock). */
