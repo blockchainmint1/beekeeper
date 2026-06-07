@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Wallet as WalletIcon, LogOut, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 import { clearCachedMnemonic, getCachedMnemonic, wipeVault } from "@/lib/wallet/seed";
@@ -18,6 +10,12 @@ import { deriveEvmAccount, type EvmAccount } from "@/lib/wallet/evm";
 import { BalanceCard } from "./BalanceCard";
 import { SendDialog } from "./SendDialog";
 import { ReceiveDialog } from "./ReceiveDialog";
+import { HistoryDialog } from "./HistoryDialog";
+import { ContactsDialog } from "./ContactsDialog";
+import { SettingsDialog } from "./SettingsDialog";
+import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
+import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
+import { evmBalance } from "@/lib/wallet/evm";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -26,9 +24,11 @@ type AccountUnion =
 export function Wallet({ onLocked }: { onLocked: () => void }) {
   const qc = useQueryClient();
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
-  const [sendOpen, setSendOpen] = useState<ChainConfig | null>(null);
+  const [sendOpen, setSendOpen] = useState<{ chain: ChainConfig; to?: string; tokenSymbol?: string } | null>(null);
   const [receiveOpen, setReceiveOpen] = useState<ChainConfig | null>(null);
-  const [backupOpen, setBackupOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState<ChainConfig | null>(null);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -57,7 +57,44 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     },
   });
 
-  const activeAccount = sendOpen ? accountQuery.data?.[sendOpen.id] : null;
+  const activeAccount = sendOpen ? accountQuery.data?.[sendOpen.chain.id] : null;
+
+  const pricesQuery = useQuery({
+    queryKey: ["prices"],
+    queryFn: fetchAllPrices,
+    refetchInterval: 90_000,
+    staleTime: 60_000,
+  });
+
+  // Aggregate native USD across all chains
+  const totalQuery = useQuery({
+    queryKey: ["total-native", accountQuery.data && Object.keys(accountQuery.data).join(",")],
+    enabled: !!accountQuery.data && !!pricesQuery.data,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const data = accountQuery.data!;
+      let total = 0;
+      await Promise.all(
+        CHAIN_LIST.map(async (c) => {
+          const a = data[c.id];
+          if (!a) return;
+          const price = pricesQuery.data ? priceForChain(pricesQuery.data, c) : null;
+          if (!price) return;
+          try {
+            if (c.kind === "utxo") {
+              const info = await esplora.addressInfo(c, a.account.address);
+              const sats = addressBalanceSats(info).total;
+              total += (sats / 10 ** c.decimals) * price;
+            } else {
+              const wei = await evmBalance(c, (a as { account: EvmAccount }).account.address);
+              total += (Number(wei) / 1e18) * price;
+            }
+          } catch { /* skip chain on error */ }
+        }),
+      );
+      return total;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/40">
@@ -68,15 +105,18 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               <WalletIcon className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-tight">Tri-Chain Wallet</p>
+              <p className="text-sm font-semibold leading-tight">Quad-Chain Wallet</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                TXC · ISK · ETH
+                TXC · ISK · ETH · BNB · BASE · POL · ZCU
               </p>
             </div>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setBackupOpen(true)}>
-              <ShieldCheck className="mr-1.5 h-4 w-4" /> Backup
+            <Button variant="ghost" size="sm" onClick={() => setContactsOpen(true)}>
+              <BookUser className="mr-1.5 h-4 w-4" /> Contacts
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+              <SettingsIcon className="mr-1.5 h-4 w-4" /> Settings
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLock}>
               <LogOut className="mr-1.5 h-4 w-4" /> Lock
@@ -86,11 +126,20 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Your wallets</h1>
-          <p className="text-sm text-muted-foreground">
-            One recovery phrase, three chains, real keys held only in this browser.
-          </p>
+        <div className="mb-6 flex items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Your wallets</h1>
+            <p className="text-sm text-muted-foreground">
+              One recovery phrase, seven networks, real keys held only in this browser.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Native total</p>
+            <p className="text-2xl font-bold tabular-nums">
+              {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}
+            </p>
+            <p className="text-[10px] text-muted-foreground">excl. tokens</p>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -99,34 +148,28 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               key={chain.id}
               chain={chain}
               mnemonic={mnemonic}
-              onSend={() => setSendOpen(chain)}
+              onSend={() => setSendOpen({ chain })}
               onReceive={() => setReceiveOpen(chain)}
+              onHistory={() => setHistoryOpen(chain)}
+              onSendToken={(symbol) => setSendOpen({ chain, tokenSymbol: symbol })}
             />
           ))}
         </div>
-
-        <Card className="mt-8 border-dashed">
-          <CardHeader>
-            <CardTitle className="text-base">How this works</CardTitle>
-            <CardDescription>
-              Your single BIP39 seed derives keys for all three chains:
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <DerivationRow chain="TXC" path="m/84'/696969'/0'/0/0" type="Native SegWit (txc1…)" />
-            <DerivationRow chain="ISK" path="m/84'/969696'/0'/0/0" type="Native SegWit (isk1…)" />
-            <DerivationRow chain="ETH" path="m/44'/60'/0'/0/0" type="Standard EVM account" />
-          </CardContent>
-        </Card>
       </main>
 
       {sendOpen && activeAccount && (
         <SendDialog
           open={!!sendOpen}
           onOpenChange={(v) => !v && setSendOpen(null)}
-          chain={sendOpen}
+          chain={sendOpen.chain}
+          initialTo={sendOpen.to}
+          initialTokenSymbol={sendOpen.tokenSymbol}
           account={activeAccount}
-          onSent={() => qc.invalidateQueries({ queryKey: ["balance"] })}
+          onSent={() => {
+            qc.invalidateQueries({ queryKey: ["balance"] });
+            qc.invalidateQueries({ queryKey: ["tokens"] });
+            qc.invalidateQueries({ queryKey: ["history"] });
+          }}
         />
       )}
 
@@ -139,10 +182,28 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         />
       )}
 
-      <BackupDialog
-        open={backupOpen}
-        onOpenChange={setBackupOpen}
-        mnemonic={mnemonic}
+      {historyOpen && accountQuery.data?.[historyOpen.id] && (
+        <HistoryDialog
+          open={!!historyOpen}
+          onOpenChange={(v) => !v && setHistoryOpen(null)}
+          chain={historyOpen}
+          address={accountQuery.data[historyOpen.id].account.address}
+        />
+      )}
+
+      <ContactsDialog
+        open={contactsOpen}
+        onOpenChange={setContactsOpen}
+        onSendTo={(c) => {
+          setContactsOpen(false);
+          const chain = CHAIN_LIST.find((x) => x.id === c.chain);
+          if (chain) setSendOpen({ chain, to: c.address });
+        }}
+      />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
         onWipe={() => {
           wipeVault();
           onLocked();
@@ -150,84 +211,5 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         }}
       />
     </div>
-  );
-}
-
-function DerivationRow({ chain, path, type }: { chain: string; path: string; type: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
-      <span className="font-semibold text-xs">{chain}</span>
-      <code className="flex-1 text-center font-mono text-xs">{path}</code>
-      <span className="text-xs text-muted-foreground">{type}</span>
-    </div>
-  );
-}
-
-function BackupDialog({
-  open,
-  onOpenChange,
-  mnemonic,
-  onWipe,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  mnemonic: string;
-  onWipe: () => void;
-}) {
-  const [reveal, setReveal] = useState(false);
-  useEffect(() => {
-    if (!open) setReveal(false);
-  }, [open]);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Recovery phrase</DialogTitle>
-          <DialogDescription>
-            Anyone with this phrase controls all three wallets. Never share it.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          {reveal ? (
-            <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-3 font-mono text-sm">
-              {mnemonic.split(" ").map((w, i) => (
-                <div key={i} className="flex items-baseline gap-1">
-                  <span className="text-muted-foreground tabular-nums">{i + 1}.</span>
-                  <span>{w}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Button variant="outline" className="w-full" onClick={() => setReveal(true)}>
-              <Eye className="mr-2 h-4 w-4" /> Reveal phrase
-            </Button>
-          )}
-          {reveal && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                navigator.clipboard.writeText(mnemonic);
-                toast.success("Phrase copied");
-              }}
-            >
-              Copy phrase
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            className="w-full text-destructive hover:text-destructive"
-            onClick={() => {
-              if (confirm("This will erase the wallet from this browser. Make sure you have the phrase saved.")) {
-                onWipe();
-                onOpenChange(false);
-              }
-            }}
-          >
-            <EyeOff className="mr-2 h-4 w-4" /> Erase wallet from this browser
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
