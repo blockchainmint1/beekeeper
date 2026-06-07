@@ -7,15 +7,16 @@ type PriceMap = Record<string, number>; // key = ChainId | tokenSymbol@chainId |
 const CACHE_KEY = "lovable-wallet-prices-v1";
 const TTL_MS = 90_000;
 
-let memCache: { at: number; data: PriceMap } | null = null;
+type CacheEntry = { at: number; data: PriceMap };
+let memCache: CacheEntry | null = null;
 
-function loadCache(): { at: number; data: PriceMap } | null {
+function loadCache(): CacheEntry | null {
   if (memCache && Date.now() - memCache.at < TTL_MS) return memCache;
   if (typeof window === "undefined") return memCache;
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
     if (!raw) return memCache;
-    const parsed = JSON.parse(raw) as { at: number; data: PriceMap };
+    const parsed = JSON.parse(raw) as CacheEntry;
     if (Date.now() - parsed.at < TTL_MS) {
       memCache = parsed;
       return parsed;
