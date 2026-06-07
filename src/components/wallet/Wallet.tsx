@@ -18,6 +18,7 @@ import { MultiSendDialog } from "./MultiSendDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
+import { useIdleLock } from "@/lib/wallet/security";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -42,6 +43,13 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     clearCachedMnemonic();
     onLocked();
   }
+
+  // Auto-lock on idle / hidden tab (configured in Settings → Security).
+  useIdleLock(() => {
+    clearCachedMnemonic();
+    toast.message("Wallet locked", { description: "Auto-locked after idle." });
+    onLocked();
+  });
 
   // Build account map (one address per chain) lazily so derivation runs on demand
   const accountQuery = useQuery({
