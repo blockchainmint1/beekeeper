@@ -49,9 +49,13 @@ export interface UtxoAccount {
 /** Compute WIF (compressed) for the derived private key. */
 export async function utxoWif(account: UtxoAccount): Promise<string> {
   await getLibs(); // ensures buffer polyfill is loaded for `wif`
-  const wifLib = await import("wif");
-  const encode = (wifLib as { encode?: typeof wifLib.encode }).encode ?? wifLib.default.encode;
-  return encode(account.chain.network.wif, Buffer.from(account.privateKey), true);
+  const wifLib = (await import("wif")) as unknown as {
+    encode: (version: number, priv: Uint8Array, compressed: boolean) => string;
+    default?: { encode: (version: number, priv: Uint8Array, compressed: boolean) => string };
+  };
+  const encode = wifLib.encode ?? wifLib.default?.encode;
+  if (!encode) throw new Error("wif encoder unavailable");
+  return encode(account.chain.network.wif, account.privateKey, true);
 }
 
 function addressFor(

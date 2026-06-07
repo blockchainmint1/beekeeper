@@ -34,8 +34,9 @@ function saveCache(data: PriceMap) {
 
 /** Fetch a USD price snapshot for every chain + token coingeckoId we know about. */
 export async function fetchAllPrices(): Promise<PriceMap> {
-  const cached = loadCache();
-  if (cached) return cached.data;
+  const cachedHit = loadCache();
+  if (cachedHit) return cachedHit.data;
+  const previous: PriceMap = memCache?.data ?? {};
 
   const ids = new Set<string>();
   for (const c of CHAIN_LIST) {
@@ -43,7 +44,7 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     if (c.kind === "evm") for (const t of c.tokens) if (t.coingeckoId) ids.add(t.coingeckoId);
   }
 
-  const out: PriceMap = { ...(cached?.data ?? {}) };
+  const out: PriceMap = { ...previous };
 
   // CoinGecko simple/price.
   if (ids.size > 0) {
