@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send, ShieldAlert, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 import { clearCachedMnemonic, getCachedMnemonic, wipeVault, isVaultBackedUp, downloadVaultBackup } from "@/lib/wallet/seed";
@@ -41,6 +42,13 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
     [visibleIds],
   );
+  const [activeChainId, setActiveChainId] = useState<string>(() => visibleIds[0] ?? "txc");
+  useEffect(() => {
+    if (!visibleChains.find((c) => c.id === activeChainId)) {
+      setActiveChainId(visibleChains[0]?.id ?? "txc");
+    }
+  }, [visibleChains, activeChainId]);
+  const activeChain = visibleChains.find((c) => c.id === activeChainId) ?? visibleChains[0];
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -129,41 +137,73 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/40">
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
           <div className="flex items-center gap-2 min-w-0">
             <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <WalletIcon className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">Quad-Chain Wallet</p>
+              <p className="text-sm font-semibold leading-tight truncate">Honest Money</p>
               <p className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">
-                TXC · ISK · ETH · BNB · BASE · POL · ZCU
+                One seed · many chains
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 gap-1">
-            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setMultiOpen(true)} aria-label="Multi-send">
+          <div className="flex shrink-0 items-center gap-0.5">
+            <Button variant="ghost" size="icon" onClick={() => setMultiOpen(true)} aria-label="Multi-send" title="Multi-send">
               <Send className="h-4 w-4" />
-              <span className="hidden md:inline ml-1.5">Multi-send</span>
             </Button>
-            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setSignOpen(true)} aria-label="Sign">
+            <Button variant="ghost" size="icon" onClick={() => setSignOpen(true)} aria-label="Sign" title="Sign">
               <PenLine className="h-4 w-4" />
-              <span className="hidden md:inline ml-1.5">Sign</span>
             </Button>
-            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setContactsOpen(true)} aria-label="Contacts">
+            <Button variant="ghost" size="icon" onClick={() => setContactsOpen(true)} aria-label="Contacts" title="Contacts">
               <BookUser className="h-4 w-4" />
-              <span className="hidden md:inline ml-1.5">Contacts</span>
             </Button>
-            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings">
               <SettingsIcon className="h-4 w-4" />
-              <span className="hidden md:inline ml-1.5">Settings</span>
             </Button>
-            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={handleLock} aria-label="Lock">
+            <Button variant="ghost" size="icon" onClick={handleLock} aria-label="Lock" title="Lock">
               <LogOut className="h-4 w-4" />
-              <span className="hidden md:inline ml-1.5">Lock</span>
             </Button>
           </div>
         </div>
+
+        {visibleChains.length > 0 && (
+          <div className="border-t bg-background/60">
+            <div className="mx-auto max-w-5xl px-3 sm:px-4">
+              <div className="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                {visibleChains.map((c) => {
+                  const active = c.id === activeChain?.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setActiveChainId(c.id)}
+                      className={cn(
+                        "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all",
+                        active
+                          ? "border-transparent bg-foreground text-background shadow-sm"
+                          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                      )}
+                    >
+                      <span
+                        className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                        style={{ background: c.color }}
+                      />
+                      {c.ticker}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="shrink-0 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  title="Manage wallets"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {!backedUp && (
@@ -183,11 +223,13 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       )}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+        <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight">Your wallets</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {activeChain?.name ?? "Your wallet"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              One recovery phrase, seven networks, real keys held only in this browser.
+              One recovery phrase, every chain. Keys stay in this browser.
             </p>
           </div>
           <div className="text-left sm:text-right shrink-0">
@@ -195,23 +237,27 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
             <p className="text-2xl font-bold tabular-nums">
               {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}
             </p>
-            <p className="text-[10px] text-muted-foreground">excl. tokens</p>
+            <p className="text-[10px] text-muted-foreground">across visible wallets</p>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {visibleChains.map((chain) => (
+        {activeChain ? (
+          <div className="mx-auto max-w-xl">
             <BalanceCard
-              key={chain.id}
-              chain={chain}
+              key={activeChain.id}
+              chain={activeChain}
               mnemonic={mnemonic}
-              onSend={() => setSendOpen({ chain })}
-              onReceive={() => setReceiveOpen(chain)}
-              onHistory={() => setHistoryOpen(chain)}
-              onSendToken={(symbol) => setSendOpen({ chain, tokenSymbol: symbol })}
+              onSend={() => setSendOpen({ chain: activeChain })}
+              onReceive={() => setReceiveOpen(activeChain)}
+              onHistory={() => setHistoryOpen(activeChain)}
+              onSendToken={(symbol) => setSendOpen({ chain: activeChain, tokenSymbol: symbol })}
             />
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            No wallets visible. Open <button className="underline" onClick={() => setSettingsOpen(true)}>Settings</button> to enable some.
+          </div>
+        )}
       </main>
 
       {sendOpen && activeAccount && (
