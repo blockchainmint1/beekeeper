@@ -1,6 +1,6 @@
 import type { Network } from "bitcoinjs-lib";
 
-export type ChainId = "txc" | "isk" | "eth";
+export type ChainId = "txc" | "isk" | "eth" | "zchl";
 
 export interface UtxoChain {
   kind: "utxo";
@@ -117,13 +117,30 @@ export const ETH: EvmChain = {
   color: "oklch(0.65 0.18 270)",
 };
 
+export const ZCHL: EvmChain = {
+  kind: "evm",
+  id: "zchl",
+  name: "Zero Chill",
+  ticker: "ZCU",
+  evmChainId: 90031273,
+  coinType: 60,
+  derivationBase: "m/44'/60'/0'/0",
+  decimals: 18,
+  rpcUrls: ["https://rpc.zerochill.com"],
+  explorerTx: (h) => `https://scan.zerochill.com/tx/${h}`,
+  explorerAddr: (a) => `https://scan.zerochill.com/address/${a}`,
+  nativeSymbol: "ZCU",
+  color: "oklch(0.75 0.15 180)",
+};
+
 export const CHAINS: Record<ChainId, ChainConfig> = {
   txc: TXC,
   isk: ISK,
   eth: ETH,
+  zchl: ZCHL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [TXC, ISK, ETH];
+export const CHAIN_LIST: ChainConfig[] = [TXC, ISK, ETH, ZCHL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
