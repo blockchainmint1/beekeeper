@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send, ShieldAlert, Download } from "lucide-react";
-import { AnimatePresence, motion, type PanInfo } from "framer-motion";
+import {
+  Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
+  BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 import { clearCachedMnemonic, getCachedMnemonic, wipeVault, isVaultBackedUp, downloadVaultBackup } from "@/lib/wallet/seed";
-import { deriveUtxoAccount, type UtxoAccount } from "@/lib/wallet/utxo";
-import { deriveEvmAccount, type EvmAccount } from "@/lib/wallet/evm";
-import { BalanceCard } from "./BalanceCard";
+import type { UtxoAccount } from "@/lib/wallet/utxo";
+import { deriveUtxoAccount } from "@/lib/wallet/utxo";
+import type { EvmAccount } from "@/lib/wallet/evm";
+import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { SendDialog } from "./SendDialog";
 import { ReceiveDialog } from "./ReceiveDialog";
 import { HistoryDialog } from "./HistoryDialog";
@@ -22,6 +24,10 @@ import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
 import { useIdleLock } from "@/lib/wallet/security";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { AppShell } from "./AppShell";
+import { TopBar } from "./TopBar";
+import { MetalWalletCardConnected } from "./MetalWalletCardConnected";
+import { ActionPanel, type ActionItem } from "./ActionPanel";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -51,32 +57,32 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   }, [visibleChains, activeChainId]);
   const activeIndex = Math.max(0, visibleChains.findIndex((c) => c.id === activeChainId));
   const activeChain = visibleChains[activeIndex] ?? visibleChains[0];
-  const prevIndexRef = useRef(activeIndex);
-  const direction = activeIndex >= prevIndexRef.current ? 1 : -1;
-  useEffect(() => { prevIndexRef.current = activeIndex; }, [activeIndex]);
 
-  const goTo = useCallback((idx: number) => {
-    if (visibleChains.length === 0) return;
-    const wrapped = ((idx % visibleChains.length) + visibleChains.length) % visibleChains.length;
-    setActiveChainId(visibleChains[wrapped].id);
-  }, [visibleChains]);
-
-  // Keyboard nav
+  // Scroll-snap tracker — derive active chain from horizontal scroll position
+  const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
-      if (e.key === "ArrowRight") goTo(activeIndex + 1);
-      else if (e.key === "ArrowLeft") goTo(activeIndex - 1);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [activeIndex, goTo]);
-
-  function handleDragEnd(_: unknown, info: PanInfo) {
-    const threshold = 60;
-    if (info.offset.x < -threshold || info.velocity.x < -400) goTo(activeIndex + 1);
-    else if (info.offset.x > threshold || info.velocity.x > 400) goTo(activeIndex - 1);
-  }
+    const el = scrollerRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const center = el.scrollLeft + el.clientWidth / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        Array.from(el.children).forEach((child, i) => {
+          const c = child as HTMLElement;
+          const cCenter = c.offsetLeft + c.offsetWidth / 2;
+          const d = Math.abs(cCenter - center);
+          if (d < bestDist) { bestDist = d; bestIdx = i; }
+        });
+        const k = visibleChains[bestIdx]?.id;
+        if (k && k !== activeChainId) setActiveChainId(k);
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
+  }, [visibleChains, activeChainId]);
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -164,231 +170,153 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
   const chainColor = activeChain?.color ?? "oklch(0.7 0.18 35)";
 
+  const actions: ActionItem[] = activeChain
+    ? [
+        { label: "Send", icon: Send, onClick: () => setSendOpen({ chain: activeChain }) },
+        { label: "Receive", icon: ArrowDownToLine, onClick: () => setReceiveOpen(activeChain) },
+        { label: "History", icon: HistoryIcon, onClick: () => setHistoryOpen(activeChain) },
+        { label: "Sign", icon: PenLine, onClick: () => setSignOpen(true) },
+        { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
+        { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
+        { label: "Backup", icon: Download, onClick: handleForceBackup },
+        { label: "Settings", icon: SettingsIcon, onClick: () => setSettingsOpen(true) },
+      ]
+    : [];
+
+  function scrollToIndex(i: number) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const child = el.children[i] as HTMLElement | undefined;
+    if (!child) return;
+    el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: "smooth" });
+  }
+
   return (
-    <div
-      className="relative min-h-screen overflow-hidden transition-colors duration-700"
-      style={{ ["--chain" as string]: chainColor }}
-    >
-      {/* Animated chain-tinted ambient background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-background" />
-      <AnimatePresence mode="sync">
-        <motion.div
-          key={activeChain?.id ?? "none"}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
-          className="pointer-events-none absolute inset-0 -z-10"
-          aria-hidden
-        >
-          <div
-            className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full blur-3xl opacity-30"
-            style={{ background: `radial-gradient(circle, ${chainColor} 0%, transparent 70%)` }}
-          />
-          <div
-            className="absolute -bottom-40 right-0 h-[420px] w-[420px] rounded-full blur-3xl opacity-20"
-            style={{ background: `radial-gradient(circle, ${chainColor} 0%, transparent 70%)` }}
-          />
-        </motion.div>
-      </AnimatePresence>
+    <AppShell>
+      <TopBar onLock={handleLock} />
 
-      <header className="border-b border-border/50 bg-background/70 backdrop-blur-xl sticky top-0 z-10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <motion.div
-              key={activeChain?.id}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-background shadow-lg"
-              style={{ background: chainColor, boxShadow: `0 6px 24px -6px ${chainColor}` }}
-            >
-              <WalletIcon className="h-4 w-4" />
-            </motion.div>
-            <div className="min-w-0">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={activeChain?.id ?? "none"}
-                  initial={{ y: 6, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -6, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-sm font-bold leading-tight truncate"
-                >
-                  {activeChain?.name ?? "Honest Money"}
-                </motion.p>
-              </AnimatePresence>
-              <p className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Honest Money · {activeChain?.ticker ?? "—"}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-0.5">
-            <Button variant="ghost" size="icon" onClick={() => setMultiOpen(true)} aria-label="Multi-send" title="Multi-send">
-              <Send className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setSignOpen(true)} aria-label="Sign" title="Sign">
-              <PenLine className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setContactsOpen(true)} aria-label="Contacts" title="Contacts">
-              <BookUser className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings">
-              <SettingsIcon className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLock} aria-label="Lock" title="Lock">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Total ecosystem value */}
+      <section className="px-5 pt-5">
+        <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em]">
+          Total Ecosystem Value
         </div>
-
-        {visibleChains.length > 0 && (
-          <div className="border-t border-border/50 bg-background/40">
-            <div className="mx-auto max-w-5xl px-3 sm:px-4">
-              <div className="flex gap-1.5 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {visibleChains.map((c) => {
-                  const active = c.id === activeChain?.id;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => setActiveChainId(c.id)}
-                      className={cn(
-                        "relative shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
-                        active ? "text-background" : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {active && (
-                        <motion.span
-                          layoutId="chain-pill"
-                          className="absolute inset-0 rounded-full shadow-md"
-                          style={{ background: c.color }}
-                          transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                        />
-                      )}
-                      <span className="relative flex items-center gap-1.5">
-                        {!active && (
-                          <span
-                            className="inline-block h-1.5 w-1.5 rounded-full"
-                            style={{ background: c.color }}
-                          />
-                        )}
-                        {c.ticker}
-                      </span>
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="shrink-0 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40"
-                  title="Manage wallets"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+        <div className="mt-2 flex items-baseline gap-2">
+          <h1 className="text-[52px] leading-none font-semibold tracking-tight tabular">
+            {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}
+          </h1>
+        </div>
+        <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--success)" }}>
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span className="tabular">{visibleChains.length} {visibleChains.length === 1 ? "wallet" : "wallets"} · live</span>
+        </div>
+      </section>
 
       {!backedUp && (
-        <div className="border-b border-amber-500/40 bg-amber-500/10">
-          <div className="mx-auto flex max-w-5xl flex-col sm:flex-row flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-200">
-              <ShieldAlert className="h-4 w-4 shrink-0" />
-              <span>
-                <strong>Back up your wallet.</strong> Download the encrypted vault file — without it, losing this browser means losing your funds.
-              </span>
+        <section className="px-5 mt-4">
+          <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
+            <ShieldAlert className="w-4 h-4 shrink-0" style={{ color: "var(--isk)" }} />
+            <div className="flex-1 text-xs text-foreground/85">
+              <strong className="font-semibold">Back up your wallet.</strong> Without it, losing this browser means losing funds.
             </div>
-            <Button size="sm" onClick={handleForceBackup} className="shrink-0">
-              <Download className="mr-1.5 h-4 w-4" /> Download backup
+            <Button size="sm" onClick={handleForceBackup} className="shrink-0 h-7 text-xs">
+              <Download className="mr-1 h-3 w-3" /> Backup
             </Button>
           </div>
-        </div>
+        </section>
       )}
 
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.3em]" style={{ color: chainColor }}>
-              Wallet {activeIndex + 1} of {visibleChains.length}
-            </p>
-            <AnimatePresence mode="wait">
-              <motion.h1
-                key={activeChain?.id ?? "none"}
-                initial={{ x: 12 * direction, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -12 * direction, opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="text-3xl font-bold tracking-tight"
-              >
-                {activeChain?.name ?? "Your wallet"}
-              </motion.h1>
-            </AnimatePresence>
-            <p className="text-sm text-muted-foreground">
-              Swipe, drag, or use ← → to switch wallets.
-            </p>
-          </div>
-          <div className="text-left sm:text-right shrink-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Native total</p>
-            <p className="text-2xl font-bold tabular-nums">
-              {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}
-            </p>
-            <p className="text-[10px] text-muted-foreground">across visible wallets</p>
-          </div>
-        </div>
-
-        {activeChain ? (
-          <div className="mx-auto max-w-xl">
-            <div className="relative overflow-hidden">
-              <AnimatePresence mode="wait" custom={direction}>
-                <motion.div
-                  key={activeChain.id}
-                  custom={direction}
-                  initial={{ x: 60 * direction, opacity: 0, scale: 0.98 }}
-                  animate={{ x: 0, opacity: 1, scale: 1 }}
-                  exit={{ x: -60 * direction, opacity: 0, scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.18}
-                  onDragEnd={handleDragEnd}
-                  className="cursor-grab active:cursor-grabbing touch-pan-y"
-                >
-                  <BalanceCard
-                    chain={activeChain}
-                    mnemonic={mnemonic}
-                    onSend={() => setSendOpen({ chain: activeChain })}
-                    onReceive={() => setReceiveOpen(activeChain)}
-                    onHistory={() => setHistoryOpen(activeChain)}
-                    onSendToken={(symbol) => setSendOpen({ chain: activeChain, tokenSymbol: symbol })}
-                  />
-                </motion.div>
-              </AnimatePresence>
+      {/* Swipeable wallet cards */}
+      <section className="mt-6">
+        {visibleChains.length > 0 ? (
+          <>
+            <div
+              ref={scrollerRef}
+              className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-5 pb-3 no-scrollbar"
+            >
+              {visibleChains.map((c) => (
+                <MetalWalletCardConnected
+                  key={c.id}
+                  chain={c}
+                  mnemonic={mnemonic}
+                  onClick={() => setHistoryOpen(c)}
+                />
+              ))}
             </div>
-
-            {visibleChains.length > 1 && (
-              <div className="mt-5 flex items-center justify-center gap-1.5">
-                {visibleChains.map((c, i) => (
-                  <button
-                    key={c.id}
-                    onClick={() => goTo(i)}
-                    aria-label={`Go to ${c.name}`}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all",
-                      i === activeIndex ? "w-6" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
-                    )}
-                    style={i === activeIndex ? { background: chainColor } : undefined}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex justify-center gap-1.5 mt-1">
+              {visibleChains.map((c, i) => (
+                <button
+                  key={c.id}
+                  onClick={() => scrollToIndex(i)}
+                  aria-label={`Go to ${c.name}`}
+                  className="h-1.5 rounded-full transition-all duration-500"
+                  style={{
+                    background:
+                      c.id === activeChain?.id
+                        ? c.color
+                        : "color-mix(in oklab, var(--foreground) 25%, transparent)",
+                    width: c.id === activeChain?.id ? "1.25rem" : "0.375rem",
+                  }}
+                />
+              ))}
+              <button
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Add wallet"
+                className="h-1.5 w-1.5 rounded-full bg-foreground/15 hover:bg-foreground/40 transition-all ml-1"
+                title="Manage wallets"
+              >
+                <Plus className="w-2 h-2 -mt-0.5 mx-auto opacity-0" />
+              </button>
+            </div>
+          </>
         ) : (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No wallets visible. Open <button className="underline" onClick={() => setSettingsOpen(true)}>Settings</button> to enable some.
+          <div className="mx-5 rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            No wallets visible.{" "}
+            <button className="underline" onClick={() => setSettingsOpen(true)}>Open Settings</button> to enable some.
           </div>
         )}
-      </main>
+      </section>
+
+      {/* Wallet-aware floating action panel */}
+      {activeChain && (
+        <section className="px-5 mt-6">
+          <ActionPanel chain={activeChain} actions={actions} />
+        </section>
+      )}
+
+      {/* Activity / status strip */}
+      <section className="px-5 mt-5 grid grid-cols-2 gap-3">
+        <div className="glass-card rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Pickaxe className="w-3.5 h-3.5" /> Active Chain
+          </div>
+          <div className="mt-1.5 text-xl font-semibold tabular truncate" style={{ color: chainColor }}>
+            {activeChain?.ticker ?? "—"}
+          </div>
+          <div className="text-[11px] text-muted-foreground tabular truncate">{activeChain?.name ?? ""}</div>
+        </div>
+        <div className="glass-card rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" /> Auto-lock
+          </div>
+          <div className="mt-1.5 text-xl font-semibold tabular">On idle</div>
+          <div className="text-[11px] text-muted-foreground">Configured in Settings</div>
+        </div>
+      </section>
+
+      {/* Recent activity (placeholder until full activity feed lands) */}
+      <section className="px-5 mt-7">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold">Recent Activity</h2>
+          {activeChain && (
+            <button onClick={() => setHistoryOpen(activeChain)} className="text-xs text-muted-foreground font-medium">
+              See all
+            </button>
+          )}
+        </div>
+        <div className="glass-card rounded-2xl px-4 py-5 text-center text-sm text-muted-foreground">
+          Tap <span className="font-semibold text-foreground">History</span> above to view on-chain activity for {activeChain?.ticker ?? "this wallet"}.
+        </div>
+      </section>
 
       {sendOpen && activeAccount && (
         <SendDialog
@@ -446,6 +374,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       <SignDialog open={signOpen} onOpenChange={setSignOpen} />
       <MultiSendDialog open={multiOpen} onOpenChange={setMultiOpen} />
-    </div>
+    </AppShell>
   );
 }
