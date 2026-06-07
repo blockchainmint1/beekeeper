@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet as WalletIcon, KeyRound, Sparkles } from "lucide-react";
-import { createMnemonic, isValidMnemonic, createVault } from "@/lib/wallet/seed";
+import { Wallet as WalletIcon, KeyRound, Sparkles, Download, Upload, ShieldCheck } from "lucide-react";
+import {
+  createMnemonic,
+  isValidMnemonic,
+  createVault,
+  downloadVaultBackup,
+  importVaultBlob,
+} from "@/lib/wallet/seed";
 
 export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [tab, setTab] = useState<"create" | "import">("create");
@@ -45,6 +51,9 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
               </TabsContent>
               <TabsContent value="import" className="pt-4">
                 <ImportFlow onReady={onReady} />
+              </TabsContent>
+              <TabsContent value="restore" className="pt-4">
+                <RestoreFlow onReady={onReady} />
               </TabsContent>
             </Tabs>
           </CardContent>
