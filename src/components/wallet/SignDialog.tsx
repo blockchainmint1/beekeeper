@@ -61,7 +61,7 @@ function SignTab() {
         const { address, signature } = await evmSignMessage({ mnemonic, chain, message });
         setResult({ address, signature });
       } else {
-        const account = await deriveUtxoAccount(mnemonic, chain, 0, "segwit");
+        const account = await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType);
         const signature = await utxoSignMessage({ mnemonic, chain, message, type: "segwit" });
         setResult({ address: account.address, signature });
       }

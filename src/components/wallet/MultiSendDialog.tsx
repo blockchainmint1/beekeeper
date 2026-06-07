@@ -74,7 +74,7 @@ export function MultiSendDialog({ open, onOpenChange }: { open: boolean; onOpenC
           if (!ok) throw new Error(`Invalid ${c.ticker} address: ${r.to}`);
         }
         const outputs = cleanRows.map((r) => ({ address: r.to.trim(), amountSats: coinToSats(r.amount, c.decimals) }));
-        const account = await deriveUtxoAccount(mnemonic, c, 0, "segwit");
+        const account = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
         const { hex, feeSats, totalSpentSats } = await buildAndSignMultiUtxo({ account, outputs, feeRate: c.defaultFeeRate });
         const id = await esplora.broadcast(c, hex);
         setUtxoTxid(id);

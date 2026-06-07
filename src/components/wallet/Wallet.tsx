@@ -78,7 +78,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       const out: Record<string, AccountUnion> = {};
       for (const c of CHAIN_LIST) {
         if (c.kind === "utxo") {
-          out[c.id] = { kind: "utxo", account: await deriveUtxoAccount(mnemonic, c, 0, "segwit") };
+          out[c.id] = { kind: "utxo", account: await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType) };
         } else {
           out[c.id] = { kind: "evm", account: deriveEvmAccount(mnemonic, c, 0) };
         }
