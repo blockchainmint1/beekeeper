@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/see
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
+import { useVisibleChainIds, toggleChainVisible } from "@/lib/wallet/visible-chains";
 
 export function SettingsDialog({
   open,
@@ -34,8 +35,9 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="security">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
+            <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
@@ -43,6 +45,7 @@ export function SettingsDialog({
           </TabsList>
 
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
+          <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
@@ -50,6 +53,46 @@ export function SettingsDialog({
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function WalletsPanel() {
+  const visible = useVisibleChainIds();
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Choose which chains appear on your dashboard. Hidden chains keep working — addresses and keys are still derived from your seed — they just don't render.
+      </p>
+      <div className="space-y-2">
+        {CHAIN_LIST.map((c) => {
+          const on = visible.includes(c.id);
+          const last = visible.length === 1 && on;
+          return (
+            <label
+              key={c.id}
+              className={`flex items-center justify-between gap-3 rounded-md border p-2.5 ${on ? "bg-muted/40" : "bg-background"} ${last ? "opacity-80" : ""}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-block h-3 w-3 rounded-full" style={{ background: c.color }} />
+                <div>
+                  <p className="text-sm font-medium leading-tight">{c.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={last}
+                onChange={() => toggleChainVisible(c.id)}
+                className="h-4 w-4"
+                title={last ? "At least one chain must stay visible" : ""}
+              />
+            </label>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-muted-foreground">At least one chain must stay visible.</p>
+    </div>
   );
 }
 
