@@ -266,12 +266,23 @@ export function SendDialog({
           </div>
         )}
 
+        {pendingConfirmation && !txid && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+            <p className="font-medium text-amber-200">⚠ First time sending to this address</p>
+            <p className="mt-1">
+              You've never sent to <span className="font-mono">{to.slice(0, 12)}…{to.slice(-8)}</span> from this wallet before.
+              Double-check it character-by-character against the source — clipboard malware can swap addresses.
+              Click "Send" again to confirm.
+            </p>
+          </div>
+        )}
+
         <DialogFooter>
           {txid ? (
             <Button onClick={() => handleClose(false)}>Done</Button>
           ) : (
-            <Button onClick={handleSend} disabled={busy || !to || !amount}>
-              <Send className="mr-2 h-4 w-4" /> {busy ? "Sending…" : `Send ${ticker}`}
+            <Button onClick={handleSend} disabled={busy || !to || !amount} variant={pendingConfirmation ? "destructive" : "default"}>
+              <Send className="mr-2 h-4 w-4" /> {busy ? "Sending…" : pendingConfirmation ? `Confirm send ${ticker}` : `Send ${ticker}`}
             </Button>
           )}
         </DialogFooter>
