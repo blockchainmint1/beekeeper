@@ -68,6 +68,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
 }
 
 function CreateFlow({ onReady }: { onReady: () => void }) {
+  const [strength, setStrength] = useState<128 | 256>(128);
   const [mnemonic, setMnemonic] = useState<string>(() => createMnemonic(128));
   // Multi-step flow: 1=show phrase, 2=verify words, 3=set passphrase, 4=force-download backup
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -128,7 +129,26 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
       {step === 1 && (
         <>
           <div>
-            <label className="text-sm font-medium">Recovery phrase (12 words)</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Recovery phrase ({words.length} words)</label>
+              <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setStrength(128); setMnemonic(createMnemonic(128)); setVerifyInputs({}); }}
+                  className={`px-2 py-1 rounded ${strength === 128 ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                >
+                  12 words
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStrength(256); setMnemonic(createMnemonic(256)); setVerifyInputs({}); }}
+                  className={`px-2 py-1 rounded ${strength === 256 ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                  title="24-word phrase — compatible with Ledger import"
+                >
+                  24 words (Ledger)
+                </button>
+              </div>
+            </div>
             <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-3 font-mono text-sm">
               {words.map((w, i) => (
                 <div key={i} className="flex items-baseline gap-1">
@@ -139,7 +159,7 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
             </div>
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="ghost" onClick={async () => { await secureCopy(mnemonic); toast.success("Phrase copied — auto-clears from clipboard"); }}>Copy</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setMnemonic(createMnemonic(128)); setVerifyInputs({}); }}>Regenerate</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setMnemonic(createMnemonic(strength)); setVerifyInputs({}); }}>Regenerate</Button>
             </div>
           </div>
           <label className="flex items-start gap-2 text-sm">
