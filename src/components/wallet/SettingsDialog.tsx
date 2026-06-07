@@ -295,7 +295,7 @@ function RevealPanel() {
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" className="flex-1"
-              onClick={async () => { await navigator.clipboard.writeText(key); toast.success("Copied"); }}>Copy</Button>
+              onClick={async () => { await secureCopy(key); toast.success("Copied — auto-clears from clipboard"); }}>Copy</Button>
             <Button size="sm" variant="ghost" onClick={() => { setKey(null); setShow(false); }}>Hide now</Button>
           </div>
           <p className="text-[10px] text-muted-foreground">Auto-hides after 1 minute.</p>
