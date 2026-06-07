@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send, ShieldAlert, Download } from "lucide-react";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -48,7 +49,34 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       setActiveChainId(visibleChains[0]?.id ?? "txc");
     }
   }, [visibleChains, activeChainId]);
-  const activeChain = visibleChains.find((c) => c.id === activeChainId) ?? visibleChains[0];
+  const activeIndex = Math.max(0, visibleChains.findIndex((c) => c.id === activeChainId));
+  const activeChain = visibleChains[activeIndex] ?? visibleChains[0];
+  const prevIndexRef = useRef(activeIndex);
+  const direction = activeIndex >= prevIndexRef.current ? 1 : -1;
+  useEffect(() => { prevIndexRef.current = activeIndex; }, [activeIndex]);
+
+  const goTo = useCallback((idx: number) => {
+    if (visibleChains.length === 0) return;
+    const wrapped = ((idx % visibleChains.length) + visibleChains.length) % visibleChains.length;
+    setActiveChainId(visibleChains[wrapped].id);
+  }, [visibleChains]);
+
+  // Keyboard nav
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
+      if (e.key === "ArrowRight") goTo(activeIndex + 1);
+      else if (e.key === "ArrowLeft") goTo(activeIndex - 1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeIndex, goTo]);
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    const threshold = 60;
+    if (info.offset.x < -threshold || info.velocity.x < -400) goTo(activeIndex + 1);
+    else if (info.offset.x > threshold || info.velocity.x > 400) goTo(activeIndex - 1);
+  }
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -134,18 +162,64 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     },
   });
 
+  const chainColor = activeChain?.color ?? "oklch(0.7 0.18 35)";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/40">
-      <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
+    <div
+      className="relative min-h-screen overflow-hidden transition-colors duration-700"
+      style={{ ["--chain" as string]: chainColor }}
+    >
+      {/* Animated chain-tinted ambient background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-background" />
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={activeChain?.id ?? "none"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+          className="pointer-events-none absolute inset-0 -z-10"
+          aria-hidden
+        >
+          <div
+            className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full blur-3xl opacity-30"
+            style={{ background: `radial-gradient(circle, ${chainColor} 0%, transparent 70%)` }}
+          />
+          <div
+            className="absolute -bottom-40 right-0 h-[420px] w-[420px] rounded-full blur-3xl opacity-20"
+            style={{ background: `radial-gradient(circle, ${chainColor} 0%, transparent 70%)` }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      <header className="border-b border-border/50 bg-background/70 backdrop-blur-xl sticky top-0 z-10">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <motion.div
+              key={activeChain?.id}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-background shadow-lg"
+              style={{ background: chainColor, boxShadow: `0 6px 24px -6px ${chainColor}` }}
+            >
               <WalletIcon className="h-4 w-4" />
-            </div>
+            </motion.div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">Honest Money</p>
-              <p className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">
-                One seed · many chains
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={activeChain?.id ?? "none"}
+                  initial={{ y: 6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -6, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-sm font-bold leading-tight truncate"
+                >
+                  {activeChain?.name ?? "Honest Money"}
+                </motion.p>
+              </AnimatePresence>
+              <p className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Honest Money · {activeChain?.ticker ?? "—"}
               </p>
             </div>
           </div>
@@ -169,9 +243,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </div>
 
         {visibleChains.length > 0 && (
-          <div className="border-t bg-background/60">
+          <div className="border-t border-border/50 bg-background/40">
             <div className="mx-auto max-w-5xl px-3 sm:px-4">
-              <div className="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-1.5 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {visibleChains.map((c) => {
                   const active = c.id === activeChain?.id;
                   return (
@@ -179,23 +253,33 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
                       key={c.id}
                       onClick={() => setActiveChainId(c.id)}
                       className={cn(
-                        "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all",
-                        active
-                          ? "border-transparent bg-foreground text-background shadow-sm"
-                          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                        "relative shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
+                        active ? "text-background" : "text-muted-foreground hover:text-foreground",
                       )}
                     >
-                      <span
-                        className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                        style={{ background: c.color }}
-                      />
-                      {c.ticker}
+                      {active && (
+                        <motion.span
+                          layoutId="chain-pill"
+                          className="absolute inset-0 rounded-full shadow-md"
+                          style={{ background: c.color }}
+                          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        />
+                      )}
+                      <span className="relative flex items-center gap-1.5">
+                        {!active && (
+                          <span
+                            className="inline-block h-1.5 w-1.5 rounded-full"
+                            style={{ background: c.color }}
+                          />
+                        )}
+                        {c.ticker}
+                      </span>
                     </button>
                   );
                 })}
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className="shrink-0 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  className="shrink-0 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40"
                   title="Manage wallets"
                 >
                   +
@@ -225,11 +309,23 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {activeChain?.name ?? "Your wallet"}
-            </h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em]" style={{ color: chainColor }}>
+              Wallet {activeIndex + 1} of {visibleChains.length}
+            </p>
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={activeChain?.id ?? "none"}
+                initial={{ x: 12 * direction, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -12 * direction, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="text-3xl font-bold tracking-tight"
+              >
+                {activeChain?.name ?? "Your wallet"}
+              </motion.h1>
+            </AnimatePresence>
             <p className="text-sm text-muted-foreground">
-              One recovery phrase, every chain. Keys stay in this browser.
+              Swipe, drag, or use ← → to switch wallets.
             </p>
           </div>
           <div className="text-left sm:text-right shrink-0">
@@ -243,15 +339,49 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
         {activeChain ? (
           <div className="mx-auto max-w-xl">
-            <BalanceCard
-              key={activeChain.id}
-              chain={activeChain}
-              mnemonic={mnemonic}
-              onSend={() => setSendOpen({ chain: activeChain })}
-              onReceive={() => setReceiveOpen(activeChain)}
-              onHistory={() => setHistoryOpen(activeChain)}
-              onSendToken={(symbol) => setSendOpen({ chain: activeChain, tokenSymbol: symbol })}
-            />
+            <div className="relative overflow-hidden">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={activeChain.id}
+                  custom={direction}
+                  initial={{ x: 60 * direction, opacity: 0, scale: 0.98 }}
+                  animate={{ x: 0, opacity: 1, scale: 1 }}
+                  exit={{ x: -60 * direction, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.18}
+                  onDragEnd={handleDragEnd}
+                  className="cursor-grab active:cursor-grabbing touch-pan-y"
+                >
+                  <BalanceCard
+                    chain={activeChain}
+                    mnemonic={mnemonic}
+                    onSend={() => setSendOpen({ chain: activeChain })}
+                    onReceive={() => setReceiveOpen(activeChain)}
+                    onHistory={() => setHistoryOpen(activeChain)}
+                    onSendToken={(symbol) => setSendOpen({ chain: activeChain, tokenSymbol: symbol })}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {visibleChains.length > 1 && (
+              <div className="mt-5 flex items-center justify-center gap-1.5">
+                {visibleChains.map((c, i) => (
+                  <button
+                    key={c.id}
+                    onClick={() => goTo(i)}
+                    aria-label={`Go to ${c.name}`}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all",
+                      i === activeIndex ? "w-6" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
+                    )}
+                    style={i === activeIndex ? { background: chainColor } : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
