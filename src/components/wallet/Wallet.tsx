@@ -13,7 +13,6 @@ import { ReceiveDialog } from "./ReceiveDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { ContactsDialog } from "./ContactsDialog";
 import { SettingsDialog } from "./SettingsDialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignDialog } from "./SignDialog";
 import { MultiSendDialog } from "./MultiSendDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
@@ -138,7 +137,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <SettingsIcon className="mr-1.5 h-4 w-4" /> Settings
             </Button>
-            <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleLock}>
               <LogOut className="mr-1.5 h-4 w-4" /> Lock
             </Button>
