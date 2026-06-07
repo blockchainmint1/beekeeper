@@ -88,6 +88,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Quad Wallet" },
       { name: "twitter:description", content: "A browser-based wallet supporting TEXITcoin, Iskander Coin, and EVM-compatible chains like Zero Chill." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c47404dc-a535-4c94-8cb4-5d53bd2b63f7/id-preview-e844e2c4--acf3b9f4-cbbd-4508-b757-654929f24a6e.lovable.app-1780827997431.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c47404dc-a535-4c94-8cb4-5d53bd2b63f7/id-preview-e844e2c4--acf3b9f4-cbbd-4508-b757-654929f24a6e.lovable.app-1780827997431.png" },
     ],
     links: [
       {
