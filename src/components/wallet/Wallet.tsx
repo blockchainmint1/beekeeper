@@ -183,14 +183,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       )}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6 flex items-end justify-between gap-3">
-          <div>
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">Your wallets</h1>
             <p className="text-sm text-muted-foreground">
               One recovery phrase, seven networks, real keys held only in this browser.
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right shrink-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Native total</p>
             <p className="text-2xl font-bold tabular-nums">
               {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}
