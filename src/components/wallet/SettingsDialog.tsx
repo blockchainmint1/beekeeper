@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
 import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
-import { evmPrivateKey } from "@/lib/wallet/evm";
+import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, toggleChainVisible } from "@/lib/wallet/visible-chains";
 
@@ -35,12 +35,13 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="security">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
+            <TabsTrigger value="xpub"><Share2 className="mr-1 h-3.5 w-3.5" />xpub</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
           </TabsList>
 
@@ -49,6 +50,7 @@ export function SettingsDialog({
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
+          <TabsContent value="xpub" className="pt-4"><XpubPanel /></TabsContent>
           <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
         </Tabs>
       </DialogContent>
@@ -365,6 +367,92 @@ function DangerPanel({ onWipe }: { onWipe: () => void }) {
       >
         Erase wallet from this browser
       </Button>
+    </div>
+  );
+}
+
+function XpubPanel() {
+  const [pass, setPass] = useState("");
+  const [xpub, setXpub] = useState<string | null>(null);
+  const [count, setCount] = useState(5);
+  const [busy, setBusy] = useState(false);
+  const [addrs, setAddrs] = useState<{ address: string; path: string; index: number }[]>([]);
+
+  const reveal = async () => {
+    if (!pass) return;
+    setBusy(true);
+    try {
+      const mnemonic = await unlockVault(pass);
+      const x = evmAccountXpub(mnemonic);
+      setXpub(x);
+      setAddrs(deriveEvmAddressesFromXpub(x, count));
+      setPass("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Wrong passphrase");
+    } finally { setBusy(false); }
+  };
+
+  const more = () => {
+    if (!xpub) return;
+    const next = count + 5;
+    setAddrs(deriveEvmAddressesFromXpub(xpub, next));
+    setCount(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-md border bg-muted/30 p-3 text-xs">
+        <strong>Account xpub (m/44'/60'/0')</strong> — a public key for every EVM chain (ETH, BNB, Base, Polygon, ZCU). Safe to share: it lets watchers derive your addresses but <strong>never your private keys</strong>.
+      </div>
+
+      {!xpub ? (
+        <>
+          <div>
+            <Label className="text-xs">Vault passphrase</Label>
+            <Input
+              type="password"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && pass && reveal()}
+            />
+          </div>
+          <Button className="w-full" disabled={busy || !pass} onClick={reveal}>
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Eye className="mr-2 h-4 w-4" /> Reveal xpub
+          </Button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="space-y-1 rounded-md border bg-background p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">xpub</Label>
+              <Button size="sm" variant="ghost" onClick={async () => { await secureCopy(xpub); toast.success("xpub copied"); }}>Copy</Button>
+            </div>
+            <div className="break-all font-mono text-[10px] leading-relaxed">{xpub}</div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Derived addresses (m/44'/60'/0'/0/n)</Label>
+            <div className="mt-1 max-h-56 space-y-1 overflow-y-auto rounded-md border bg-background p-2">
+              {addrs.map((a) => (
+                <div key={a.path} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="w-6 shrink-0 text-muted-foreground">#{a.index}</span>
+                  <span className="flex-1 break-all font-mono">{a.address}</span>
+                  <Button size="sm" variant="ghost" className="h-6 px-2"
+                    onClick={async () => { await secureCopy(a.address); toast.success("Address copied"); }}>
+                    Copy
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={more}>Show 5 more</Button>
+            <Button variant="ghost" onClick={() => { setXpub(null); setAddrs([]); setCount(5); }}>Hide</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
