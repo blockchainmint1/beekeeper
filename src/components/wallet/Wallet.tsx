@@ -19,6 +19,7 @@ import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
 import { useIdleLock } from "@/lib/wallet/security";
+import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -35,6 +36,11 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [signOpen, setSignOpen] = useState(false);
   const [multiOpen, setMultiOpen] = useState(false);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
+  const visibleIds = useVisibleChainIds();
+  const visibleChains = useMemo(
+    () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
+    [visibleIds],
+  );
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -189,7 +195,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {CHAIN_LIST.map((chain) => (
+          {visibleChains.map((chain) => (
             <BalanceCard
               key={chain.id}
               chain={chain}
