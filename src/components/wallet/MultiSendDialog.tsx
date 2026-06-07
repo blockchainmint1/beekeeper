@@ -186,9 +186,7 @@ export function MultiSendDialog({ open, onOpenChange }: { open: boolean; onOpenC
                     </a>
                   )}
                   {status?.status === "failed" && (
-                    <XCircle className="h-4 w-4 text-destructive">
-                      <title>{status.error}</title>
-                    </XCircle>
+                    <span title={status.error}><XCircle className="h-4 w-4 text-destructive" /></span>
                   )}
                   {!status && (
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => removeRow(i)}>×</Button>
