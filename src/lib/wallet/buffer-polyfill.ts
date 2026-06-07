@@ -1,7 +1,7 @@
 // bitcoinjs-lib expects a global Buffer in the browser. Import once at app entry.
-import { Buffer } from "buffer";
-
-if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
+// Only run in the browser — SSR/Worker builds already have Buffer or don't need it.
+if (typeof window !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
+  const { Buffer } = await import("buffer");
   (globalThis as { Buffer: typeof Buffer }).Buffer = Buffer;
 }
 
