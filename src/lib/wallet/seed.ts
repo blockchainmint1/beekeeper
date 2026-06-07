@@ -120,7 +120,7 @@ export function importVaultBlob(json: string): void {
     throw new Error("Invalid backup file (not JSON)");
   }
   const blob = parsed as Partial<EncryptedBlob>;
-  if (!blob || typeof blob !== "object" || !blob.cipherText || !blob.iv || !blob.salt) {
+  if (!blob || typeof blob !== "object" || !blob.ct || !blob.iv || !blob.salt) {
     throw new Error("Backup file is missing required fields");
   }
   saveVault(blob as EncryptedBlob);
