@@ -3,8 +3,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Wallet as WalletIcon } from "lucide-react";
-import { unlockVault, wipeVault } from "@/lib/wallet/seed";
+import { Lock, Upload, Wallet as WalletIcon } from "lucide-react";
+import { unlockVault, wipeVault, importVaultBlob } from "@/lib/wallet/seed";
 
 export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; onReset: () => void }) {
   const [pass, setPass] = useState("");
@@ -26,6 +26,21 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
     if (!confirm("This will erase the encrypted wallet from this browser. Continue?")) return;
     wipeVault();
     onReset();
+  }
+
+  function handleRestoreFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        importVaultBlob(String(reader.result));
+        toast.success("Backup loaded — enter its passphrase to unlock");
+      } catch (err) {
+        toast.error((err as Error).message);
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
@@ -50,6 +65,10 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
           <Button onClick={handle} disabled={busy || !pass} className="w-full">
             <Lock className="mr-2 h-4 w-4" /> {busy ? "Unlocking…" : "Unlock"}
           </Button>
+          <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-xs text-muted-foreground hover:bg-muted/40">
+            <Upload className="h-3.5 w-3.5" /> Restore from backup file
+            <input type="file" accept="application/json,.json" className="hidden" onChange={handleRestoreFile} />
+          </label>
           <Button variant="ghost" onClick={handleReset} className="w-full text-xs text-muted-foreground">
             Forgot passphrase — reset wallet
           </Button>
