@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,12 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   }
 
   // Auto-lock on idle / hidden tab (configured in Settings → Security).
-  useIdleLock(() => {
+  const handleIdleLock = useCallback(() => {
     clearCachedMnemonic();
     toast.message("Wallet locked", { description: "Auto-locked after idle." });
     onLocked();
-  });
+  }, [onLocked]);
+  useIdleLock(handleIdleLock);
 
   // Build account map (one address per chain) lazily so derivation runs on demand
   const accountQuery = useQuery({
