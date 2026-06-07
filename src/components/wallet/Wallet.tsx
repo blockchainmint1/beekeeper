@@ -168,14 +168,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       {!backedUp && (
         <div className="border-b border-amber-500/40 bg-amber-500/10">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+          <div className="mx-auto flex max-w-5xl flex-col sm:flex-row flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-200">
               <ShieldAlert className="h-4 w-4 shrink-0" />
               <span>
                 <strong>Back up your wallet.</strong> Download the encrypted vault file — without it, losing this browser means losing your funds.
               </span>
             </div>
-            <Button size="sm" onClick={handleForceBackup}>
+            <Button size="sm" onClick={handleForceBackup} className="shrink-0">
               <Download className="mr-1.5 h-4 w-4" /> Download backup
             </Button>
           </div>
