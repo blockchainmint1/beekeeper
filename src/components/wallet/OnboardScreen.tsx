@@ -13,6 +13,7 @@ import {
   downloadVaultBackup,
   importVaultBlob,
 } from "@/lib/wallet/seed";
+import { secureCopy } from "@/lib/wallet/security";
 
 export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [tab, setTab] = useState<"create" | "import">("create");
@@ -137,7 +138,7 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
               ))}
             </div>
             <div className="mt-2 flex gap-2">
-              <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(mnemonic); toast.success("Phrase copied"); }}>Copy</Button>
+              <Button size="sm" variant="ghost" onClick={async () => { await secureCopy(mnemonic); toast.success("Phrase copied — auto-clears from clipboard"); }}>Copy</Button>
               <Button size="sm" variant="ghost" onClick={() => { setMnemonic(createMnemonic(128)); setVerifyInputs({}); }}>Regenerate</Button>
             </div>
           </div>
