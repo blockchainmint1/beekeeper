@@ -129,33 +129,38 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/40">
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <WalletIcon className="h-4 w-4" />
             </div>
-            <div>
-              <p className="text-sm font-semibold leading-tight">Quad-Chain Wallet</p>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-tight truncate">Quad-Chain Wallet</p>
+              <p className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">
                 TXC · ISK · ETH · BNB · BASE · POL · ZCU
               </p>
             </div>
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setMultiOpen(true)}>
-              <Send className="mr-1.5 h-4 w-4" /> Multi-send
+          <div className="flex shrink-0 gap-1">
+            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setMultiOpen(true)} aria-label="Multi-send">
+              <Send className="h-4 w-4" />
+              <span className="hidden md:inline ml-1.5">Multi-send</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSignOpen(true)}>
-              <PenLine className="mr-1.5 h-4 w-4" /> Sign
+            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setSignOpen(true)} aria-label="Sign">
+              <PenLine className="h-4 w-4" />
+              <span className="hidden md:inline ml-1.5">Sign</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setContactsOpen(true)}>
-              <BookUser className="mr-1.5 h-4 w-4" /> Contacts
+            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setContactsOpen(true)} aria-label="Contacts">
+              <BookUser className="h-4 w-4" />
+              <span className="hidden md:inline ml-1.5">Contacts</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-              <SettingsIcon className="mr-1.5 h-4 w-4" /> Settings
+            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+              <SettingsIcon className="h-4 w-4" />
+              <span className="hidden md:inline ml-1.5">Settings</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLock}>
-              <LogOut className="mr-1.5 h-4 w-4" /> Lock
+            <Button variant="ghost" size="icon" className="md:size-sm md:px-3" onClick={handleLock} aria-label="Lock">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline ml-1.5">Lock</span>
             </Button>
           </div>
         </div>
@@ -163,14 +168,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       {!backedUp && (
         <div className="border-b border-amber-500/40 bg-amber-500/10">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+          <div className="mx-auto flex max-w-5xl flex-col sm:flex-row flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-200">
               <ShieldAlert className="h-4 w-4 shrink-0" />
               <span>
                 <strong>Back up your wallet.</strong> Download the encrypted vault file — without it, losing this browser means losing your funds.
               </span>
             </div>
-            <Button size="sm" onClick={handleForceBackup}>
+            <Button size="sm" onClick={handleForceBackup} className="shrink-0">
               <Download className="mr-1.5 h-4 w-4" /> Download backup
             </Button>
           </div>
@@ -178,14 +183,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       )}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6 flex items-end justify-between gap-3">
-          <div>
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">Your wallets</h1>
             <p className="text-sm text-muted-foreground">
               One recovery phrase, seven networks, real keys held only in this browser.
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right shrink-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Native total</p>
             <p className="text-2xl font-bold tabular-nums">
               {totalQuery.data == null ? "—" : formatUsd(totalQuery.data)}

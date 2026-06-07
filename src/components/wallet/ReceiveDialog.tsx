@@ -35,9 +35,9 @@ export function ReceiveDialog({
         </DialogHeader>
         <div className="flex flex-col items-center gap-4">
           {qr ? (
-            <img src={qr} alt={`${chain.ticker} address QR`} className="rounded-lg border bg-white p-2" />
+            <img src={qr} alt={`${chain.ticker} address QR`} className="w-full max-w-[260px] rounded-lg border bg-white p-2" />
           ) : (
-            <div className="h-[260px] w-[260px] animate-pulse rounded-lg bg-muted" />
+            <div className="aspect-square w-full max-w-[260px] animate-pulse rounded-lg bg-muted" />
           )}
           <div className="w-full rounded-md border bg-muted/40 p-3 font-mono text-xs break-all text-center">
             {address}
