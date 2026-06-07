@@ -35,7 +35,7 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="security">
-          <TabsList className="flex w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
