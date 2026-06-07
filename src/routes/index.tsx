@@ -9,17 +9,17 @@ import { getCachedMnemonic, hasVault } from "@/lib/wallet/seed";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Tri-Chain Wallet — TXC · ISK · ETH" },
+      { title: "Quad-Chain Wallet — TXC · ISK · ZCU · ETH" },
       {
         name: "description",
         content:
-          "Non-custodial browser wallet for TEXITcoin, Iskander Coin, and Ethereum from a single BIP39 seed. Your keys never leave this device.",
+          "Non-custodial browser wallet for TEXITcoin, Iskander Coin, Zero Chill, and Ethereum from a single BIP39 seed.",
       },
-      { property: "og:title", content: "Tri-Chain Wallet" },
+      { property: "og:title", content: "Quad-Chain Wallet" },
       {
         property: "og:description",
         content:
-          "One recovery phrase for TXC, ISK, and ETH. Non-custodial and browser-based.",
+          "One recovery phrase for TXC, ISK, ZCU, and ETH. Non-custodial and browser-based.",
       },
     ],
   }),

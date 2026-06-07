@@ -17,9 +17,9 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
             <WalletIcon className="h-7 w-7" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Tri-Chain Wallet</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Quad-Chain Wallet</h1>
           <p className="mt-2 text-muted-foreground">
-            One seed phrase. TEXITcoin, Iskander Coin, and Ethereum — all in your browser.
+            One seed phrase. TEXITcoin, Iskander Coin, Zero Chill Units and EVM — all in your browser.
           </p>
         </div>
 
