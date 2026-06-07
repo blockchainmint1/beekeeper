@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon } from "lucide-react";
+import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
@@ -13,6 +13,8 @@ import { ReceiveDialog } from "./ReceiveDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { ContactsDialog } from "./ContactsDialog";
 import { SettingsDialog } from "./SettingsDialog";
+import { SignDialog } from "./SignDialog";
+import { MultiSendDialog } from "./MultiSendDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
@@ -29,6 +31,8 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [historyOpen, setHistoryOpen] = useState<ChainConfig | null>(null);
   const [contactsOpen, setContactsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [signOpen, setSignOpen] = useState(false);
+  const [multiOpen, setMultiOpen] = useState(false);
 
   useEffect(() => {
     if (!mnemonic) onLocked();
@@ -112,6 +116,12 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
             </div>
           </div>
           <div className="flex gap-1">
+            <Button variant="ghost" size="sm" onClick={() => setMultiOpen(true)}>
+              <Send className="mr-1.5 h-4 w-4" /> Multi-send
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSignOpen(true)}>
+              <PenLine className="mr-1.5 h-4 w-4" /> Sign
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setContactsOpen(true)}>
               <BookUser className="mr-1.5 h-4 w-4" /> Contacts
             </Button>
@@ -210,6 +220,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
           toast.success("Wallet erased from this browser");
         }}
       />
+
+      <SignDialog open={signOpen} onOpenChange={setSignOpen} />
+      <MultiSendDialog open={multiOpen} onOpenChange={setMultiOpen} />
     </div>
   );
 }
