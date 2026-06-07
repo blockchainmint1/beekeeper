@@ -9,14 +9,14 @@ import {
   type Address,
 } from "viem";
 import { mainnet } from "viem/chains";
-import { privateKeyToAccount, mnemonicToAccount } from "viem/accounts";
+import { mnemonicToAccount, type HDAccount } from "viem/accounts";
 import type { EvmChain } from "@/lib/chains";
 
 export interface EvmAccount {
   chain: EvmChain;
   index: number;
   address: Address;
-  privateKey: `0x${string}`;
+  signer: HDAccount;
 }
 
 function chainDef(chain: EvmChain) {
@@ -66,11 +66,7 @@ export function deriveEvmAccount(
     addressIndex: index,
     changeIndex: 0,
   });
-  // Re-derive privateKey via the HDKey path so we can sign later.
-  const pk = acct.getHdKey().privateKey;
-  if (!pk) throw new Error("Failed to derive EVM private key");
-  const hex = ("0x" + Array.from(pk, (b) => b.toString(16).padStart(2, "0")).join("")) as `0x${string}`;
-  return { chain, index, address: acct.address, privateKey: hex };
+  return { chain, index, address: acct.address, signer: acct };
 }
 
 export function isValidEvmAddress(addr: string): boolean {
@@ -91,9 +87,8 @@ export async function sendEvm(args: {
   amountWei: bigint;
 }): Promise<`0x${string}`> {
   const { account, to, amountWei } = args;
-  const signer = privateKeyToAccount(account.privateKey);
   const wallet = createWalletClient({
-    account: signer,
+    account: account.signer,
     chain: chainDef(account.chain),
     transport: http(account.chain.rpcUrls[0]),
   });
