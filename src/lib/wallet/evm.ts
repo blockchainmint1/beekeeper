@@ -13,8 +13,8 @@ import { mnemonicToAccount, type HDAccount } from "viem/accounts";
 import { getAddress } from "viem";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
-import { secp256k1 } from "@noble/curves/secp256k1";
-import { keccak_256 } from "@noble/hashes/sha3";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
 import type { EvmChain } from "@/lib/chains";
 
 export interface EvmAccount {
