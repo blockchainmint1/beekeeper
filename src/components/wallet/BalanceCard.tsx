@@ -29,7 +29,7 @@ export function BalanceCard({
     queryKey: ["account", chain.id],
     queryFn: async () => {
       if (chain.kind === "utxo") {
-        return { kind: "utxo" as const, account: await deriveUtxoAccount(mnemonic, chain, 0, "segwit") };
+        return { kind: "utxo" as const, account: await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType) };
       }
       return { kind: "evm" as const, account: deriveEvmAccount(mnemonic, chain, 0) };
     },

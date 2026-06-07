@@ -269,7 +269,7 @@ function RevealPanel() {
       const cfg = CHAIN_LIST.find((c) => c.id === chainId)!;
       let out: string;
       if (cfg.kind === "utxo") {
-        const acct = await deriveUtxoAccount(mnemonic, cfg, 0, "segwit");
+        const acct = await deriveUtxoAccount(mnemonic, cfg, 0, cfg.defaultAddressType);
         out = await utxoWif(acct);
       } else {
         out = evmPrivateKey(mnemonic, cfg, 0);

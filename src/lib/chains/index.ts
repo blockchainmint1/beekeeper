@@ -11,6 +11,7 @@ export interface UtxoChain {
   coinType: number;
   bip44Base: string;
   bip84Base: string;
+  defaultAddressType: "segwit" | "legacy";
   decimals: 8;
   dustSats: number;
   defaultFeeRate: number;
@@ -78,6 +79,7 @@ export const TXC: UtxoChain = {
   coinType: 696969,
   bip44Base: "m/44'/696969'/0'/0",
   bip84Base: "m/84'/696969'/0'/0",
+  defaultAddressType: "legacy",
   decimals: 8,
   dustSats: 10_000,
   defaultFeeRate: 5,
@@ -97,6 +99,7 @@ export const ISK: UtxoChain = {
   coinType: 969696,
   bip44Base: "m/44'/969696'/0'/0",
   bip84Base: "m/84'/969696'/0'/0",
+  defaultAddressType: "legacy",
   decimals: 8,
   dustSats: 10_000,
   defaultFeeRate: 5,
