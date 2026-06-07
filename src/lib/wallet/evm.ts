@@ -69,6 +69,20 @@ export function deriveEvmAccount(
   return { chain, index, address: acct.address, signer: acct };
 }
 
+/** Extract the 0x-prefixed private key hex for an EVM derivation index. */
+export function evmPrivateKey(mnemonic: string, chain: EvmChain, index = 0): `0x${string}` {
+  const acct = mnemonicToAccount(mnemonic.trim().toLowerCase(), {
+    accountIndex: 0,
+    addressIndex: index,
+    changeIndex: 0,
+  });
+  // viem's HDAccount stores the private key via getHdKey().
+  const pk = acct.getHdKey().privateKey;
+  if (!pk) throw new Error("No private key derived");
+  const hex = Array.from(pk).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `0x${hex}` as `0x${string}`;
+}
+
 export function isValidEvmAddress(addr: string): boolean {
   return isAddress(addr.trim());
 }

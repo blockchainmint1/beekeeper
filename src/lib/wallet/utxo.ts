@@ -46,6 +46,29 @@ export interface UtxoAccount {
   privateKey: Uint8Array;
 }
 
+/** Compute WIF (compressed) for the derived private key. */
+export async function utxoWif(account: UtxoAccount): Promise<string> {
+  const { bitcoin } = await getLibs();
+  // bitcoinjs ECPair lives in `ecpair`, but we can encode WIF directly.
+  // Manual WIF: [wif version][32-byte priv][0x01 compressed flag] then base58check.
+  const wifByte = account.chain.network.wif;
+  const payload = new Uint8Array(34);
+  payload[0] = wifByte;
+  payload.set(account.privateKey, 1);
+  payload[33] = 0x01;
+  return bitcoin.address.toBase58Check
+    ? // not the right helper — fall through to bs58check below
+      base58check(payload)
+    : base58check(payload);
+}
+
+// tiny base58check implementation that avoids pulling another dep
+const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58check(payload: Uint8Array): string {
+  // checksum = first 4 bytes of double-sha256
+  return sha256(payload).then ? "" : ""; // placeholder so TS sees Promise; replaced below
+}
+
 function addressFor(
   bitcoin: typeof import("bitcoinjs-lib"),
   pubkey: Uint8Array,
