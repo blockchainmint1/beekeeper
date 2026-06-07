@@ -95,6 +95,37 @@ export function exportVaultJson(): string | null {
   return blob ? JSON.stringify(blob, null, 2) : null;
 }
 
+/** Trigger a browser download of the encrypted vault JSON. */
+export function downloadVaultBackup(filename = `wallet-backup-${new Date().toISOString().slice(0, 10)}.json`): boolean {
+  const json = exportVaultJson();
+  if (!json) return false;
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
+/** Import an encrypted vault JSON and replace the current one (passphrase still required to unlock). */
+export function importVaultBlob(json: string): void {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error("Invalid backup file (not JSON)");
+  }
+  const blob = parsed as Partial<EncryptedBlob>;
+  if (!blob || typeof blob !== "object" || !blob.cipherText || !blob.iv || !blob.salt) {
+    throw new Error("Backup file is missing required fields");
+  }
+  saveVault(blob as EncryptedBlob);
+}
+
 export function mnemonicToSeed(mnemonic: string, passphrase = ""): Uint8Array {
   return mnemonicToSeedSync(mnemonic.trim().toLowerCase(), passphrase);
 }
