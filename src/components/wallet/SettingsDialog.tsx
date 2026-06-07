@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { CHAIN_LIST, type ChainId } from "@/lib/chains";
 import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey } from "@/lib/wallet/evm";
+import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 
 export function SettingsDialog({
   open,
@@ -32,29 +33,103 @@ export function SettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="backup">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="security">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="backup" className="pt-4">
-            <BackupPanel />
-          </TabsContent>
-          <TabsContent value="passphrase" className="pt-4">
-            <PassphrasePanel />
-          </TabsContent>
-          <TabsContent value="reveal" className="pt-4">
-            <RevealPanel />
-          </TabsContent>
-          <TabsContent value="danger" className="pt-4">
-            <DangerPanel onWipe={onWipe} />
-          </TabsContent>
+          <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
+          <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
+          <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
+          <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
+          <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SecurityPanel() {
+  const prefs = useSecurityPrefs();
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label className="text-xs">Auto-lock after idle (minutes)</Label>
+        <Select
+          value={String(prefs.autoLockMinutes)}
+          onValueChange={(v) => setSecurityPrefs({ autoLockMinutes: Number(v) })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">Disabled</SelectItem>
+            <SelectItem value="1">1 minute</SelectItem>
+            <SelectItem value="5">5 minutes</SelectItem>
+            <SelectItem value="15">15 minutes</SelectItem>
+            <SelectItem value="30">30 minutes</SelectItem>
+            <SelectItem value="60">1 hour</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Wallet locks automatically after this much mouse/keyboard inactivity.
+        </p>
+      </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={prefs.lockOnHidden}
+          onChange={(e) => setSecurityPrefs({ lockOnHidden: e.target.checked })}
+          className="mt-0.5"
+        />
+        <span>Lock when this tab is hidden for &gt; 60 seconds</span>
+      </label>
+
+      <div>
+        <Label className="text-xs">Anti-phishing phrase</Label>
+        <Input
+          value={prefs.antiPhishingPhrase}
+          onChange={(e) => setSecurityPrefs({ antiPhishingPhrase: e.target.value.slice(0, 64) })}
+          placeholder="e.g. blue rhino monday"
+        />
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Shown on the unlock screen so you can spot fake clones of this site.
+          A phishing site won't know your phrase.
+        </p>
+      </div>
+
+      <div>
+        <Label className="text-xs">Auto-clear clipboard after</Label>
+        <Select
+          value={String(prefs.clipboardClearSeconds)}
+          onValueChange={(v) => setSecurityPrefs({ clipboardClearSeconds: Number(v) })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">Never</SelectItem>
+            <SelectItem value="15">15 seconds</SelectItem>
+            <SelectItem value="30">30 seconds</SelectItem>
+            <SelectItem value="60">1 minute</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Sensitive copies (seed phrase, private keys, WIF) are wiped from the clipboard after this delay.
+        </p>
+      </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={prefs.firstSendWarning}
+          onChange={(e) => setSecurityPrefs({ firstSendWarning: e.target.checked })}
+          className="mt-0.5"
+        />
+        <span>Warn me before sending to an address I've never used before</span>
+      </label>
+    </div>
   );
 }
 
@@ -220,7 +295,7 @@ function RevealPanel() {
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" className="flex-1"
-              onClick={async () => { await navigator.clipboard.writeText(key); toast.success("Copied"); }}>Copy</Button>
+              onClick={async () => { await secureCopy(key); toast.success("Copied — auto-clears from clipboard"); }}>Copy</Button>
             <Button size="sm" variant="ghost" onClick={() => { setKey(null); setShow(false); }}>Hide now</Button>
           </div>
           <p className="text-[10px] text-muted-foreground">Auto-hides after 1 minute.</p>

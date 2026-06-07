@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { MultiSendDialog } from "./MultiSendDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
+import { useIdleLock } from "@/lib/wallet/security";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -42,6 +43,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     clearCachedMnemonic();
     onLocked();
   }
+
+  // Auto-lock on idle / hidden tab (configured in Settings → Security).
+  const handleIdleLock = useCallback(() => {
+    clearCachedMnemonic();
+    toast.message("Wallet locked", { description: "Auto-locked after idle." });
+    onLocked();
+  }, [onLocked]);
+  useIdleLock(handleIdleLock);
 
   // Build account map (one address per chain) lazily so derivation runs on demand
   const accountQuery = useQuery({

@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Lock, Upload, Wallet as WalletIcon } from "lucide-react";
 import { unlockVault, wipeVault, importVaultBlob } from "@/lib/wallet/seed";
+import { useSecurityPrefs } from "@/lib/wallet/security";
 
 export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; onReset: () => void }) {
   const [pass, setPass] = useState("");
   const [busy, setBusy] = useState(false);
+  const prefs = useSecurityPrefs();
 
   async function handle() {
     setBusy(true);
@@ -54,6 +56,15 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
           <CardDescription>Enter your passphrase to unlock the wallet.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {prefs.antiPhishingPhrase && (
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+              <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">Your anti-phishing phrase</p>
+              <p className="mt-0.5 font-mono text-sm text-emerald-200">{prefs.antiPhishingPhrase}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                If you don't see this, you may be on a fake site — don't enter your passphrase.
+              </p>
+            </div>
+          )}
           <Input
             type="password"
             placeholder="Passphrase"
