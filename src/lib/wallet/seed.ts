@@ -80,6 +80,21 @@ export async function unlockVault(passphrase: string): Promise<string> {
   return payload.mnemonic;
 }
 
+/** Re-encrypts the existing vault under a new passphrase. */
+export async function changePassphrase(current: string, next: string): Promise<void> {
+  const blob = loadVault();
+  if (!blob) throw new Error("No wallet found");
+  const payload = await decryptJson<VaultPayload>(blob, current);
+  const reencrypted = await encryptJson(payload, next);
+  saveVault(reencrypted);
+}
+
+/** Returns the encrypted vault as a downloadable JSON string. */
+export function exportVaultJson(): string | null {
+  const blob = loadVault();
+  return blob ? JSON.stringify(blob, null, 2) : null;
+}
+
 export function mnemonicToSeed(mnemonic: string, passphrase = ""): Uint8Array {
   return mnemonicToSeedSync(mnemonic.trim().toLowerCase(), passphrase);
 }
