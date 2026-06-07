@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send } from "lucide-react";
+import { Wallet as WalletIcon, LogOut, BookUser, Settings as SettingsIcon, PenLine, Send, ShieldAlert, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
-import { clearCachedMnemonic, getCachedMnemonic, wipeVault } from "@/lib/wallet/seed";
+import { clearCachedMnemonic, getCachedMnemonic, wipeVault, isVaultBackedUp, downloadVaultBackup } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, type UtxoAccount } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, type EvmAccount } from "@/lib/wallet/evm";
 import { BalanceCard } from "./BalanceCard";
@@ -34,10 +34,21 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
   const [multiOpen, setMultiOpen] = useState(false);
+  const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
 
   useEffect(() => {
     if (!mnemonic) onLocked();
   }, [mnemonic, onLocked]);
+
+  function handleForceBackup() {
+    const ok = downloadVaultBackup();
+    if (ok) {
+      setBackedUp(true);
+      toast.success("Encrypted backup saved");
+    } else {
+      toast.error("No vault to back up");
+    }
+  }
 
   function handleLock() {
     clearCachedMnemonic();
@@ -143,6 +154,22 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
           </div>
         </div>
       </header>
+
+      {!backedUp && (
+        <div className="border-b border-amber-500/40 bg-amber-500/10">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-200">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>
+                <strong>Back up your wallet.</strong> Download the encrypted vault file — without it, losing this browser means losing your funds.
+              </span>
+            </div>
+            <Button size="sm" onClick={handleForceBackup}>
+              <Download className="mr-1.5 h-4 w-4" /> Download backup
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-6 flex items-end justify-between gap-3">
