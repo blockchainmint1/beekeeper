@@ -59,7 +59,6 @@ export function SettingsDialog({
 }
 
 function WalletsPanel() {
-function WalletsPanel() {
   const visible = useVisibleChainIds();
   const visibleChains = visible
     .map((id) => CHAIN_LIST.find((c) => c.id === id))
