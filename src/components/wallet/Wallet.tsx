@@ -28,6 +28,7 @@ import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
 import { MetalWalletCardConnected } from "./MetalWalletCardConnected";
 import { ActionPanel, type ActionItem } from "./ActionPanel";
+import { OmniTokensPanel } from "./OmniTokensPanel";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -280,6 +281,16 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       {activeChain && (
         <section className="px-5 mt-6">
           <ActionPanel chain={activeChain} actions={actions} />
+        </section>
+      )}
+
+      {/* Omni Layer tokens (TXC) */}
+      {activeChain?.kind === "utxo" && activeChain.supportsOmni && (
+        <section className="px-5 mt-5">
+          <OmniTokensPanel
+            chain={activeChain}
+            address={accountQuery.data?.[activeChain.id]?.account.address ?? null}
+          />
         </section>
       )}
 
