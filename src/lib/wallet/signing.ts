@@ -76,7 +76,9 @@ export async function utxoSignMessage(args: {
   const priv = derivePrivForUtxo(args.mnemonic, args.chain, args.index ?? 0, type);
   const bmsg = await getBmsg();
   const prefix = args.chain.network.messagePrefix;
-  const sig = bmsg.sign(args.message, priv, true, prefix, type === "segwit" ? { segwitType: "p2wpkh" } : undefined);
+  // bitcoinjs-message / secp256k1 require a Node Buffer, not a Uint8Array.
+  const privBuf = (globalThis as { Buffer?: { from: (a: Uint8Array) => Uint8Array } }).Buffer?.from(priv) ?? priv;
+  const sig = bmsg.sign(args.message, privBuf as Uint8Array, true, prefix, type === "segwit" ? { segwitType: "p2wpkh" } : undefined);
   // Encode as base64
   const bytes = sig instanceof Uint8Array ? sig : new Uint8Array(sig as ArrayLike<number>);
   let bin = "";
