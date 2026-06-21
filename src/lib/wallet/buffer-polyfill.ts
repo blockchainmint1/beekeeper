@@ -7,7 +7,7 @@
 import { Buffer as BufferPolyfill } from "buffer/";
 
 if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
-  (globalThis as { Buffer: typeof BufferPolyfill }).Buffer = BufferPolyfill;
+  (globalThis as unknown as { Buffer: unknown }).Buffer = BufferPolyfill;
 }
 
 export const Buffer = BufferPolyfill;
