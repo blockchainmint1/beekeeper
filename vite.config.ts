@@ -5,6 +5,10 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const bufferPkg = require.resolve("buffer/");
 
 export default defineConfig({
   tanstackStart: {
@@ -18,8 +22,10 @@ export default defineConfig({
         // Force the npm `buffer` package in the browser bundle instead of
         // Vite's externalized `node:buffer`. bitcoinjs-message / secp256k1
         // need a real Buffer constructor at runtime.
-        buffer: "buffer/index.js",
+        buffer: bufferPkg,
+        "node:buffer": bufferPkg,
       },
     },
+    optimizeDeps: { include: ["buffer"] },
   },
 });
