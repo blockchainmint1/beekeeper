@@ -40,7 +40,7 @@ function SignPage() {
       return;
     }
     await new Promise<void>((resolve) =>
-      chrome.runtime.sendMessage(extensionId, { v: 1, type: "response", ...resp }, () => resolve()),
+      chrome.runtime.sendMessage(extensionId, { type: "response", ...resp }, () => resolve()),
     );
   }
 
