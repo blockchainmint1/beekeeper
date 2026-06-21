@@ -9,20 +9,21 @@ import { getCachedMnemonic, hasVault } from "@/lib/wallet/seed";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "One Wallet — TXC · ISK · ETH · BNB · BASE · POL · ZCU" },
+      { title: "One Wallet — BTC · LTC · BCH · TXC · ISK · ZCU · ETH · BNB · BASE · POL · TRX · SOL" },
       {
         name: "description",
         content:
-          "Non-custodial browser wallet for TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base and Polygon — plus USDC/USDT/DAI — all from one BIP39 seed.",
+          "Non-custodial browser wallet for Bitcoin, Litecoin, Bitcoin Cash, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all from one BIP39 seed.",
       },
       { property: "og:title", content: "One Wallet to Rule Them All" },
       {
         property: "og:description",
         content:
-          "One recovery phrase, two UTXO chains, five EVM chains, stablecoin balances and sends — all in your browser.",
+          "One recovery phrase, multiple UTXO and EVM chains, TRON, Solana, stablecoin balances and sends — all in your browser.",
       },
     ],
   }),
+
   component: Index,
   ssr: false,
 });

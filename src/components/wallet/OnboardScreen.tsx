@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet as WalletIcon, KeyRound, Sparkles, Download, Upload, ShieldCheck } from "lucide-react";
+import { KeyRound, Sparkles, Download, Upload, ShieldCheck } from "lucide-react";
 import {
   createMnemonic,
   isValidMnemonic,
@@ -29,12 +29,9 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
           <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Honest Money Ecosystem
           </p>
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4 mt-6">
-            <WalletIcon className="h-7 w-7" />
-          </div>
           <h1 className="text-3xl font-bold tracking-tight">One Wallet to Rule Them All</h1>
           <p className="mt-2 text-muted-foreground">
-            One seed phrase. TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon — plus USDC/USDT/DAI — all in your browser.
+            One seed phrase. Bitcoin, Litecoin, Bitcoin Cash, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all in your browser.
           </p>
         </div>
 
