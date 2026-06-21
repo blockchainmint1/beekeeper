@@ -2,10 +2,12 @@
 // Use a synchronous static import so the polyfill is installed BEFORE any
 // consumer module evaluates — top-level `await import()` is too late because
 // dependent modules can run their own top-level code first.
+// Force resolution to the npm `buffer` package (not Node's `node:buffer`,
+// which Vite externalizes for browser builds).
 import { Buffer as BufferPolyfill } from "buffer";
 
 if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
-  (globalThis as { Buffer: typeof BufferPolyfill }).Buffer = BufferPolyfill;
+  (globalThis as unknown as { Buffer: unknown }).Buffer = BufferPolyfill;
 }
 
 export const Buffer = BufferPolyfill;
