@@ -340,7 +340,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </div>
       </section>
 
-      {/* Recent activity (placeholder until full activity feed lands) */}
+      {/* Recent activity */}
       <section className="px-5 mt-7">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold">Recent Activity</h2>
@@ -350,10 +350,13 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
             </button>
           )}
         </div>
-        <div className="glass-card rounded-2xl px-4 py-5 text-center text-sm text-muted-foreground">
-          Tap <span className="font-semibold text-foreground">History</span> above to view on-chain activity for {activeChain?.ticker ?? "this wallet"}.
-        </div>
+        <RecentActivity
+          chain={activeChain}
+          address={accountQuery.data?.[activeChain?.id ?? ""]?.account.address}
+          onSeeAll={() => activeChain && setHistoryOpen(activeChain)}
+        />
       </section>
+
 
       {sendOpen && activeAccount && (
         <SendDialog
