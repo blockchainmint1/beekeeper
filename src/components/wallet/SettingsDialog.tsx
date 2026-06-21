@@ -100,7 +100,7 @@ function WalletsPanel() {
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium leading-tight">{c.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind.toUpperCase()}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
                   <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => move(idx, -1)} aria-label="Move up">
@@ -139,7 +139,7 @@ function WalletsPanel() {
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium leading-tight">{c.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind === "utxo" ? "UTXO" : "EVM"}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.ticker} · {c.kind.toUpperCase()}</p>
                 </div>
                 <Button variant="outline" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => add(c.id)}>
                   <Plus className="mr-1 h-3 w-3" /> Add
@@ -326,8 +326,18 @@ function RevealPanel() {
       if (cfg.kind === "utxo") {
         const acct = await deriveUtxoAccount(mnemonic, cfg, 0, cfg.defaultAddressType);
         out = await utxoWif(acct);
-      } else {
+      } else if (cfg.kind === "evm") {
         out = evmPrivateKey(mnemonic, cfg, 0);
+      } else if (cfg.kind === "tron") {
+        const { deriveTronAccount } = await import("@/lib/wallet/tron");
+        const acct = deriveTronAccount(mnemonic, cfg, 0);
+        out = "0x" + Array.from(acct.privateKey).map((b) => b.toString(16).padStart(2, "0")).join("");
+      } else {
+        const { deriveSolanaAccount } = await import("@/lib/wallet/solana");
+        const acct = deriveSolanaAccount(mnemonic, cfg, 0);
+        // Solana secret key is 64 bytes (priv + pub). Phantom-compatible base58.
+        const bs58 = (await import("bs58")).default as { encode: (b: Uint8Array) => string };
+        out = bs58.encode(acct.keypair.secretKey);
       }
       setKey(out); setPass(""); setShow(false);
     } catch (e) {
@@ -357,7 +367,13 @@ function RevealPanel() {
           </SelectContent>
         </Select>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {cfg.kind === "utxo" ? "WIF (compressed) — import in any UTXO wallet." : "0x-hex private key — import in MetaMask, Rabby, etc."}
+          {cfg.kind === "utxo"
+            ? "WIF (compressed) — import in any UTXO wallet."
+            : cfg.kind === "evm"
+              ? "0x-hex private key — import in MetaMask, Rabby, etc."
+              : cfg.kind === "tron"
+                ? "Hex private key — import in TronLink."
+                : "Base58 secret key (64 bytes) — import in Phantom or Solflare."}
         </p>
       </div>
 
@@ -381,7 +397,12 @@ function RevealPanel() {
       ) : (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
           <div className="flex items-center justify-between">
-            <Label className="text-xs">{cfg.kind === "utxo" ? "Private key (WIF)" : "Private key (0x)"}</Label>
+            <Label className="text-xs">
+              {cfg.kind === "utxo" ? "Private key (WIF)"
+                : cfg.kind === "evm" ? "Private key (0x)"
+                : cfg.kind === "tron" ? "Private key (hex)"
+                : "Secret key (base58)"}
+            </Label>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{cfg.ticker}</Badge>
               <Button size="sm" variant="ghost" onClick={() => setShow((s) => !s)}>

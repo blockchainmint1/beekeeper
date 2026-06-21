@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, ExternalLink, Loader2, RefreshCw, Repeat }
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ChainConfig } from "@/lib/chains";
-import { fetchUtxoHistory } from "@/lib/wallet/history";
+import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 
 export function HistoryDialog({
   open,
@@ -16,13 +16,13 @@ export function HistoryDialog({
   chain: ChainConfig;
   address: string;
 }) {
-  const utxo = chain.kind === "utxo";
+  const native = hasNativeHistory(chain);
 
   const query = useQuery({
     queryKey: ["history", chain.id, address],
-    enabled: open && utxo && !!address,
+    enabled: open && native && !!address,
     refetchOnWindowFocus: false,
-    queryFn: () => fetchUtxoHistory(chain as never, address),
+    queryFn: () => fetchHistory(chain, address),
   });
 
   return (
@@ -31,11 +31,11 @@ export function HistoryDialog({
         <DialogHeader>
           <DialogTitle>{chain.name} history</DialogTitle>
           <DialogDescription>
-            {utxo ? "Most recent transactions for this address." : "EVM history opens in the block explorer."}
+            {native ? "Most recent transactions for this address." : "EVM history opens in the block explorer."}
           </DialogDescription>
         </DialogHeader>
 
-        {!utxo ? (
+        {!native ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               The full history for this account, including ERC-20 transfers and contract calls, lives in {chain.name}'s explorer.

@@ -31,7 +31,10 @@ export function BalanceCard({
       if (chain.kind === "utxo") {
         return { kind: "utxo" as const, account: await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType) };
       }
-      return { kind: "evm" as const, account: deriveEvmAccount(mnemonic, chain, 0) };
+      if (chain.kind === "evm") {
+        return { kind: "evm" as const, account: deriveEvmAccount(mnemonic, chain, 0) };
+      }
+      throw new Error("BalanceCard is UTXO/EVM only");
     },
     staleTime: Infinity,
   });

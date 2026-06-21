@@ -187,7 +187,18 @@ function ContactForm({
       const trimmed = address.trim();
       if (!trimmed) throw new Error("Address is required");
       const cfg = CHAINS[chain];
-      const ok = cfg.kind === "evm" ? isValidEvmAddress(trimmed) : await validateUtxoAddress(trimmed, cfg);
+      let ok = false;
+      if (cfg.kind === "evm") {
+        ok = isValidEvmAddress(trimmed);
+      } else if (cfg.kind === "tron") {
+        const { isValidTronAddress } = await import("@/lib/wallet/tron");
+        ok = isValidTronAddress(trimmed);
+      } else if (cfg.kind === "solana") {
+        const { isValidSolanaAddress } = await import("@/lib/wallet/solana");
+        ok = isValidSolanaAddress(trimmed);
+      } else {
+        ok = await validateUtxoAddress(trimmed, cfg);
+      }
       if (!ok) throw new Error(`Not a valid ${cfg.ticker} address`);
       upsertContact({ id: initial?.id, chain, address: trimmed, label, notes: notes.trim() || undefined });
       toast.success(isEdit ? "Contact updated" : "Contact saved");
@@ -218,7 +229,15 @@ function ContactForm({
           id="c-addr"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder={CHAINS[chain].kind === "evm" ? "0x…" : "txc1… / isk1…"}
+          placeholder={
+            CHAINS[chain].kind === "evm"
+              ? "0x…"
+              : CHAINS[chain].kind === "tron"
+                ? "T…"
+                : CHAINS[chain].kind === "solana"
+                  ? "base58 pubkey…"
+                  : "address…"
+          }
           className="font-mono text-xs sm:text-sm"
           disabled={isEdit}
         />

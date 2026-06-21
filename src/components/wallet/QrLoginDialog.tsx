@@ -114,10 +114,16 @@ export function QrLoginDialog({
       // For envelope protocol, rebuild the message now that we know the real address.
       let finalMsg = message;
       if (request.protocol === "envelope") {
-        const addr =
-          chain.kind === "evm"
-            ? (await import("@/lib/wallet/evm")).deriveEvmAccount(mnemonic, chain, 0).address
-            : (await (await import("@/lib/wallet/utxo")).deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType)).address;
+        let addr: string;
+        if (chain.kind === "evm") {
+          addr = (await import("@/lib/wallet/evm")).deriveEvmAccount(mnemonic, chain, 0).address;
+        } else if (chain.kind === "tron") {
+          addr = (await import("@/lib/wallet/tron")).deriveTronAccount(mnemonic, chain, 0).address;
+        } else if (chain.kind === "solana") {
+          addr = (await import("@/lib/wallet/solana")).deriveSolanaAccount(mnemonic, chain, 0).address;
+        } else {
+          addr = (await (await import("@/lib/wallet/utxo")).deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType)).address;
+        }
         finalMsg = buildLoginMessage(request, addr, chain);
       }
       const result = await signQrLogin({ mnemonic, chain, request, message: finalMsg });

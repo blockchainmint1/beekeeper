@@ -3,6 +3,7 @@
 import { HDKey } from "@scure/bip32";
 import type { UtxoChain } from "@/lib/chains";
 import { mnemonicToSeed } from "./seed";
+import { toLegacyBch, toCashAddr, isValidBchAddress } from "./cashaddr";
 
 export type AddressType = "segwit" | "legacy";
 
@@ -94,18 +95,24 @@ export async function deriveUtxoAccount(
   type: AddressType = "segwit",
 ): Promise<UtxoAccount> {
   const { bitcoin } = await getLibs();
+  // BCH has no native segwit — force legacy.
+  const effectiveType: AddressType = chain.cashAddrPrefix ? "legacy" : type;
   const seed = mnemonicToSeed(mnemonic);
   const root = HDKey.fromMasterSeed(seed);
-  const base = type === "segwit" ? chain.bip84Base : chain.bip44Base;
+  const base = effectiveType === "segwit" ? chain.bip84Base : chain.bip44Base;
   const child = root.derive(`${base}/${index}`);
   if (!child.privateKey || !child.publicKey) {
     throw new Error("No private key derived");
   }
-  const address = addressFor(bitcoin, child.publicKey, type, chain);
+  let address = addressFor(bitcoin, child.publicKey, effectiveType, chain);
+  // Convert legacy → CashAddr for display on BCH-family chains.
+  if (chain.cashAddrPrefix) {
+    try { address = toCashAddr(address); } catch { /* fall back to legacy */ }
+  }
   return {
     chain,
     index,
-    type,
+    type: effectiveType,
     address,
     publicKey: child.publicKey,
     privateKey: child.privateKey,
@@ -114,6 +121,10 @@ export async function deriveUtxoAccount(
 
 export async function validateUtxoAddress(addr: string, chain: UtxoChain): Promise<boolean> {
   const { bitcoin } = await getLibs();
+  if (chain.cashAddrPrefix) {
+    // Accept CashAddr or legacy on BCH-family chains.
+    if (isValidBchAddress(addr)) return true;
+  }
   try {
     bitcoin.address.toOutputScript(addr.trim(), chain.network);
     return true;
@@ -193,7 +204,21 @@ export async function buildAndSign(args: {
   const { account, utxos, toAddress, amountSats, feeRate } = args;
   if (utxos.length === 0) throw new Error("No UTXOs available");
 
+  // BCH and other SIGHASH_FORKID chains need a custom BIP143 signer
+  // that bitcoinjs-lib does not provide. Surface a clear message instead
+  // of broadcasting an invalid (non-fork-id) transaction that the network
+  // will silently reject.
+  if (account.chain.forkId !== undefined) {
+    throw new Error(
+      `${account.chain.ticker} send is not yet supported in this build. ` +
+      `Receive, balance, history, and message signing all work — sending is ` +
+      `coming in a follow-up that adds SIGHASH_FORKID signing.`,
+    );
+  }
+
   const isSegwit = account.type === "segwit";
+  // BCH-family addresses arrive in CashAddr form — normalize before bitcoinjs-lib.
+  const normalizedTo = account.chain.cashAddrPrefix ? toLegacyBch(toAddress) : toAddress;
   const prevHexes = isSegwit
     ? []
     : await Promise.all(utxos.map((u) => esplora.txHex(account.chain, u.txid)));
@@ -223,9 +248,10 @@ export async function buildAndSign(args: {
   const change = totalIn - amountSats - fee;
   if (change < 0) throw new Error("Insufficient funds for amount + fee");
 
-  psbt.addOutput({ address: toAddress, value: BigInt(amountSats) });
+  psbt.addOutput({ address: normalizedTo, value: BigInt(amountSats) });
   if (change >= account.chain.dustSats) {
-    psbt.addOutput({ address: account.address, value: BigInt(change) });
+    const changeAddr = account.chain.cashAddrPrefix ? toLegacyBch(account.address) : account.address;
+    psbt.addOutput({ address: changeAddr, value: BigInt(change) });
   }
 
   const ecSigner = {
