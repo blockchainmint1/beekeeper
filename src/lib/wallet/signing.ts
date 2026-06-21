@@ -5,6 +5,7 @@ import { mnemonicToAccount } from "viem/accounts";
 import type { EvmChain, UtxoChain } from "@/lib/chains";
 import { mnemonicToSeed } from "./seed";
 import { HDKey } from "@scure/bip32";
+import { Buffer as BufferPolyfill } from "./buffer-polyfill";
 
 /* ───── EVM ───── */
 
@@ -42,13 +43,17 @@ export async function evmVerifyMessage(args: {
 /* ───── UTXO (BIP137 / Bitcoin signed messages) ───── */
 
 async function getBmsg() {
-  await import("./buffer-polyfill");
   const mod = (await import("bitcoinjs-message")) as unknown as {
     sign: (msg: string, priv: Uint8Array, compressed: boolean, prefix?: string, opts?: { segwitType?: "p2wpkh" | "p2sh(p2wpkh)" }) => Uint8Array;
     verify: (msg: string, addr: string, sig: string | Uint8Array, prefix?: string, checkSegwitAlways?: boolean) => boolean;
     default?: unknown;
   };
-  return mod;
+  // Some bundlers (Vite CJS interop) only expose the named API on `.default`.
+  const def = mod.default as { sign?: typeof mod.sign; verify?: typeof mod.verify } | undefined;
+  return {
+    sign: mod.sign ?? def?.sign!,
+    verify: mod.verify ?? def?.verify!,
+  };
 }
 
 function derivePrivForUtxo(
@@ -77,8 +82,8 @@ export async function utxoSignMessage(args: {
   const bmsg = await getBmsg();
   const prefix = args.chain.network.messagePrefix;
   // bitcoinjs-message / secp256k1 require a Node Buffer, not a Uint8Array.
-  const privBuf = (globalThis as { Buffer?: { from: (a: Uint8Array) => Uint8Array } }).Buffer?.from(priv) ?? priv;
-  const sig = bmsg.sign(args.message, privBuf as Uint8Array, true, prefix, type === "segwit" ? { segwitType: "p2wpkh" } : undefined);
+  const privBuf = BufferPolyfill.from(priv);
+  const sig = bmsg.sign(args.message, privBuf as unknown as Uint8Array, true, prefix, type === "segwit" ? { segwitType: "p2wpkh" } : undefined);
   // Encode as base64
   const bytes = sig instanceof Uint8Array ? sig : new Uint8Array(sig as ArrayLike<number>);
   let bin = "";
