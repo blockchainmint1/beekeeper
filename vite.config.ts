@@ -20,6 +20,12 @@ export default defineConfig({
       // don't match, causing "No known conditions for '.' specifier".
       conditions: ["browser", "import", "module", "default"],
     },
+    ssr: {
+      resolve: {
+        conditions: ["node", "import", "module", "default"],
+        externalConditions: ["node", "import", "module", "default"],
+      },
+    },
     plugins: [
       // bitcoinjs-message / ripemd160 / cipher-base / etc. expect Node's
       // Buffer / stream / crypto in the browser. Polyfill them so the
