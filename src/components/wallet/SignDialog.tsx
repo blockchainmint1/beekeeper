@@ -18,6 +18,8 @@ import {
 } from "@/lib/wallet/signing";
 import { deriveUtxoAccount } from "@/lib/wallet/utxo";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
+import { deriveTronAccount, tronSignMessage, tronVerifyMessage } from "@/lib/wallet/tron";
+import { deriveSolanaAccount, solanaSignMessage, solanaVerifyMessage } from "@/lib/wallet/solana";
 
 export function SignDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   return (
@@ -60,6 +62,14 @@ function SignTab() {
       if (chain.kind === "evm") {
         const { address, signature } = await evmSignMessage({ mnemonic, chain, message });
         setResult({ address, signature });
+      } else if (chain.kind === "tron") {
+        const acct = deriveTronAccount(mnemonic, chain, 0);
+        const signature = tronSignMessage(acct, message);
+        setResult({ address: acct.address, signature });
+      } else if (chain.kind === "solana") {
+        const acct = deriveSolanaAccount(mnemonic, chain, 0);
+        const signature = solanaSignMessage(acct, message);
+        setResult({ address: acct.address, signature });
       } else {
         const account = await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType);
         const signature = await utxoSignMessage({ mnemonic, chain, message, type: chain.defaultAddressType });
@@ -140,6 +150,10 @@ function VerifyTab() {
           signature: signature.trim() as `0x${string}`,
           expectedAddress: address.trim(),
         });
+      } else if (chain.kind === "tron") {
+        ok = tronVerifyMessage({ address: address.trim(), message, signatureHex: signature.trim() });
+      } else if (chain.kind === "solana") {
+        ok = solanaVerifyMessage({ address: address.trim(), message, signatureBase58: signature.trim() });
       } else {
         ok = await utxoVerifyMessage({ chain, message, address: address.trim(), signatureBase64: signature.trim() });
       }
