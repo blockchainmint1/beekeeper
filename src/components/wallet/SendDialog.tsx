@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, ExternalLink, BookUser } from "lucide-react";
+import { Send, ExternalLink, BookUser, ScanLine } from "lucide-react";
 import type { ChainConfig, EvmChain, Erc20Token } from "@/lib/chains";
 import {
   validateUtxoAddress,
@@ -43,6 +43,8 @@ import {
 import { useContacts } from "@/lib/wallet/contacts";
 import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/security";
 import type { Address } from "viem";
+import { QrScanDialog } from "./QrScanDialog";
+import { parsePaymentUri } from "@/lib/wallet/payment-uri";
 
 type Account =
   | { kind: "utxo"; account: UtxoAccount }
@@ -71,6 +73,7 @@ export function SendDialog({
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [txid, setTxid] = useState<string | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   // EVM-only: which asset to send — "native" or one of chain.tokens
   const evmChain = chain.kind === "evm" ? (chain as EvmChain) : null;
   const [asset, setAsset] = useState<string>(initialTokenSymbol ?? "native");
@@ -214,6 +217,49 @@ export function SendDialog({
     [contacts, ownAddress],
   );
 
+  function handleScanned(raw: string) {
+    try {
+      const parsed = parsePaymentUri(raw);
+      // Bare address (no scheme): just fill recipient.
+      if (!parsed.scheme) {
+        setTo(parsed.address);
+        toast.success("Address scanned");
+        return;
+      }
+      // Unknown scheme — still try the address.
+      if (!parsed.chain) {
+        setTo(parsed.address);
+        toast.warning(`Unknown payment scheme "${parsed.scheme}:" — filled address only`);
+        return;
+      }
+      // Chain mismatch — fill what we can but warn loudly.
+      if (parsed.chain.id !== chain.id) {
+        setTo(parsed.address);
+        if (parsed.amount) setAmount(parsed.amount);
+        toast.warning(
+          `QR is for ${parsed.chain.name} (${parsed.chain.ticker}). Switch wallet to ${parsed.chain.ticker} to send.`,
+        );
+        return;
+      }
+      // Match — fill fields. Optionally switch ERC20 asset if symbol matches.
+      setTo(parsed.address);
+      if (parsed.amount) setAmount(parsed.amount);
+      if (parsed.tokenSymbol && evmChain) {
+        const match = evmChain.tokens.find(
+          (t) => t.symbol.toLowerCase() === parsed.tokenSymbol!.toLowerCase(),
+        );
+        if (match) setAsset(match.symbol);
+      }
+      const bits = [
+        `${parsed.chain.ticker} address`,
+        parsed.amount ? `amount ${parsed.amount}` : null,
+      ].filter(Boolean).join(" · ");
+      toast.success(`Scanned: ${bits}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read QR");
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
@@ -257,21 +303,33 @@ export function SendDialog({
 
             <div>
               <Label htmlFor="to" className="mb-1.5 block text-xs">Recipient address</Label>
-              <Input
-                id="to"
-                placeholder={
-                  chain.kind === "evm"
-                    ? "0x…"
-                    : chain.kind === "tron"
-                      ? "T…"
-                      : chain.kind === "solana"
-                        ? "base58 pubkey…"
-                        : `${chain.ticker.toLowerCase()}1…`
-                }
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="font-mono text-sm"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="to"
+                  placeholder={
+                    chain.kind === "evm"
+                      ? "0x…"
+                      : chain.kind === "tron"
+                        ? "T…"
+                        : chain.kind === "solana"
+                          ? "base58 pubkey…"
+                          : `${chain.ticker.toLowerCase()}1…`
+                  }
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setScanOpen(true)}
+                  title="Scan QR code"
+                  aria-label="Scan QR code"
+                >
+                  <ScanLine className="h-4 w-4" />
+                </Button>
+              </div>
               {filteredContacts.length > 0 && (
                 <div className="mt-1.5">
                   <Select value="" onValueChange={(v) => setTo(v)}>
@@ -337,6 +395,13 @@ export function SendDialog({
             </Button>
           )}
         </DialogFooter>
+        <QrScanDialog
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          onResult={handleScanned}
+          title={`Scan ${chain.ticker} payment QR`}
+          description="Reads BIP21 / EIP-681 URIs (address + amount + label) as well as plain addresses."
+        />
       </DialogContent>
     </Dialog>
   );
