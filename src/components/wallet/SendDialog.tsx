@@ -24,13 +24,31 @@ import {
   type EvmAccount,
 } from "@/lib/wallet/evm";
 import { erc20Balance, erc20Transfer, formatToken } from "@/lib/wallet/erc20";
+import {
+  isValidTronAddress,
+  tronBalance,
+  sendTron,
+  sunToTrx,
+  trxToSun,
+  type TronAccount,
+} from "@/lib/wallet/tron";
+import {
+  isValidSolanaAddress,
+  solanaBalance,
+  sendSolana,
+  lamportsToSol,
+  solToLamports,
+  type SolanaAccount,
+} from "@/lib/wallet/solana";
 import { useContacts } from "@/lib/wallet/contacts";
 import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/security";
 import type { Address } from "viem";
 
 type Account =
   | { kind: "utxo"; account: UtxoAccount }
-  | { kind: "evm"; account: EvmAccount };
+  | { kind: "evm"; account: EvmAccount }
+  | { kind: "tron"; account: TronAccount }
+  | { kind: "solana"; account: SolanaAccount };
 
 export function SendDialog({
   open,
@@ -62,8 +80,7 @@ export function SendDialog({
   const contacts = useContacts(chain.id);
   const securityPrefs = useSecurityPrefs();
   const [pendingConfirmation, setPendingConfirmation] = useState(false);
-  const ownAddress =
-    account.kind === "utxo" ? account.account.address : (account.account.address as string);
+  const ownAddress = account.account.address;
 
   const ticker = token?.symbol ?? chain.ticker;
 
@@ -96,6 +113,18 @@ export function SendDialog({
           const spendable = wei > reserve ? wei - reserve : 0n;
           setAmount(weiToEth(spendable));
         }
+      } else if (chain.kind === "tron" && account.kind === "tron") {
+        const sun = await tronBalance(chain, account.account.address);
+        // Reserve 1 TRX for activation/bandwidth.
+        const reserve = 1_000_000n;
+        const spendable = sun > reserve ? sun - reserve : 0n;
+        setAmount(sunToTrx(spendable));
+      } else if (chain.kind === "solana" && account.kind === "solana") {
+        const lam = await solanaBalance(chain, account.account.address);
+        // Reserve ~0.001 SOL for rent + fees.
+        const reserve = 1_000_000n;
+        const spendable = lam > reserve ? lam - reserve : 0n;
+        setAmount(lamportsToSol(spendable));
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't compute max");
@@ -152,6 +181,20 @@ export function SendDialog({
           rememberAddress(toAddr);
           toast.success("Transaction sent");
         }
+      } else if (chain.kind === "tron" && account.kind === "tron") {
+        if (!isValidTronAddress(to.trim())) throw new Error("Not a valid TRON address");
+        const amountSun = trxToSun(amount);
+        const hash = await sendTron({ account: account.account, to: to.trim(), amountSun });
+        setTxid(hash);
+        rememberAddress(to.trim());
+        toast.success("TRX sent");
+      } else if (chain.kind === "solana" && account.kind === "solana") {
+        if (!isValidSolanaAddress(to.trim())) throw new Error("Not a valid Solana address");
+        const amountLamports = solToLamports(amount);
+        const hash = await sendSolana({ account: account.account, to: to.trim(), amountLamports });
+        setTxid(hash);
+        rememberAddress(to.trim());
+        toast.success("SOL sent");
       }
       onSent?.();
     } catch (err) {
@@ -216,7 +259,15 @@ export function SendDialog({
               <Label htmlFor="to" className="mb-1.5 block text-xs">Recipient address</Label>
               <Input
                 id="to"
-                placeholder={chain.kind === "evm" ? "0x…" : `${chain.ticker.toLowerCase()}1…`}
+                placeholder={
+                  chain.kind === "evm"
+                    ? "0x…"
+                    : chain.kind === "tron"
+                      ? "T…"
+                      : chain.kind === "solana"
+                        ? "base58 pubkey…"
+                        : `${chain.ticker.toLowerCase()}1…`
+                }
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 className="font-mono text-sm"
