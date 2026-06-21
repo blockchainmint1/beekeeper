@@ -1,6 +1,10 @@
 // Solana wallet primitives: derive, balance, send, sign, history.
 import nacl from "tweetnacl";
 import { derivePath } from "ed25519-hd-key";
+// bs58 ships with @solana/web3.js as a dependency; types live in @types/bs58 if installed.
+// Avoid a hard type import — declare a minimal local typing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const bs58: { encode: (b: Uint8Array) => string; decode: (s: string) => Uint8Array } = require("bs58");
 import {
   Connection,
   Keypair,
@@ -9,7 +13,6 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import bs58 from "bs58";
 import type { SolanaChain } from "@/lib/chains";
 import type { HistoryItem } from "./history";
 import { mnemonicToSeed } from "./seed";
@@ -70,10 +73,10 @@ export async function sendSolana(args: {
     try {
       const conn = new Connection(url, "confirmed");
       const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+      void lastValidBlockHeight;
       const tx = new Transaction({
         feePayer: account.keypair.publicKey,
         recentBlockhash: blockhash,
-        lastValidBlockHeight,
       });
       tx.add(
         SystemProgram.transfer({
