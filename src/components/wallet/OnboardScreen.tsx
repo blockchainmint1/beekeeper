@@ -21,7 +21,15 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/40 p-4">
       <div className="w-full max-w-xl">
         <div className="mb-8 text-center">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
+          <img
+            src="/aocs-logo.png"
+            alt="AOCS logo"
+            className="mx-auto mb-4 h-16 w-auto object-contain"
+          />
+          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Honest Money Ecosystem
+          </p>
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4 mt-6">
             <WalletIcon className="h-7 w-7" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">One Wallet to Rule Them All</h1>
