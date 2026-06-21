@@ -52,7 +52,7 @@ export type ChainConfig = UtxoChain | EvmChain;
 
 // TXC network — TEXITcoin (Litecoin-fork, Scrypt PoW)
 const TXC_NETWORK: Network = {
-  messagePrefix: "Texitcoin Signed Message:\n",
+  messagePrefix: "TEXITcoin Signed Message:\n",
   bech32: "txc",
   bip32: { public: 0x0488b21e, private: 0x0488ade4 },
   pubKeyHash: 0x42,
