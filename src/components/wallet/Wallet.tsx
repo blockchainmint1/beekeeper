@@ -13,6 +13,10 @@ import type { UtxoAccount } from "@/lib/wallet/utxo";
 import { deriveUtxoAccount } from "@/lib/wallet/utxo";
 import type { EvmAccount } from "@/lib/wallet/evm";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
+import type { TronAccount } from "@/lib/wallet/tron";
+import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
+import type { SolanaAccount } from "@/lib/wallet/solana";
+import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { SendDialog } from "./SendDialog";
 import { ReceiveDialog } from "./ReceiveDialog";
 import { HistoryDialog } from "./HistoryDialog";
@@ -37,7 +41,9 @@ import { OmniTokensPanel } from "./OmniTokensPanel";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
-  | { kind: "evm"; account: EvmAccount };
+  | { kind: "evm"; account: EvmAccount }
+  | { kind: "tron"; account: TronAccount }
+  | { kind: "solana"; account: SolanaAccount };
 
 export function Wallet({ onLocked }: { onLocked: () => void }) {
   const qc = useQueryClient();
@@ -145,8 +151,12 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       for (const c of CHAIN_LIST) {
         if (c.kind === "utxo") {
           out[c.id] = { kind: "utxo", account: await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType) };
-        } else {
+        } else if (c.kind === "evm") {
           out[c.id] = { kind: "evm", account: deriveEvmAccount(mnemonic, c, 0) };
+        } else if (c.kind === "tron") {
+          out[c.id] = { kind: "tron", account: deriveTronAccount(mnemonic, c, 0) };
+        } else {
+          out[c.id] = { kind: "solana", account: deriveSolanaAccount(mnemonic, c, 0) };
         }
       }
       return out;
@@ -181,9 +191,15 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               const info = await esplora.addressInfo(c, a.account.address);
               const sats = addressBalanceSats(info).total;
               total += (sats / 10 ** c.decimals) * price;
-            } else {
+            } else if (c.kind === "evm") {
               const wei = await evmBalance(c, (a as { account: EvmAccount }).account.address);
               total += (Number(wei) / 1e18) * price;
+            } else if (c.kind === "tron") {
+              const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
+              total += (Number(sun) / 10 ** c.decimals) * price;
+            } else if (c.kind === "solana") {
+              const lam = await solanaBalance(c, (a as { account: SolanaAccount }).account.address);
+              total += (Number(lam) / 10 ** c.decimals) * price;
             }
           } catch { /* skip chain on error */ }
         }),
