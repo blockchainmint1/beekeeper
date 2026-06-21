@@ -40,9 +40,12 @@ export async function fetchAllPrices(): Promise<PriceMap> {
 
   const ids = new Set<string>();
   ids.add("bitcoin");
+  ids.add("litecoin");
+  ids.add("bitcoin-cash");
   for (const c of CHAIN_LIST) {
     if (c.kind === "evm" && c.coingeckoId) ids.add(c.coingeckoId);
     if (c.kind === "evm") for (const t of c.tokens) if (t.coingeckoId) ids.add(t.coingeckoId);
+    if ((c.kind === "tron" || c.kind === "solana") && c.coingeckoId) ids.add(c.coingeckoId);
   }
 
   const out: PriceMap = { ...previous };
@@ -78,8 +81,14 @@ export function priceForChain(prices: PriceMap, chain: ChainConfig): number | nu
   if (chain.kind === "utxo") {
     if (chain.id === "txc") return prices["txc"] ?? null;
     if (chain.id === "btc") return prices["bitcoin"] ?? null;
+    if (chain.id === "ltc") return prices["litecoin"] ?? null;
+    if (chain.id === "bch") return prices["bitcoin-cash"] ?? null;
     return null;
   }
+  if (chain.kind === "evm") {
+    return chain.coingeckoId ? (prices[chain.coingeckoId] ?? null) : null;
+  }
+  // tron / solana
   return chain.coingeckoId ? (prices[chain.coingeckoId] ?? null) : null;
 }
 

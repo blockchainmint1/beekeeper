@@ -54,3 +54,24 @@ export async function fetchUtxoHistory(chain: UtxoChain, address: string): Promi
 export function explorerHistoryUrl(chain: ChainConfig, address: string): string {
   return chain.explorerAddr(address);
 }
+
+/** Unified history fetcher — dispatches per chain kind. */
+export async function fetchHistory(chain: ChainConfig, address: string): Promise<HistoryItem[]> {
+  if (chain.kind === "utxo") {
+    return fetchUtxoHistory(chain, address);
+  }
+  if (chain.kind === "tron") {
+    const { fetchTronHistory } = await import("./tron");
+    return fetchTronHistory(chain, address);
+  }
+  if (chain.kind === "solana") {
+    const { fetchSolanaHistory } = await import("./solana");
+    return fetchSolanaHistory(chain, address);
+  }
+  // EVM: full history requires an indexer; punt to explorer link.
+  return [];
+}
+
+export function hasNativeHistory(chain: ChainConfig): boolean {
+  return chain.kind === "utxo" || chain.kind === "tron" || chain.kind === "solana";
+}

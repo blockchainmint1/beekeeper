@@ -3,12 +3,20 @@ import txcLogo from "@/assets/txc-logo.jpeg";
 import iskLogo from "@/assets/isk-logo-badge.png";
 import zcuLogo from "@/assets/zcu-logo.png";
 import btcLogo from "@/assets/btc-logo.png";
+import ltcLogo from "@/assets/ltc-logo.png";
+import bchLogo from "@/assets/bch-logo.png";
+import trxLogo from "@/assets/trx-logo.png";
+import solLogo from "@/assets/sol-logo.png";
 
 const LOGOS: Partial<Record<ChainId, string>> = {
   btc: btcLogo,
+  ltc: ltcLogo,
+  bch: bchLogo,
   txc: txcLogo,
   isk: iskLogo,
   zchl: zcuLogo,
+  trx: trxLogo,
+  sol: solLogo,
 };
 
 export function chainLogo(id: ChainId): string | undefined {
