@@ -202,6 +202,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         { label: "Xpub", icon: KeyRound, onClick: () => setXpubOpen(activeChain) },
         { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
         { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
+        { label: "Extension", icon: Puzzle, onClick: downloadExtension },
         { label: "Backup", icon: Download, onClick: handleForceBackup },
         { label: "Settings", icon: SettingsIcon, onClick: () => setSettingsOpen(true) },
       ]
