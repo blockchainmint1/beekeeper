@@ -39,6 +39,7 @@ export async function fetchAllPrices(): Promise<PriceMap> {
   const previous: PriceMap = memCache?.data ?? {};
 
   const ids = new Set<string>();
+  ids.add("bitcoin");
   for (const c of CHAIN_LIST) {
     if (c.kind === "evm" && c.coingeckoId) ids.add(c.coingeckoId);
     if (c.kind === "evm") for (const t of c.tokens) if (t.coingeckoId) ids.add(t.coingeckoId);
