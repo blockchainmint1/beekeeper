@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
   BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
+  ScanLine, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -19,6 +20,8 @@ import { ContactsDialog } from "./ContactsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { SignDialog } from "./SignDialog";
 import { MultiSendDialog } from "./MultiSendDialog";
+import { QrLoginDialog } from "./QrLoginDialog";
+import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { evmBalance } from "@/lib/wallet/evm";
@@ -44,6 +47,8 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
   const [multiOpen, setMultiOpen] = useState(false);
+  const [qrLoginOpen, setQrLoginOpen] = useState(false);
+  const [xpubOpen, setXpubOpen] = useState<ChainConfig | null>(null);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
   const visibleIds = useVisibleChainIds();
   const visibleChains = useMemo(
@@ -177,6 +182,8 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         { label: "Receive", icon: ArrowDownToLine, onClick: () => setReceiveOpen(activeChain) },
         { label: "History", icon: HistoryIcon, onClick: () => setHistoryOpen(activeChain) },
         { label: "Sign", icon: PenLine, onClick: () => setSignOpen(true) },
+        { label: "QR Login", icon: ScanLine, onClick: () => setQrLoginOpen(true) },
+        { label: "Xpub", icon: KeyRound, onClick: () => setXpubOpen(activeChain) },
         { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
         { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
         { label: "Backup", icon: Download, onClick: handleForceBackup },
@@ -385,6 +392,12 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       <SignDialog open={signOpen} onOpenChange={setSignOpen} />
       <MultiSendDialog open={multiOpen} onOpenChange={setMultiOpen} />
+      {activeChain && (
+        <QrLoginDialog open={qrLoginOpen} onOpenChange={setQrLoginOpen} chain={activeChain} />
+      )}
+      {xpubOpen && (
+        <XpubDialog open={!!xpubOpen} onOpenChange={(v) => !v && setXpubOpen(null)} chain={xpubOpen} />
+      )}
     </AppShell>
   );
 }
