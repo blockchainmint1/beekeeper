@@ -1,6 +1,9 @@
 import type { Network } from "bitcoinjs-lib";
 
-export type ChainId = "btc" | "txc" | "isk" | "eth" | "bsc" | "base" | "polygon" | "zchl";
+export type ChainId =
+  | "btc" | "ltc" | "bch" | "txc" | "isk"
+  | "eth" | "bsc" | "base" | "polygon" | "zchl"
+  | "trx" | "sol";
 
 export interface UtxoChain {
   kind: "utxo";
@@ -20,6 +23,11 @@ export interface UtxoChain {
   explorerAddr: (a: string) => string;
   supportsOmni: boolean;
   color: string;
+  /** Bitcoin Cash & friends — adds SIGHASH_FORKID (0x40) per BIP143 (e.g. 0x00 for BCH). */
+  forkId?: number;
+  /** CashAddr-style prefix for display (e.g. "bitcoincash"). When set, the wallet
+   *  normalizes incoming addresses and displays addresses in CashAddr form. */
+  cashAddrPrefix?: string;
 }
 
 export interface EvmChain {
@@ -48,7 +56,38 @@ export interface Erc20Token {
   coingeckoId?: string;
 }
 
-export type ChainConfig = UtxoChain | EvmChain;
+export interface TronChain {
+  kind: "tron";
+  id: ChainId;
+  name: string;
+  ticker: string;
+  /** Tron uses Sun (1 TRX = 1e6 Sun). */
+  decimals: 6;
+  derivationPath: string;
+  apiBase: string; // TronGrid REST
+  rpcUrl: string;  // TronGrid HTTP for tx submission
+  explorerTx: (h: string) => string;
+  explorerAddr: (a: string) => string;
+  color: string;
+  coingeckoId?: string;
+}
+
+export interface SolanaChain {
+  kind: "solana";
+  id: ChainId;
+  name: string;
+  ticker: string;
+  /** SOL uses lamports (1 SOL = 1e9 lamports). */
+  decimals: 9;
+  derivationPath: string;
+  rpcUrls: string[];
+  explorerTx: (h: string) => string;
+  explorerAddr: (a: string) => string;
+  color: string;
+  coingeckoId?: string;
+}
+
+export type ChainConfig = UtxoChain | EvmChain | TronChain | SolanaChain;
 
 // TXC network — TEXITcoin (Litecoin-fork, Scrypt PoW)
 const TXC_NETWORK: Network = {
@@ -64,6 +103,26 @@ const TXC_NETWORK: Network = {
 const BTC_NETWORK: Network = {
   messagePrefix: "\x18Bitcoin Signed Message:\n",
   bech32: "bc",
+  bip32: { public: 0x0488b21e, private: 0x0488ade4 },
+  pubKeyHash: 0x00,
+  scriptHash: 0x05,
+  wif: 0x80,
+};
+
+// LTC network — Litecoin mainnet
+const LTC_NETWORK: Network = {
+  messagePrefix: "\x19Litecoin Signed Message:\n",
+  bech32: "ltc",
+  bip32: { public: 0x019da462, private: 0x019d9cfe },
+  pubKeyHash: 0x30,
+  scriptHash: 0x32,
+  wif: 0xb0,
+};
+
+// BCH network — Bitcoin Cash (bytes identical to BTC; segwit not supported)
+const BCH_NETWORK: Network = {
+  messagePrefix: "\x18Bitcoin Signed Message:\n",
+  bech32: "bc", // unused — BCH has no native segwit; CashAddr is handled separately.
   bip32: { public: 0x0488b21e, private: 0x0488ade4 },
   pubKeyHash: 0x00,
   scriptHash: 0x05,
@@ -118,6 +177,49 @@ export const BTC: UtxoChain = {
   explorerAddr: (a) => `https://mempool.space/address/${a}`,
   supportsOmni: false,
   color: "oklch(0.78 0.17 65)",
+};
+
+export const LTC: UtxoChain = {
+  kind: "utxo",
+  id: "ltc",
+  name: "Litecoin",
+  ticker: "LTC",
+  network: LTC_NETWORK,
+  coinType: 2,
+  bip44Base: "m/44'/2'/0'/0",
+  bip84Base: "m/84'/2'/0'/0",
+  defaultAddressType: "segwit",
+  decimals: 8,
+  dustSats: 546,
+  defaultFeeRate: 3,
+  apiBase: "https://litecoinspace.org/api",
+  explorerTx: (h) => `https://litecoinspace.org/tx/${h}`,
+  explorerAddr: (a) => `https://litecoinspace.org/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.86 0.02 245)",
+};
+
+export const BCH: UtxoChain = {
+  kind: "utxo",
+  id: "bch",
+  name: "Bitcoin Cash",
+  ticker: "BCH",
+  network: BCH_NETWORK,
+  coinType: 145,
+  bip44Base: "m/44'/145'/0'/0",
+  // BCH has no segwit; bip84Base is unused but kept for type compatibility.
+  bip84Base: "m/44'/145'/0'/0",
+  defaultAddressType: "legacy",
+  decimals: 8,
+  dustSats: 546,
+  defaultFeeRate: 1,
+  apiBase: "https://bchplorer.com/api",
+  explorerTx: (h) => `https://blockchair.com/bitcoin-cash/transaction/${h}`,
+  explorerAddr: (a) => `https://blockchair.com/bitcoin-cash/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.74 0.18 145)",
+  forkId: 0x00, // SIGHASH_FORKID base; sighash byte = (TYPE | FORKID | 0x40)
+  cashAddrPrefix: "bitcoincash",
 };
 
 export const ISK: UtxoChain = {
@@ -265,8 +367,42 @@ export const ZCHL: EvmChain = {
   tokens: [],
 };
 
+export const TRX: TronChain = {
+  kind: "tron",
+  id: "trx",
+  name: "TRON",
+  ticker: "TRX",
+  decimals: 6,
+  derivationPath: "m/44'/195'/0'/0/0",
+  apiBase: "https://api.trongrid.io",
+  rpcUrl: "https://api.trongrid.io",
+  explorerTx: (h) => `https://tronscan.org/#/transaction/${h}`,
+  explorerAddr: (a) => `https://tronscan.org/#/address/${a}`,
+  color: "oklch(0.65 0.22 25)",
+  coingeckoId: "tron",
+};
+
+export const SOL: SolanaChain = {
+  kind: "solana",
+  id: "sol",
+  name: "Solana",
+  ticker: "SOL",
+  decimals: 9,
+  derivationPath: "m/44'/501'/0'/0'",
+  rpcUrls: [
+    "https://solana-rpc.publicnode.com",
+    "https://api.mainnet-beta.solana.com",
+  ],
+  explorerTx: (h) => `https://explorer.solana.com/tx/${h}`,
+  explorerAddr: (a) => `https://explorer.solana.com/address/${a}`,
+  color: "oklch(0.68 0.22 295)",
+  coingeckoId: "solana",
+};
+
 export const CHAINS: Record<ChainId, ChainConfig> = {
   btc: BTC,
+  ltc: LTC,
+  bch: BCH,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -274,9 +410,11 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   base: BASE,
   polygon: POLYGON,
   zchl: ZCHL,
+  trx: TRX,
+  sol: SOL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [BTC, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
