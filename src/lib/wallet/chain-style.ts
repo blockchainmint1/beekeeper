@@ -2,8 +2,10 @@ import type { ChainId, ChainConfig } from "@/lib/chains";
 import txcLogo from "@/assets/txc-logo.jpeg";
 import iskLogo from "@/assets/isk-logo-badge.png";
 import zcuLogo from "@/assets/zcu-logo.png";
+import btcLogo from "@/assets/btc-logo.png";
 
 const LOGOS: Partial<Record<ChainId, string>> = {
+  btc: btcLogo,
   txc: txcLogo,
   isk: iskLogo,
   zchl: zcuLogo,
