@@ -326,8 +326,18 @@ function RevealPanel() {
       if (cfg.kind === "utxo") {
         const acct = await deriveUtxoAccount(mnemonic, cfg, 0, cfg.defaultAddressType);
         out = await utxoWif(acct);
-      } else {
+      } else if (cfg.kind === "evm") {
         out = evmPrivateKey(mnemonic, cfg, 0);
+      } else if (cfg.kind === "tron") {
+        const { deriveTronAccount } = await import("@/lib/wallet/tron");
+        const acct = deriveTronAccount(mnemonic, cfg, 0);
+        out = "0x" + Array.from(acct.privateKey).map((b) => b.toString(16).padStart(2, "0")).join("");
+      } else {
+        const { deriveSolanaAccount } = await import("@/lib/wallet/solana");
+        const acct = deriveSolanaAccount(mnemonic, cfg, 0);
+        // Solana secret key is 64 bytes (priv + pub). Phantom-compatible base58.
+        const bs58 = (await import("bs58")).default as { encode: (b: Uint8Array) => string };
+        out = bs58.encode(acct.keypair.secretKey);
       }
       setKey(out); setPass(""); setShow(false);
     } catch (e) {
