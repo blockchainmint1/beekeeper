@@ -100,6 +100,26 @@ export const TXC: UtxoChain = {
   color: "oklch(0.7 0.18 35)",
 };
 
+export const BTC: UtxoChain = {
+  kind: "utxo",
+  id: "btc",
+  name: "Bitcoin",
+  ticker: "BTC",
+  network: BTC_NETWORK,
+  coinType: 0,
+  bip44Base: "m/44'/0'/0'/0",
+  bip84Base: "m/84'/0'/0'/0",
+  defaultAddressType: "segwit",
+  decimals: 8,
+  dustSats: 546,
+  defaultFeeRate: 5,
+  apiBase: "https://mempool.space/api",
+  explorerTx: (h) => `https://mempool.space/tx/${h}`,
+  explorerAddr: (a) => `https://mempool.space/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.78 0.17 65)",
+};
+
 export const ISK: UtxoChain = {
   kind: "utxo",
   id: "isk",
@@ -246,6 +266,7 @@ export const ZCHL: EvmChain = {
 };
 
 export const CHAINS: Record<ChainId, ChainConfig> = {
+  btc: BTC,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -255,7 +276,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   zchl: ZCHL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
