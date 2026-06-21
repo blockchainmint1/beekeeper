@@ -109,6 +109,22 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     onLocked();
   }
 
+  async function downloadExtension() {
+    try {
+      const res = await fetch("/honest-money-extension.zip");
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "honest-money-extension.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Extension ZIP downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Download failed");
+    }
+  }
+
   // Auto-lock on idle / hidden tab (configured in Settings → Security).
   const handleIdleLock = useCallback(() => {
     clearCachedMnemonic();
