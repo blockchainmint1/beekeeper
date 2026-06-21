@@ -5,10 +5,7 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const bufferPkg = require.resolve("buffer/");
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   tanstackStart: {
@@ -17,15 +14,15 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    resolve: {
-      alias: {
-        // Force the npm `buffer` package in the browser bundle instead of
-        // Vite's externalized `node:buffer`. bitcoinjs-message / secp256k1
-        // need a real Buffer constructor at runtime.
-        buffer: bufferPkg,
-        "node:buffer": bufferPkg,
-      },
-    },
-    optimizeDeps: { include: ["buffer"] },
+    plugins: [
+      // bitcoinjs-message / ripemd160 / cipher-base / etc. expect Node's
+      // Buffer / stream / crypto in the browser. Polyfill them so the
+      // production bundle ships a real Buffer instead of Vite's stub.
+      nodePolyfills({
+        include: ["buffer", "stream", "util", "events", "string_decoder", "crypto"],
+        globals: { Buffer: true, global: true, process: true },
+        protocolImports: true,
+      }),
+    ],
   },
 });
