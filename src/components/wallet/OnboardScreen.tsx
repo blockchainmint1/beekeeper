@@ -31,7 +31,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
           </p>
           <h1 className="text-3xl font-bold tracking-tight">One Wallet to Rule Them All</h1>
           <p className="mt-2 text-muted-foreground">
-            One seed phrase. Bitcoin, Litecoin, Bitcoin Cash, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all in your browser.
+            One seed phrase. Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all in your browser.
           </p>
         </div>
 
