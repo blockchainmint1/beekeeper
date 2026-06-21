@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, ExternalLink, Loader2, RefreshCw, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ChainConfig } from "@/lib/chains";
-import { fetchUtxoHistory, explorerHistoryUrl } from "@/lib/wallet/history";
+import { fetchHistory, explorerHistoryUrl, hasNativeHistory } from "@/lib/wallet/history";
 
 export function RecentActivity({
   chain,
@@ -13,12 +13,12 @@ export function RecentActivity({
   address: string | null | undefined;
   onSeeAll?: () => void;
 }) {
-  const utxo = chain?.kind === "utxo";
+  const native = chain ? hasNativeHistory(chain) : false;
   const query = useQuery({
     queryKey: ["history", chain?.id, address],
-    enabled: utxo && !!address,
+    enabled: native && !!address,
     refetchOnWindowFocus: false,
-    queryFn: () => fetchUtxoHistory(chain as never, address!),
+    queryFn: () => fetchHistory(chain as never, address!),
   });
 
   if (!chain) {
@@ -29,7 +29,7 @@ export function RecentActivity({
     );
   }
 
-  if (!utxo) {
+  if (!native) {
     return (
       <div className="glass-card rounded-2xl px-4 py-5 text-center text-sm text-muted-foreground">
         <p className="mb-3">Full {chain.name} history lives in the block explorer.</p>
