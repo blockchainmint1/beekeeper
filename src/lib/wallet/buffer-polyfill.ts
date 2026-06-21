@@ -1,8 +1,11 @@
-// bitcoinjs-lib expects a global Buffer in the browser. Import once at app entry.
-// Only run in the browser — SSR/Worker builds already have Buffer or don't need it.
-if (typeof window !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
-  const { Buffer } = await import("buffer");
-  (globalThis as { Buffer: typeof Buffer }).Buffer = Buffer;
+// bitcoinjs-lib / bitcoinjs-message / secp256k1 all expect a global Buffer.
+// Use a synchronous static import so the polyfill is installed BEFORE any
+// consumer module evaluates — top-level `await import()` is too late because
+// dependent modules can run their own top-level code first.
+import { Buffer as BufferPolyfill } from "buffer";
+
+if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).Buffer) {
+  (globalThis as { Buffer: typeof BufferPolyfill }).Buffer = BufferPolyfill;
 }
 
-export {};
+export const Buffer = BufferPolyfill;
