@@ -5,7 +5,12 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { fileURLToPath } from "node:url";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+
+const rpcWebsocketsBrowserEntry = fileURLToPath(
+  new URL("./node_modules/rpc-websockets/dist/index.browser.mjs", import.meta.url),
+);
 
 export default defineConfig({
   tanstackStart: {
@@ -15,9 +20,11 @@ export default defineConfig({
   },
   vite: {
     resolve: {
-      // rpc-websockets (transitive via @solana/web3.js) only declares
-      // "browser" and "node" export conditions. Vite's default conditions
-      // don't match, causing "No known conditions for '.' specifier".
+      // rpc-websockets (transitive via @solana/web3.js) publishes a broken
+      // package export map: it has "browser"/"node" at the top level instead
+      // of a "." entry. Some production resolvers reject that before falling
+      // back to main/module, so bypass the package entry map entirely.
+      alias: [{ find: "rpc-websockets", replacement: rpcWebsocketsBrowserEntry }],
       conditions: ["browser", "import", "module", "default"],
     },
     ssr: {
