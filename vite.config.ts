@@ -12,4 +12,14 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      alias: {
+        // Force the npm `buffer` package in the browser bundle instead of
+        // Vite's externalized `node:buffer`. bitcoinjs-message / secp256k1
+        // need a real Buffer constructor at runtime.
+        buffer: "buffer/index.js",
+      },
+    },
+  },
 });
