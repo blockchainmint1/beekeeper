@@ -86,7 +86,7 @@ export function RecentActivity({
               href={tx.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-3 rounded-xl border bg-card/60 p-3 text-sm transition hover:bg-muted/40"
+              className="glass-card flex items-center gap-3 rounded-xl p-3 text-sm transition hover:bg-muted/40"
             >
               <Icon className={`h-4 w-4 shrink-0 ${dirColor}`} />
               <div className="min-w-0 flex-1">
