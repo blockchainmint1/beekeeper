@@ -1,6 +1,6 @@
 import type { Network } from "bitcoinjs-lib";
 
-export type ChainId = "txc" | "isk" | "eth" | "bsc" | "base" | "polygon" | "zchl";
+export type ChainId = "btc" | "txc" | "isk" | "eth" | "bsc" | "base" | "polygon" | "zchl";
 
 export interface UtxoChain {
   kind: "utxo";
@@ -60,6 +60,16 @@ const TXC_NETWORK: Network = {
   wif: 0xc1,
 };
 
+// BTC network — Bitcoin mainnet
+const BTC_NETWORK: Network = {
+  messagePrefix: "\x18Bitcoin Signed Message:\n",
+  bech32: "bc",
+  bip32: { public: 0x0488b21e, private: 0x0488ade4 },
+  pubKeyHash: 0x00,
+  scriptHash: 0x05,
+  wif: 0x80,
+};
+
 // ISK network — Iskander Coin
 const ISK_NETWORK: Network = {
   messagePrefix: "Iskander Signed Message:\n",
@@ -88,6 +98,26 @@ export const TXC: UtxoChain = {
   explorerAddr: (a) => `https://mempool.texitcoin.org/address/${a}`,
   supportsOmni: true,
   color: "oklch(0.7 0.18 35)",
+};
+
+export const BTC: UtxoChain = {
+  kind: "utxo",
+  id: "btc",
+  name: "Bitcoin",
+  ticker: "BTC",
+  network: BTC_NETWORK,
+  coinType: 0,
+  bip44Base: "m/44'/0'/0'/0",
+  bip84Base: "m/84'/0'/0'/0",
+  defaultAddressType: "segwit",
+  decimals: 8,
+  dustSats: 546,
+  defaultFeeRate: 5,
+  apiBase: "https://mempool.space/api",
+  explorerTx: (h) => `https://mempool.space/tx/${h}`,
+  explorerAddr: (a) => `https://mempool.space/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.78 0.17 65)",
 };
 
 export const ISK: UtxoChain = {
@@ -236,6 +266,7 @@ export const ZCHL: EvmChain = {
 };
 
 export const CHAINS: Record<ChainId, ChainConfig> = {
+  btc: BTC,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -245,7 +276,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   zchl: ZCHL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
