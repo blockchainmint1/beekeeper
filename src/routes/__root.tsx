@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+// Install the Buffer polyfill eagerly so wallet/crypto modules that read
+// `globalThis.Buffer` at import time always see it.
+import "../lib/wallet/buffer-polyfill";
 
 function NotFoundComponent() {
   return (
