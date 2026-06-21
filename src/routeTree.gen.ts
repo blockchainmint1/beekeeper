@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ExtensionIndexRoute = ExtensionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ExtensionRoute,
 } as any)
 const ExtensionSignRoute = ExtensionSignRouteImport.update({
   id: '/sign',
@@ -40,12 +46,13 @@ export interface FileRoutesByFullPath {
   '/extension': typeof ExtensionRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/extension/': typeof ExtensionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/extension': typeof ExtensionRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/extension': typeof ExtensionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +60,25 @@ export interface FileRoutesById {
   '/extension': typeof ExtensionRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/extension/': typeof ExtensionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/extension' | '/extension/pair' | '/extension/sign'
+  fullPaths:
+    | '/'
+    | '/extension'
+    | '/extension/pair'
+    | '/extension/sign'
+    | '/extension/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/extension' | '/extension/pair' | '/extension/sign'
-  id: '__root__' | '/' | '/extension' | '/extension/pair' | '/extension/sign'
+  to: '/' | '/extension/pair' | '/extension/sign' | '/extension'
+  id:
+    | '__root__'
+    | '/'
+    | '/extension'
+    | '/extension/pair'
+    | '/extension/sign'
+    | '/extension/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/extension/': {
+      id: '/extension/'
+      path: '/'
+      fullPath: '/extension/'
+      preLoaderRoute: typeof ExtensionIndexRouteImport
+      parentRoute: typeof ExtensionRoute
+    }
     '/extension/sign': {
       id: '/extension/sign'
       path: '/sign'
@@ -103,11 +129,13 @@ declare module '@tanstack/react-router' {
 interface ExtensionRouteChildren {
   ExtensionPairRoute: typeof ExtensionPairRoute
   ExtensionSignRoute: typeof ExtensionSignRoute
+  ExtensionIndexRoute: typeof ExtensionIndexRoute
 }
 
 const ExtensionRouteChildren: ExtensionRouteChildren = {
   ExtensionPairRoute: ExtensionPairRoute,
   ExtensionSignRoute: ExtensionSignRoute,
+  ExtensionIndexRoute: ExtensionIndexRoute,
 }
 
 const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
