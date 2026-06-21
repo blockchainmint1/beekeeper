@@ -76,6 +76,7 @@ export async function fetchAllPrices(): Promise<PriceMap> {
 export function priceForChain(prices: PriceMap, chain: ChainConfig): number | null {
   if (chain.kind === "utxo") {
     if (chain.id === "txc") return prices["txc"] ?? null;
+    if (chain.id === "btc") return prices["bitcoin"] ?? null;
     return null;
   }
   return chain.coingeckoId ? (prices[chain.coingeckoId] ?? null) : null;
