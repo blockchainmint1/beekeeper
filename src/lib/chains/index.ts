@@ -1,6 +1,6 @@
 import type { Network } from "bitcoinjs-lib";
 
-export type ChainId = "txc" | "isk" | "eth" | "bsc" | "base" | "polygon" | "zchl";
+export type ChainId = "btc" | "txc" | "isk" | "eth" | "bsc" | "base" | "polygon" | "zchl";
 
 export interface UtxoChain {
   kind: "utxo";
@@ -58,6 +58,16 @@ const TXC_NETWORK: Network = {
   pubKeyHash: 0x42,
   scriptHash: 0x32,
   wif: 0xc1,
+};
+
+// BTC network — Bitcoin mainnet
+const BTC_NETWORK: Network = {
+  messagePrefix: "\x18Bitcoin Signed Message:\n",
+  bech32: "bc",
+  bip32: { public: 0x0488b21e, private: 0x0488ade4 },
+  pubKeyHash: 0x00,
+  scriptHash: 0x05,
+  wif: 0x80,
 };
 
 // ISK network — Iskander Coin
