@@ -16,7 +16,9 @@ import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { SendDialog } from "./SendDialog";
 import { ReceiveDialog } from "./ReceiveDialog";
 import { HistoryDialog } from "./HistoryDialog";
+import { RecentActivity } from "./RecentActivity";
 import { ContactsDialog } from "./ContactsDialog";
+
 import { SettingsDialog } from "./SettingsDialog";
 import { SignDialog } from "./SignDialog";
 import { MultiSendDialog } from "./MultiSendDialog";
