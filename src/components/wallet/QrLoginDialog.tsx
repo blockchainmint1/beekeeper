@@ -12,10 +12,11 @@ import {
   signQrLogin,
   postQrLogin,
   buildLoginMessage,
-  type QrLoginRequest,
+  fetchDeepLinkMessage,
+  type ParsedQrLogin,
 } from "@/lib/wallet/qr-login";
 
-type Phase = "scan" | "confirm" | "signing" | "done";
+type Phase = "scan" | "loading" | "confirm" | "signing" | "done";
 
 export function QrLoginDialog({
   open,
@@ -30,7 +31,9 @@ export function QrLoginDialog({
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const [phase, setPhase] = useState<Phase>("scan");
-  const [request, setRequest] = useState<QrLoginRequest | null>(null);
+  const [request, setRequest] = useState<ParsedQrLogin | null>(null);
+  const [message, setMessage] = useState<string>("");
+  const [siteLabel, setSiteLabel] = useState<string>("");
   const [manual, setManual] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +44,8 @@ export function QrLoginDialog({
       scannerRef.current = null;
       setPhase("scan");
       setRequest(null);
+      setMessage("");
+      setSiteLabel("");
       setManual("");
       setError(null);
       return;
@@ -71,12 +76,29 @@ export function QrLoginDialog({
     };
   }, [open, phase]);
 
-  function handleRaw(raw: string) {
+  async function handleRaw(raw: string) {
     try {
       const req = parseQrLogin(raw);
-      setRequest(req);
-      setPhase("confirm");
       scannerRef.current?.stop();
+      setRequest(req);
+      setError(null);
+      if (req.protocol === "deep-link") {
+        setSiteLabel(new URL(req.callback).hostname);
+        setPhase("loading");
+        try {
+          const m = await fetchDeepLinkMessage(req);
+          setMessage(m);
+          setPhase("confirm");
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not load message");
+          setPhase("scan");
+        }
+      } else {
+        setSiteLabel(req.origin);
+        const acctAddr = "<your address>";
+        setMessage(buildLoginMessage(req, acctAddr, chain));
+        setPhase("confirm");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Invalid QR");
     }
@@ -87,7 +109,16 @@ export function QrLoginDialog({
     setPhase("signing");
     setError(null);
     try {
-      const result = await signQrLogin({ mnemonic, chain, request });
+      // For envelope protocol, rebuild the message now that we know the real address.
+      let finalMsg = message;
+      if (request.protocol === "envelope") {
+        const addr =
+          chain.kind === "evm"
+            ? (await import("@/lib/wallet/evm")).deriveEvmAccount(mnemonic, chain, 0).address
+            : (await (await import("@/lib/wallet/utxo")).deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType)).address;
+        finalMsg = buildLoginMessage(request, addr, chain);
+      }
+      const result = await signQrLogin({ mnemonic, chain, request, message: finalMsg });
       await postQrLogin(request.callback, result);
       setPhase("done");
       toast.success(`Signed in to ${new URL(request.callback).hostname}`);
@@ -96,8 +127,6 @@ export function QrLoginDialog({
       setPhase("confirm");
     }
   }
-
-  const previewMessage = request ? buildLoginMessage(request, "<your address>", chain) : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -118,13 +147,13 @@ export function QrLoginDialog({
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer">Paste QR contents instead</summary>
+              <summary className="cursor-pointer">Paste QR contents or link instead</summary>
               <Textarea
                 rows={4}
                 className="mt-2 font-mono text-[11px]"
                 value={manual}
                 onChange={(e) => setManual(e.target.value)}
-                placeholder='{"v":1,"type":"hm-login",...}'
+                placeholder='payhme://login?id=…&nonce=…&cb=… or {"v":1,...}'
               />
               <Button
                 size="sm"
@@ -138,12 +167,19 @@ export function QrLoginDialog({
           </div>
         )}
 
+        {phase === "loading" && (
+          <div className="flex flex-col items-center gap-3 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            Fetching login challenge…
+          </div>
+        )}
+
         {phase === "confirm" && request && (
           <div className="space-y-4">
             <div className="rounded-xl border bg-muted/40 p-4 space-y-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Site</span>
-                <span className="font-semibold truncate">{request.origin}</span>
+                <span className="font-semibold truncate">{siteLabel}</span>
               </div>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Callback</span>
@@ -153,17 +189,17 @@ export function QrLoginDialog({
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Wallet</span>
                 <span className="font-semibold">{chain.name}</span>
               </div>
-              {request.statement && (
+              {request.protocol === "envelope" && request.statement && (
                 <div className="pt-2 border-t text-xs italic">"{request.statement}"</div>
               )}
             </div>
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">View signed message</summary>
-              <pre className="mt-2 whitespace-pre-wrap rounded bg-muted/60 p-2 font-mono text-[10px]">{previewMessage}</pre>
+              <pre className="mt-2 whitespace-pre-wrap rounded bg-muted/60 p-2 font-mono text-[10px]">{message}</pre>
             </details>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => { setPhase("scan"); setRequest(null); setError(null); }}>
+              <Button variant="outline" className="flex-1" onClick={() => { setPhase("scan"); setRequest(null); setMessage(""); setError(null); }}>
                 Cancel
               </Button>
               <Button className="flex-1" onClick={handleApprove}>
