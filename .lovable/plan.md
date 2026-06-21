@@ -1,132 +1,104 @@
-# Unified TXC + ISK + EVM Web Wallet
+## Goal
 
-One non-custodial, browser-based wallet that holds **TEXITcoin (TXC)**, **Iskander Coin (ISK)**, and **EVM accounts** (Ethereum + any EVM chains we configure) under a single BIP39 seed. Keys never leave the device. Each chain talks to its own API (Esplora for UTXO, JSON-RPC for EVM). The same backup phrase recovers all balances.
+Add four new chains as first-class wallets: **Litecoin (LTC)**, **Bitcoin Cash (BCH)**, **TRON (TRX)**, and **Solana (SOL)** — each with derive, balance, send, receive, history, and message signing.
 
-## Why this works
-- BIP39 mnemonic is chain-agnostic. One seed → many key trees via different SLIP-44 coin types.
-- TXC & ISK projects are near-identical forks differing only in `lib/txc/network.ts` (address bytes, bech32 HRP, SLIP-44, mempool URL).
-- The EVM Wallet project already provides `lib/wallet/{hd,chains,rpc,scan,ledger,disperse,secret,storage}.ts` plus routes for balances/ledger/onboarding.
-- Same seed derives:
-  - TXC at `m/84'/696969'/0'/0/i` (bech32 `txc1…`) and `m/44'/696969'/…` (legacy `T…`)
-  - ISK at `m/84'/969696'/0'/0/i` (bech32 `isk1…`) and `m/44'/969696'/…` (legacy `K…`)
-  - EVM at `m/44'/60'/0'/0/i` (single address per chain, reused across Ethereum, Polygon, Base, etc.)
+## Scope by chain
 
-## Architecture
+### LTC (easy — drop-in UTXO)
+- New `UtxoChain` config: Litecoin mainnet network params (bech32 `ltc`, pubkeyHash `0x30`, scriptHash `0x32`, wif `0xb0`, BIP44 coin `2`).
+- API: `https://litecoinspace.org/api` (Esplora-compatible). Explorer same host.
+- Reuses every existing UTXO codepath (derive, balance, send, history, sign).
 
-### Chain registry (discriminated union)
-```ts
-// src/lib/chains/index.ts
-export type ChainId = "txc" | "isk" | "eth" | string; // EVM chains keyed by chainId
+### BCH (UTXO + CashAddr layer)
+- New `UtxoChain` config with Bitcoin-mainnet bytes (BCH never changed them) but BIP44 coin `145`.
+- Add a `cashaddr` encoder/decoder so we can:
+  - Display addresses as `bitcoincash:q…` by default.
+  - Accept either legacy `1…` or CashAddr when sending (decode → P2PKH script).
+- API: `https://bchplorer.com/api` (Esplora-compatible). If unreachable, surface a clear error and let user swap via `apiBase`.
+- Sighash: BCH uses `SIGHASH_ALL | SIGHASH_FORKID` (0x41) with BIP143 hashing. Need a small fork-id signer path in `buildAndSign` (gated by a `forkId` field on the chain). Without this, BCH txs will be rejected by the network.
 
-type UtxoChain = {
-  kind: "utxo";
-  id: ChainId;
-  name: string; ticker: string;
-  network: bitcoinjs.Network;
-  coinType: number;       // 696969 / 969696
-  bip44Base: string; bip84Base: string;
-  decimals: 8;
-  dustSats: number; defaultFeeRate: number;
-  apiBase: string;        // Esplora root
-  explorerTx: (h: string) => string;
-  explorerAddr: (a: string) => string;
-  supportsOmni: boolean;
-};
+### TRON (new chain kind: `tron`)
+- New `ChainConfig` kind `tron`. Derivation: BIP44 coin `195'`, secp256k1; address = `Base58Check(0x41 ‖ keccak256(uncompressedPubKey[1:])[-20:])`.
+- Library: `tronweb` for tx building + broadcast (RPC: `https://api.trongrid.io`). Native TRX send only (no TRC20 yet — same caveat as ERC20 tokens shipping later).
+- Balance/history via TronGrid REST: `/v1/accounts/{addr}` and `/v1/accounts/{addr}/transactions`.
+- Sign message: TRON personal-sign (keccak256 with `\x19TRON Signed Message:\n32` prefix, secp256k1 recoverable).
+- Explorer: `https://tronscan.org/#/transaction/<h>` and `/address/<a>`.
 
-type EvmChain = {
-  kind: "evm";
-  id: ChainId;            // "eth", "polygon", "base", ...
-  name: string; ticker: string;
-  evmChainId: number;     // 1, 137, 8453, ...
-  coinType: 60;
-  derivationBase: "m/44'/60'/0'/0";
-  decimals: 18;
-  rpcUrls: string[];
-  explorerTx: (h: string) => string;
-  explorerAddr: (a: string) => string;
-  nativeSymbol: string;   // ETH / MATIC / ...
-  tokens?: { address: `0x${string}`; symbol: string; decimals: number }[]; // ERC-20s
-};
+### Solana (new chain kind: `solana`)
+- New `ChainConfig` kind `solana`. Derivation: SLIP-0010 ed25519, path `m/44'/501'/0'/0'` (Phantom-compatible).
+- Library: `@solana/web3.js` for tx + RPC (`https://api.mainnet-beta.solana.com` with public fallback `https://solana-rpc.publicnode.com`).
+- Native SOL send only to start (no SPL tokens yet).
+- History via RPC `getSignaturesForAddress` + `getParsedTransaction`.
+- Sign message: nacl detached signature over UTF-8 bytes (Phantom-compatible).
+- Explorer: `https://explorer.solana.com/tx/<h>` and `/address/<a>`.
 
-export type ChainConfig = UtxoChain | EvmChain;
-export const CHAINS: Record<ChainId, ChainConfig> = { txc, isk, eth /*, ...*/ };
-```
+## Cross-cutting changes
 
-All call sites branch on `chain.kind`:
-- `kind === "utxo"` → existing TXC/ISK code path (Esplora, UTXO selection, PSBT signing, Omni when supported).
-- `kind === "evm"` → EVM path (JSON-RPC, nonce, EIP-1559 gas, `eth_sendRawTransaction`, ERC-20 transfers).
+### Type system
+- Extend `ChainId` to include `ltc | bch | trx | sol`.
+- Add `TronChain` and `SolanaChain` interfaces. `ChainConfig` union grows to four kinds.
+- `BTC`/`TXC`/`LTC`/`BCH` get an optional `forkId?: number` (BCH only) and `cashAddrPrefix?: string` (BCH only).
 
-### Single seed, three key trees
-- One BIP39 mnemonic in IndexedDB (existing `storage.ts`).
-- `deriveAccount(seed, chain)`:
-  - UTXO chains → bitcoinjs HD path with chain's `bip84Base` / `bip44Base`.
-  - EVM chains → `m/44'/60'/0'/0/i` (the same address works on every EVM network, so we derive once and reuse across configured EVM chains).
-- Same backup phrase recovers everything.
+### Derivation (`accountQuery` in `Wallet.tsx`)
+- Branch on `kind`: utxo → existing path; evm → existing; **tron** → new `deriveTronAccount`; **solana** → new `deriveSolanaAccount`.
+- New account union: `{ kind: "tron"; account: TronAccount }` and `{ kind: "solana"; account: SolanaAccount }`.
 
-### Per-chain state (storage namespacing)
-- UTXO: UTXOs, tx history, address book, labels — namespaced by `chainId`.
-- EVM: nonce cache, token list, tx history — namespaced by `chainId`.
-- React: `useActiveChain()` hook + chain switcher in header. Wallet screen also shows a combined balances card at the top.
+### Send / Receive / History / Sign / Xpub dialogs
+- Each dialog currently branches on utxo vs evm. Add tron + solana branches:
+  - `SendDialog` — render amount input, fetch fee estimate, call chain-specific `buildAndBroadcast`.
+  - `ReceiveDialog` — just renders the address, already chain-agnostic ✅.
+  - `HistoryDialog` + `RecentActivity` — add tron/solana fetchers behind a single `fetchHistory(chain, address)` dispatcher (keeps the UI dumb).
+  - `SignDialog` — add tron/solana signing branches; signatures returned as hex (tron) / base58 (solana).
+  - `XpubDialog` — TRON exposes account xpub (secp256k1, same as EVM); Solana has no xpub concept → show the ed25519 public key with a note.
 
-## UI
+### Aggregator (`totalQuery` and prices)
+- `priceForChain`: map `ltc → "litecoin"`, `bch → "bitcoin-cash"`, `trx → "tron"`, `sol → "solana"` on CoinGecko.
+- `totalQuery`: add tron/solana balance branches.
 
-1. **Chain switcher** in the top bar (TXC | ISK | ETH | …). Persists last selected.
-2. **Balances overview** at top: TXC, ISK, ETH (and any other EVM chains), each clickable to switch active chain. Optional USD totals via existing `price.ts` extended with a CoinGecko-style lookup for EVM natives.
-3. **Send** branches on `chain.kind`:
-   - UTXO → existing flow: amount, fee rate sat/vB, address prefix validation per chain.
-   - EVM → recipient, amount, native vs. ERC-20 selector, gas estimate (EIP-1559 maxFee/maxPriority), nonce auto.
-4. **Receive** shows the active chain's next unused address (UTXO) or the single account address (EVM) as QR.
-5. **History** filtered by active chain with a chain badge per row.
-6. **Settings → Backup**: one phrase covers all chains; shows derivation path per chain.
-7. **Omni** UI only visible when active chain has `supportsOmni`.
-8. **ERC-20 token management** (add by contract address) only visible for EVM chains.
+### Visible chains
+- Add `ltc`, `bch`, `trx`, `sol` to the default visible list.
 
-## File plan
+### Settings → security
+- `SignDialog` chain picker already iterates `CHAIN_LIST` — auto-includes new chains.
+
+### Assets
+- Generate four logos: `ltc-logo.png`, `bch-logo.png`, `trx-logo.png`, `sol-logo.png`. Register in `chain-style.ts`.
+
+## New / changed files
 
 ```text
-src/
-  lib/
-    chains/
-      index.ts            # ChainConfig union + CHAINS registry
-      txc.ts isk.ts       # UTXO configs (ported)
-      evm/
-        eth.ts            # mainnet
-        index.ts          # registered EVM chains
-    wallet/               # chain-agnostic shell
-      seed.ts             # BIP39 mnemonic + IndexedDB (ported from TXC)
-      utxo/               # ported from TXC lib/txc/*
-        crypto.ts wallet.ts esplora.ts omni.ts units.ts storage.ts
-        contacts.ts labels.ts price.ts
-      evm/                # ported from EVM Wallet lib/wallet/*
-        hd.ts rpc.ts scan.ts ledger.ts disperse.ts secret.ts storage.ts
-        erc20.ts          # token transfers + balance reads
-  components/
-    wallet/
-      Wallet.tsx                  # shell + chain tabs
-      ChainSwitcher.tsx           # NEW
-      BalancesOverview.tsx        # NEW (all chains)
-      send/{UtxoSendForm,EvmSendForm}.tsx
-      ReceiveCard.tsx
-      history/{UtxoHistory,EvmHistory}.tsx
-      SettingsDialog.tsx ContactsDialog.tsx
-  routes/
-    __root.tsx
-    index.tsx              # Wallet shell
+src/lib/chains/index.ts              # add LTC, BCH, TRX, SOL configs + new kinds
+src/lib/wallet/utxo.ts               # BCH fork-id signing path + cashaddr decode on send
+src/lib/wallet/cashaddr.ts           # new — encode/decode CashAddr (P2PKH)
+src/lib/wallet/tron.ts               # new — derive, balance, send, sign, history
+src/lib/wallet/solana.ts             # new — derive, balance, send, sign, history
+src/lib/wallet/history.ts            # dispatcher learns tron/solana
+src/lib/wallet/price.ts              # add new coingecko ids
+src/lib/wallet/visible-chains.ts     # add to DEFAULT
+src/lib/wallet/chain-style.ts        # register 4 new logos
+src/components/wallet/Wallet.tsx     # accountQuery + totalQuery branches
+src/components/wallet/SendDialog.tsx # tron/solana send branches
+src/components/wallet/SignDialog.tsx # tron/solana sign branches
+src/components/wallet/HistoryDialog.tsx
+src/components/wallet/RecentActivity.tsx
+src/components/wallet/XpubDialog.tsx
+src/assets/{ltc,bch,trx,sol}-logo.png
 ```
 
-## Implementation steps
-1. Install UTXO deps: `bitcoinjs-lib`, `bip32`, `ecpair`, `wif`, `@bitcoinerlab/secp256k1`, `buffer`, `qrcode`, `@yudiel/react-qr-scanner`.
-2. Install EVM deps: `viem` (preferred — small, edge-friendly, has wallet/account/HD helpers) or reuse whatever the EVM Wallet project uses (verify on port). Plus `@scure/bip39` and `@scure/bip32` if not already pulled in transitively.
-3. Port `lib/txc/*` → `lib/wallet/utxo/*` and create `lib/chains/{txc,isk}.ts`.
-4. Port `lib/wallet/*` from EVM Wallet → `lib/wallet/evm/*` and create `lib/chains/evm/eth.ts` (and any additional EVM chains we want by default).
-5. Build a shared `seed.ts` that owns the mnemonic and exposes `deriveAccount(chain)` dispatching by `chain.kind`.
-6. Build `ChainSwitcher`, `BalancesOverview`, and split `SendForm` / `History` by `kind`.
-7. Add per-chain address-prefix validation in the send forms (UTXO prefix per chain; EVM checksum address).
-8. Optional: legacy-storage migration from either single-chain wallet or the EVM Wallet so existing users keep their data.
-9. Manual test on mainnets: receive on TXC + ISK + ETH; send native + an ERC-20; backup + restore the seed and recover all three balances.
+## Dependencies to add
+- `tronweb` (TRON tx building, broadcast, address utils)
+- `@solana/web3.js` + `tweetnacl` (Solana tx + ed25519 sign)
+- `ed25519-hd-key` (SLIP-0010 derivation for Solana)
+- `bchaddrjs` *(optional — replaces hand-rolled cashaddr if size allows)*
 
-## Out of scope (v1)
-- No custodial accounts, no server, no database.
-- No cross-chain swap. The wallet just holds the three asset classes.
-- WalletConnect / dApp connector for EVM — can be added later (viem + `@walletconnect/sign-client`).
-- L2s beyond what we hard-configure on day one; users can add EVM chains later via a custom-RPC form.
+All four are pure JS and work in the browser. None are imported on the server, so Worker compatibility is not an issue.
+
+## Risks / caveats
+- **BCH API endpoint**: free public Esplora hosts for BCH come and go. Picking `bchplorer.com/api` initially; if it's down we add `apiBase` swap in Settings.
+- **TRON fees**: TRX uses Energy/Bandwidth, not a sat/byte fee. Fee estimate shown as "≈1 TRX" worst-case if account has no free bandwidth.
+- **Solana rent**: receiving SOL into a brand-new account requires the sender to cover rent-exempt minimum (~0.00089 SOL). SendDialog will warn when target balance is 0.
+- **No tokens yet**: TRC20 (USDT-TRON) and SPL (USDC-Solana) are deferred — same pattern as ERC20 already, can add in a follow-up.
+
+## Validation
+- Production build passes.
+- Playwright: unlock wallet, switch to each new chain card, verify address renders in the expected format (ltc1…, bitcoincash:q…, T…, base58 32 chars), verify balance fetch returns 0 without error, verify Send dialog opens and validates a self-address.
