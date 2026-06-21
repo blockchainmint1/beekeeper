@@ -15,7 +15,6 @@ import {
 } from "@/lib/wallet/seed";
 import { secureCopy } from "@/lib/wallet/security";
 
-
 export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [tab, setTab] = useState<"create" | "import">("create");
   return (
@@ -35,7 +34,6 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
             One seed phrase. Bitcoin, Litecoin, Bitcoin Cash, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all in your browser.
           </p>
         </div>
-
 
         <Card>
           <CardHeader>
