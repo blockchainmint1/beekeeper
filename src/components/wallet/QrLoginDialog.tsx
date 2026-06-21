@@ -16,7 +16,7 @@ import {
   type ParsedQrLogin,
 } from "@/lib/wallet/qr-login";
 
-type Phase = "scan" | "loading" | "confirm" | "signing" | "done";
+type Phase = "idle" | "scan" | "loading" | "confirm" | "signing" | "done";
 
 export function QrLoginDialog({
   open,
@@ -30,7 +30,7 @@ export function QrLoginDialog({
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
-  const [phase, setPhase] = useState<Phase>("scan");
+  const [phase, setPhase] = useState<Phase>("idle");
   const [request, setRequest] = useState<ParsedQrLogin | null>(null);
   const [message, setMessage] = useState<string>("");
   const [siteLabel, setSiteLabel] = useState<string>("");
@@ -42,7 +42,7 @@ export function QrLoginDialog({
       scannerRef.current?.stop();
       scannerRef.current?.destroy();
       scannerRef.current = null;
-      setPhase("scan");
+      setPhase("idle");
       setRequest(null);
       setMessage("");
       setSiteLabel("");
@@ -52,29 +52,31 @@ export function QrLoginDialog({
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open || phase !== "scan" || !videoRef.current) return;
-    let cancelled = false;
-    const video = videoRef.current;
-    const s = new QrScanner(
-      video,
-      (result) => {
-        if (cancelled) return;
-        handleRaw(result.data);
-      },
-      { highlightScanRegion: true, highlightCodeOutline: true, preferredCamera: "environment" },
-    );
-    scannerRef.current = s;
-    s.start().catch((e: unknown) => {
-      setError(e instanceof Error ? e.message : "Camera unavailable");
+  // NOTE: Do NOT auto-start the camera in an effect. Browsers require
+  // getUserMedia to be invoked synchronously inside a user gesture handler,
+  // otherwise the request is silently rejected. The Start camera button below
+  // calls startCamera() directly.
+  function startCamera() {
+    setError(null);
+    setPhase("scan");
+    // Defer one frame so the <video> element is mounted, but kick off the
+    // getUserMedia request in the same task as the click — qr-scanner's
+    // start() returns a promise that begins the request synchronously.
+    requestAnimationFrame(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      const s = new QrScanner(
+        video,
+        (result) => handleRaw(result.data),
+        { highlightScanRegion: true, highlightCodeOutline: true, preferredCamera: "environment" },
+      );
+      scannerRef.current = s;
+      s.start().catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : "Camera unavailable");
+        setPhase("idle");
+      });
     });
-    return () => {
-      cancelled = true;
-      s.stop();
-      s.destroy();
-      if (scannerRef.current === s) scannerRef.current = null;
-    };
-  }, [open, phase]);
+  }
 
   async function handleRaw(raw: string) {
     try {
@@ -140,6 +142,39 @@ export function QrLoginDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {phase === "idle" && (
+          <div className="space-y-3">
+            <div className="flex flex-col items-center gap-3 rounded-xl border bg-muted/30 py-10 text-center">
+              <ScanLine className="h-10 w-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground px-6">
+                Tap below to enable your camera and scan a login QR.
+              </p>
+              <Button onClick={startCamera}>
+                <ScanLine className="mr-1.5 h-4 w-4" /> Start camera
+              </Button>
+            </div>
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">Paste QR contents or link instead</summary>
+              <Textarea
+                rows={4}
+                className="mt-2 font-mono text-[11px]"
+                value={manual}
+                onChange={(e) => setManual(e.target.value)}
+                placeholder='payhme://login?id=…&nonce=…&cb=… or {"v":1,...}'
+              />
+              <Button
+                size="sm"
+                className="mt-2 w-full"
+                disabled={!manual.trim()}
+                onClick={() => handleRaw(manual.trim())}
+              >
+                Parse
+              </Button>
+            </details>
+          </div>
+        )}
+
         {phase === "scan" && (
           <div className="space-y-3">
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-black">
@@ -199,7 +234,7 @@ export function QrLoginDialog({
             </details>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => { setPhase("scan"); setRequest(null); setMessage(""); setError(null); }}>
+              <Button variant="outline" className="flex-1" onClick={() => { scannerRef.current?.stop(); scannerRef.current?.destroy(); scannerRef.current = null; setPhase("idle"); setRequest(null); setMessage(""); setError(null); }}>
                 Cancel
               </Button>
               <Button className="flex-1" onClick={handleApprove}>
