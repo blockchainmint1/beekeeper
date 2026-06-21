@@ -14,6 +14,12 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    resolve: {
+      // rpc-websockets (transitive via @solana/web3.js) only declares
+      // "browser" and "node" export conditions. Vite's default conditions
+      // don't match, causing "No known conditions for '.' specifier".
+      conditions: ["browser", "import", "module", "default"],
+    },
     plugins: [
       // bitcoinjs-message / ripemd160 / cipher-base / etc. expect Node's
       // Buffer / stream / crypto in the browser. Polyfill them so the
