@@ -4,6 +4,8 @@ import type { ChainConfig } from "@/lib/chains";
 import { evmSignMessage, utxoSignMessage } from "./signing";
 import { deriveUtxoAccount } from "./utxo";
 import { deriveEvmAccount } from "./evm";
+import { deriveTronAccount, tronSignMessage } from "./tron";
+import { deriveSolanaAccount, solanaSignMessage } from "./solana";
 
 /**
  * Two protocols supported:
@@ -154,6 +156,14 @@ export async function signQrLogin(args: {
     address = acct.address;
     const { signature: sig } = await evmSignMessage({ mnemonic, chain, message });
     signature = sig;
+  } else if (chain.kind === "tron") {
+    const acct = deriveTronAccount(mnemonic, chain, 0);
+    address = acct.address;
+    signature = tronSignMessage(acct, message);
+  } else if (chain.kind === "solana") {
+    const acct = deriveSolanaAccount(mnemonic, chain, 0);
+    address = acct.address;
+    signature = solanaSignMessage(acct, message);
   } else {
     const acct = await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType);
     address = acct.address;
