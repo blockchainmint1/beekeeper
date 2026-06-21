@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
   BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
-  ScanLine, KeyRound,
+  ScanLine, KeyRound, Puzzle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -109,6 +109,22 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
     onLocked();
   }
 
+  async function downloadExtension() {
+    try {
+      const res = await fetch("/honest-money-extension.zip");
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "honest-money-extension.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Extension ZIP downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Download failed");
+    }
+  }
+
   // Auto-lock on idle / hidden tab (configured in Settings → Security).
   const handleIdleLock = useCallback(() => {
     clearCachedMnemonic();
@@ -186,6 +202,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         { label: "Xpub", icon: KeyRound, onClick: () => setXpubOpen(activeChain) },
         { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
         { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
+        { label: "Extension", icon: Puzzle, onClick: downloadExtension },
         { label: "Backup", icon: Download, onClick: handleForceBackup },
         { label: "Settings", icon: SettingsIcon, onClick: () => setSettingsOpen(true) },
       ]
