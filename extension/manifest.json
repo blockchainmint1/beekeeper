@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Honest Money Wallet",
+  "short_name": "Honest Money",
+  "version": "0.1.0",
+  "description": "Self-custody wallet for TXC, ZCU, ISK and EVM chains. Sign in to websites, approve transactions, and connect dapps using your Honest Money wallet.",
+  "permissions": ["storage", "tabs", "activeTab", "scripting", "notifications"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["inpage.js"], "matches": ["<all_urls>"] }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://wallet.honest.money/*",
+      "https://*.honest.money/*",
+      "https://honest-money-wallet.lovable.app/*",
+      "http://localhost:8080/*"
+    ]
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
