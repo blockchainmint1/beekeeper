@@ -18,7 +18,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
       await unlockVault(pass);
       onUnlocked();
     } catch {
-      toast.error("Incorrect passphrase");
+      toast.error("Incorrect password");
     } finally {
       setBusy(false);
     }
@@ -37,7 +37,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
     reader.onload = () => {
       try {
         importVaultBlob(String(reader.result));
-        toast.success("Backup loaded — enter its passphrase to unlock");
+        toast.success("Backup loaded — enter its password to unlock");
       } catch (err) {
         toast.error((err as Error).message);
       }
@@ -53,7 +53,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
             <WalletIcon className="h-7 w-7" />
           </div>
           <CardTitle>Welcome back</CardTitle>
-          <CardDescription>Enter your passphrase to unlock the wallet.</CardDescription>
+          <CardDescription>Enter your password to unlock the wallet.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {prefs.antiPhishingPhrase && (
@@ -61,13 +61,13 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
               <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">Your anti-phishing phrase</p>
               <p className="mt-0.5 font-mono text-sm text-emerald-200">{prefs.antiPhishingPhrase}</p>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                If you don't see this, you may be on a fake site — don't enter your passphrase.
+                If you don't see this, you may be on a fake site — don't enter your password.
               </p>
             </div>
           )}
           <Input
             type="password"
-            placeholder="Passphrase"
+            placeholder="Password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handle()}
@@ -81,7 +81,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
             <input type="file" accept="application/json,.json" className="hidden" onChange={handleRestoreFile} />
           </label>
           <Button variant="ghost" onClick={handleReset} className="w-full text-xs text-muted-foreground">
-            Forgot passphrase — reset wallet
+            Forgot password — reset wallet
           </Button>
         </CardContent>
       </Card>
