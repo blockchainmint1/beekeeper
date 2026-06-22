@@ -75,7 +75,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
 function CreateFlow({ onReady }: { onReady: () => void }) {
   const [strength, setStrength] = useState<128 | 256>(128);
   const [mnemonic, setMnemonic] = useState<string>(() => createMnemonic(128));
-  // Multi-step flow: 1=show phrase, 2=verify words, 3=set passphrase, 4=force-download backup
+  // Multi-step flow: 1=show phrase, 2=verify words, 3=set password, 4=force-download backup
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [acknowledged, setAcknowledged] = useState(false);
   const [pass1, setPass1] = useState("");
@@ -98,11 +98,11 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
 
   async function handleCreate() {
     if (pass1.length < 8) {
-      toast.error("Passphrase must be at least 8 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
     if (pass1 !== pass2) {
-      toast.error("Passphrases do not match");
+      toast.error("Passwords do not match");
       return;
     }
     setBusy(true);
@@ -213,9 +213,9 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
 
       {step === 3 && (
         <>
-          <p className="text-sm text-muted-foreground">Choose a passphrase that encrypts your vault on this device. Minimum 8 characters.</p>
-          <Input type="password" placeholder="Choose a passphrase (min 8 chars)" value={pass1} onChange={(e) => setPass1(e.target.value)} />
-          <Input type="password" placeholder="Confirm passphrase" value={pass2} onChange={(e) => setPass2(e.target.value)} />
+          <p className="text-sm text-muted-foreground">Choose a password that encrypts your vault on this device. Minimum 8 characters.</p>
+          <Input type="password" placeholder="Choose a password (min 8 chars)" value={pass1} onChange={(e) => setPass1(e.target.value)} />
+          <Input type="password" placeholder="Confirm password" value={pass2} onChange={(e) => setPass2(e.target.value)} />
           <Button onClick={handleCreate} disabled={busy} className="w-full">
             {busy ? "Creating…" : "Create wallet"}
           </Button>
@@ -227,7 +227,7 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <p className="font-medium text-amber-200">One more step — save your encrypted backup</p>
             <p className="mt-1 text-xs text-amber-100/80">
-              This file plus your passphrase can restore your wallet on any device, even without the seed phrase.
+              This file plus your password can restore your wallet on any device, even without the seed phrase.
               Store it somewhere safe (USB drive, password manager, encrypted cloud).
             </p>
           </div>
@@ -244,7 +244,7 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
 }
 
 function StepIndicator({ step }: { step: 1 | 2 | 3 | 4 }) {
-  const labels = ["Phrase", "Verify", "Passphrase", "Backup"];
+  const labels = ["Phrase", "Verify", "Password", "Backup"];
   return (
     <div className="flex items-center gap-1.5 text-[10px]">
       {labels.map((l, i) => {
@@ -276,7 +276,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
         importVaultBlob(String(reader.result));
         setFileName(file.name);
         setImported(true);
-        toast.success("Backup loaded — enter your passphrase");
+        toast.success("Backup loaded — enter your password");
       } catch (err) {
         toast.error((err as Error).message);
       }
@@ -293,7 +293,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
       toast.success("Wallet restored");
       onReady();
     } catch {
-      toast.error("Incorrect passphrase for this backup");
+      toast.error("Incorrect password for this backup");
     } finally {
       setBusy(false);
     }
@@ -302,7 +302,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Restore from an encrypted JSON backup. You'll still need the passphrase you set when creating it.
+        Restore from an encrypted JSON backup. You'll still need the password you set when creating it.
       </p>
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-6 text-sm hover:bg-muted/60">
         <Upload className="h-4 w-4" />
@@ -311,7 +311,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
       </label>
       {imported && (
         <>
-          <Input type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUnlock()} autoFocus />
+          <Input type="password" placeholder="Password" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUnlock()} autoFocus />
           <Button onClick={handleUnlock} disabled={busy || !pass} className="w-full">
             {busy ? "Unlocking…" : "Unlock restored wallet"}
           </Button>
@@ -334,11 +334,11 @@ function ImportFlow({ onReady }: { onReady: () => void }) {
       return;
     }
     if (pass1.length < 8) {
-      toast.error("Passphrase must be at least 8 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
     if (pass1 !== pass2) {
-      toast.error("Passphrases do not match");
+      toast.error("Passwords do not match");
       return;
     }
     setBusy(true);
@@ -364,13 +364,13 @@ function ImportFlow({ onReady }: { onReady: () => void }) {
       />
       <Input
         type="password"
-        placeholder="Choose a passphrase (min 8 chars)"
+        placeholder="Choose a password (min 8 chars)"
         value={pass1}
         onChange={(e) => setPass1(e.target.value)}
       />
       <Input
         type="password"
-        placeholder="Confirm passphrase"
+        placeholder="Confirm password"
         value={pass2}
         onChange={(e) => setPass2(e.target.value)}
       />

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
-import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
+import { changePassword, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
@@ -39,7 +39,7 @@ export function SettingsDialog({
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
-            <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
+            <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
             <TabsTrigger value="xpub"><Share2 className="mr-1 h-3.5 w-3.5" />xpub</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
@@ -48,7 +48,7 @@ export function SettingsDialog({
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
           <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
-          <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
+          <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
           <TabsContent value="xpub" className="pt-4"><XpubPanel /></TabsContent>
           <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
@@ -251,10 +251,10 @@ function BackupPanel() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your passphrase.
+        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your password.
       </p>
       <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-        <strong>Reminder:</strong> A backup is only as strong as your passphrase. Use a long, unique one and keep the file somewhere you trust.
+        <strong>Reminder:</strong> A backup is only as strong as your password. Use a long, unique one and keep the file somewhere you trust.
       </div>
       <Button className="w-full" onClick={download}>
         <Download className="mr-2 h-4 w-4" /> Download encrypted backup
@@ -263,39 +263,39 @@ function BackupPanel() {
   );
 }
 
-function PassphrasePanel() {
+function PasswordPanel() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (next.length < 8) { toast.error("New passphrase must be at least 8 characters"); return; }
-    if (next !== confirm) { toast.error("New passphrases don't match"); return; }
+    if (next.length < 8) { toast.error("New password must be at least 8 characters"); return; }
+    if (next !== confirm) { toast.error("New passwords don't match"); return; }
     setBusy(true);
     try {
-      await changePassphrase(current, next);
-      toast.success("Passphrase changed");
+      await changePassword(current, next);
+      toast.success("Password changed");
       setCurrent(""); setNext(""); setConfirm("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not change passphrase");
+      toast.error(e instanceof Error ? e.message : "Could not change password");
     } finally { setBusy(false); }
   };
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Re-encrypts your vault under a new passphrase. The old one stops working immediately.
+        Re-encrypts your vault under a new password. The old one stops working immediately.
       </p>
-      <div><Label className="text-xs">Current passphrase</Label>
+      <div><Label className="text-xs">Current password</Label>
         <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoFocus /></div>
-      <div><Label className="text-xs">New passphrase (min 8)</Label>
+      <div><Label className="text-xs">New password (min 8)</Label>
         <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} /></div>
-      <div><Label className="text-xs">Confirm new passphrase</Label>
+      <div><Label className="text-xs">Confirm new password</Label>
         <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
       <Button className="w-full" disabled={busy || !current || !next || !confirm} onClick={submit}>
         {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        <KeyRound className="mr-2 h-4 w-4" /> Change passphrase
+        <KeyRound className="mr-2 h-4 w-4" /> Change password
       </Button>
     </div>
   );
@@ -341,7 +341,7 @@ function RevealPanel() {
       }
       setKey(out); setPass(""); setShow(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Wrong passphrase");
+      toast.error(e instanceof Error ? e.message : "Wrong password");
     } finally { setBusy(false); }
   };
 
@@ -385,7 +385,7 @@ function RevealPanel() {
       {!key ? (
         <>
           <div>
-            <Label className="text-xs">Vault passphrase</Label>
+            <Label className="text-xs">Vault password</Label>
             <Input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && ack && pass && reveal()} />
           </div>
@@ -464,7 +464,7 @@ function XpubPanel() {
       setAddrs(deriveEvmAddressesFromXpub(x, count));
       setPass("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Wrong passphrase");
+      toast.error(e instanceof Error ? e.message : "Wrong password");
     } finally { setBusy(false); }
   };
 
@@ -484,7 +484,7 @@ function XpubPanel() {
       {!xpub ? (
         <>
           <div>
-            <Label className="text-xs">Vault passphrase</Label>
+            <Label className="text-xs">Vault password</Label>
             <Input
               type="password"
               value={pass}
