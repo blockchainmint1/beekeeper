@@ -1,4 +1,4 @@
-// Single BIP39 mnemonic vault. Encrypted with the user's passphrase and
+// Single BIP39 mnemonic vault. Encrypted with the user's password and
 // persisted in localStorage. Powers TXC, ISK, and EVM derivation.
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
@@ -63,25 +63,25 @@ export function isValidMnemonic(m: string): boolean {
   return validateMnemonic(m.trim().toLowerCase(), wordlist);
 }
 
-export async function createVault(mnemonic: string, passphrase: string): Promise<void> {
+export async function createVault(mnemonic: string, password: string): Promise<void> {
   const blob = await encryptJson(
     { mnemonic, createdAt: Date.now() },
-    passphrase,
+    password,
   );
   saveVault(blob);
   cacheMnemonic(mnemonic);
 }
 
-export async function unlockVault(passphrase: string): Promise<string> {
+export async function unlockVault(password: string): Promise<string> {
   const blob = loadVault();
   if (!blob) throw new Error("No wallet found");
-  const payload = await decryptJson<VaultPayload>(blob, passphrase);
+  const payload = await decryptJson<VaultPayload>(blob, password);
   cacheMnemonic(payload.mnemonic);
   return payload.mnemonic;
 }
 
-/** Re-encrypts the existing vault under a new passphrase. */
-export async function changePassphrase(current: string, next: string): Promise<void> {
+/** Re-encrypts the existing vault under a new password. */
+export async function changePassword(current: string, next: string): Promise<void> {
   const blob = loadVault();
   if (!blob) throw new Error("No wallet found");
   const payload = await decryptJson<VaultPayload>(blob, current);
@@ -130,7 +130,7 @@ export function isVaultBackedUp(): boolean {
   return getLastBackupAt() !== null;
 }
 
-/** Import an encrypted vault JSON and replace the current one (passphrase still required to unlock). */
+/** Import an encrypted vault JSON and replace the current one (password still required to unlock). */
 export function importVaultBlob(json: string): void {
   let parsed: unknown;
   try {
