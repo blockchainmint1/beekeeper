@@ -42,7 +42,15 @@ export function XpubDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{chain.ticker} Extended Public Key</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide text-white"
+              style={{ backgroundColor: chain.color }}
+            >
+              {chain.ticker}
+            </span>
+            <span>{chain.name} Extended Public Key</span>
+          </DialogTitle>
           <DialogDescription>
             Share this xpub to let a watch-only wallet or service track {chain.name}. It cannot spend funds.
           </DialogDescription>
