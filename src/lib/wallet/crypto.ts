@@ -20,10 +20,10 @@ function b64decode(s: string): Uint8Array {
   return out;
 }
 
-async function deriveKey(passphrase: string, salt: Uint8Array, iterations: number): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: Uint8Array, iterations: number): Promise<CryptoKey> {
   const baseKey = await crypto.subtle.importKey(
     "raw",
-    enc.encode(passphrase),
+    enc.encode(password),
     "PBKDF2",
     false,
     ["deriveKey"],
@@ -46,10 +46,10 @@ export interface EncryptedBlob {
   it?: number;
 }
 
-export async function encryptJson(data: unknown, passphrase: string): Promise<EncryptedBlob> {
+export async function encryptJson(data: unknown, password: string): Promise<EncryptedBlob> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(passphrase, salt, PBKDF2_ITERATIONS_V2);
+  const key = await deriveKey(password, salt, PBKDF2_ITERATIONS_V2);
   const ct = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv: iv as BufferSource },
     key,
@@ -58,9 +58,9 @@ export async function encryptJson(data: unknown, passphrase: string): Promise<En
   return { v: 2, salt: b64encode(salt), iv: b64encode(iv), ct: b64encode(ct), it: PBKDF2_ITERATIONS_V2 };
 }
 
-export async function decryptJson<T>(blob: EncryptedBlob, passphrase: string): Promise<T> {
+export async function decryptJson<T>(blob: EncryptedBlob, password: string): Promise<T> {
   const iterations = blob.it ?? (blob.v === 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1);
-  const key = await deriveKey(passphrase, b64decode(blob.salt), iterations);
+  const key = await deriveKey(password, b64decode(blob.salt), iterations);
   const pt = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: b64decode(blob.iv) as BufferSource },
     key,

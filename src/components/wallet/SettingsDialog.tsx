@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
-import { changePassphrase, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
+import { changePassword, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
