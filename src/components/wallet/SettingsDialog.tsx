@@ -39,7 +39,7 @@ export function SettingsDialog({
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
-            <TabsTrigger value="passphrase">Passphrase</TabsTrigger>
+            <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
             <TabsTrigger value="xpub"><Share2 className="mr-1 h-3.5 w-3.5" />xpub</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
@@ -48,7 +48,7 @@ export function SettingsDialog({
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
           <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
-          <TabsContent value="passphrase" className="pt-4"><PassphrasePanel /></TabsContent>
+          <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
           <TabsContent value="xpub" className="pt-4"><XpubPanel /></TabsContent>
           <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
@@ -263,7 +263,7 @@ function BackupPanel() {
   );
 }
 
-function PassphrasePanel() {
+function PasswordPanel() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -274,7 +274,7 @@ function PassphrasePanel() {
     if (next !== confirm) { toast.error("New passphrases don't match"); return; }
     setBusy(true);
     try {
-      await changePassphrase(current, next);
+      await changePassword(current, next);
       toast.success("Passphrase changed");
       setCurrent(""); setNext(""); setConfirm("");
     } catch (e) {
