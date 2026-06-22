@@ -251,10 +251,10 @@ function BackupPanel() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your passphrase.
+        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your password.
       </p>
       <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-        <strong>Reminder:</strong> A backup is only as strong as your passphrase. Use a long, unique one and keep the file somewhere you trust.
+        <strong>Reminder:</strong> A backup is only as strong as your password. Use a long, unique one and keep the file somewhere you trust.
       </div>
       <Button className="w-full" onClick={download}>
         <Download className="mr-2 h-4 w-4" /> Download encrypted backup
@@ -285,17 +285,17 @@ function PasswordPanel() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Re-encrypts your vault under a new passphrase. The old one stops working immediately.
+        Re-encrypts your vault under a new password. The old one stops working immediately.
       </p>
-      <div><Label className="text-xs">Current passphrase</Label>
+      <div><Label className="text-xs">Current password</Label>
         <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoFocus /></div>
-      <div><Label className="text-xs">New passphrase (min 8)</Label>
+      <div><Label className="text-xs">New password (min 8)</Label>
         <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} /></div>
-      <div><Label className="text-xs">Confirm new passphrase</Label>
+      <div><Label className="text-xs">Confirm new password</Label>
         <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
       <Button className="w-full" disabled={busy || !current || !next || !confirm} onClick={submit}>
         {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        <KeyRound className="mr-2 h-4 w-4" /> Change passphrase
+        <KeyRound className="mr-2 h-4 w-4" /> Change password
       </Button>
     </div>
   );
@@ -341,7 +341,7 @@ function RevealPanel() {
       }
       setKey(out); setPass(""); setShow(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Wrong passphrase");
+      toast.error(e instanceof Error ? e.message : "Wrong password");
     } finally { setBusy(false); }
   };
 
@@ -385,7 +385,7 @@ function RevealPanel() {
       {!key ? (
         <>
           <div>
-            <Label className="text-xs">Vault passphrase</Label>
+            <Label className="text-xs">Vault password</Label>
             <Input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && ack && pass && reveal()} />
           </div>
@@ -464,7 +464,7 @@ function XpubPanel() {
       setAddrs(deriveEvmAddressesFromXpub(x, count));
       setPass("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Wrong passphrase");
+      toast.error(e instanceof Error ? e.message : "Wrong password");
     } finally { setBusy(false); }
   };
 
@@ -484,7 +484,7 @@ function XpubPanel() {
       {!xpub ? (
         <>
           <div>
-            <Label className="text-xs">Vault passphrase</Label>
+            <Label className="text-xs">Vault password</Label>
             <Input
               type="password"
               value={pass}
