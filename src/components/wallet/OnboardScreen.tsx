@@ -276,7 +276,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
         importVaultBlob(String(reader.result));
         setFileName(file.name);
         setImported(true);
-        toast.success("Backup loaded — enter your passphrase");
+        toast.success("Backup loaded — enter your password");
       } catch (err) {
         toast.error((err as Error).message);
       }
@@ -293,7 +293,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
       toast.success("Wallet restored");
       onReady();
     } catch {
-      toast.error("Incorrect passphrase for this backup");
+      toast.error("Incorrect password for this backup");
     } finally {
       setBusy(false);
     }
@@ -302,7 +302,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Restore from an encrypted JSON backup. You'll still need the passphrase you set when creating it.
+        Restore from an encrypted JSON backup. You'll still need the password you set when creating it.
       </p>
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-6 text-sm hover:bg-muted/60">
         <Upload className="h-4 w-4" />
@@ -311,7 +311,7 @@ function RestoreFlow({ onReady }: { onReady: () => void }) {
       </label>
       {imported && (
         <>
-          <Input type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUnlock()} autoFocus />
+          <Input type="password" placeholder="Password" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUnlock()} autoFocus />
           <Button onClick={handleUnlock} disabled={busy || !pass} className="w-full">
             {busy ? "Unlocking…" : "Unlock restored wallet"}
           </Button>
@@ -334,11 +334,11 @@ function ImportFlow({ onReady }: { onReady: () => void }) {
       return;
     }
     if (pass1.length < 8) {
-      toast.error("Passphrase must be at least 8 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
     if (pass1 !== pass2) {
-      toast.error("Passphrases do not match");
+      toast.error("Passwords do not match");
       return;
     }
     setBusy(true);
@@ -364,13 +364,13 @@ function ImportFlow({ onReady }: { onReady: () => void }) {
       />
       <Input
         type="password"
-        placeholder="Choose a passphrase (min 8 chars)"
+        placeholder="Choose a password (min 8 chars)"
         value={pass1}
         onChange={(e) => setPass1(e.target.value)}
       />
       <Input
         type="password"
-        placeholder="Confirm passphrase"
+        placeholder="Confirm password"
         value={pass2}
         onChange={(e) => setPass2(e.target.value)}
       />
