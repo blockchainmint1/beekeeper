@@ -270,15 +270,15 @@ function PasswordPanel() {
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (next.length < 8) { toast.error("New passphrase must be at least 8 characters"); return; }
-    if (next !== confirm) { toast.error("New passphrases don't match"); return; }
+    if (next.length < 8) { toast.error("New password must be at least 8 characters"); return; }
+    if (next !== confirm) { toast.error("New passwords don't match"); return; }
     setBusy(true);
     try {
       await changePassword(current, next);
-      toast.success("Passphrase changed");
+      toast.success("Password changed");
       setCurrent(""); setNext(""); setConfirm("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not change passphrase");
+      toast.error(e instanceof Error ? e.message : "Could not change password");
     } finally { setBusy(false); }
   };
 
