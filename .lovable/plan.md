@@ -1,104 +1,88 @@
-## Goal
+# Copper Coin onboarding + Nectar Pay link
 
-Add four new chains as first-class wallets: **Litecoin (LTC)**, **Bitcoin Cash (BCH)**, **TRON (TRX)**, and **Solana (SOL)** — each with derive, balance, send, receive, history, and message signing.
+Rewrite first-run setup so the **only** way to create a wallet is by scanning a 24-word Cold Storage Coin ("Copper Coin") QR. Once linked, the existing password unlock flow continues to work for repeat visits.
 
-## Scope by chain
+## 1. Scan-only onboarding
 
-### LTC (easy — drop-in UTXO)
-- New `UtxoChain` config: Litecoin mainnet network params (bech32 `ltc`, pubkeyHash `0x30`, scriptHash `0x32`, wif `0xb0`, BIP44 coin `2`).
-- API: `https://litecoinspace.org/api` (Esplora-compatible). Explorer same host.
-- Reuses every existing UTXO codepath (derive, balance, send, history, sign).
-
-### BCH (UTXO + CashAddr layer)
-- New `UtxoChain` config with Bitcoin-mainnet bytes (BCH never changed them) but BIP44 coin `145`.
-- Add a `cashaddr` encoder/decoder so we can:
-  - Display addresses as `bitcoincash:q…` by default.
-  - Accept either legacy `1…` or CashAddr when sending (decode → P2PKH script).
-- API: `https://bchplorer.com/api` (Esplora-compatible). If unreachable, surface a clear error and let user swap via `apiBase`.
-- Sighash: BCH uses `SIGHASH_ALL | SIGHASH_FORKID` (0x41) with BIP143 hashing. Need a small fork-id signer path in `buildAndSign` (gated by a `forkId` field on the chain). Without this, BCH txs will be rejected by the network.
-
-### TRON (new chain kind: `tron`)
-- New `ChainConfig` kind `tron`. Derivation: BIP44 coin `195'`, secp256k1; address = `Base58Check(0x41 ‖ keccak256(uncompressedPubKey[1:])[-20:])`.
-- Library: `tronweb` for tx building + broadcast (RPC: `https://api.trongrid.io`). Native TRX send only (no TRC20 yet — same caveat as ERC20 tokens shipping later).
-- Balance/history via TronGrid REST: `/v1/accounts/{addr}` and `/v1/accounts/{addr}/transactions`.
-- Sign message: TRON personal-sign (keccak256 with `\x19TRON Signed Message:\n32` prefix, secp256k1 recoverable).
-- Explorer: `https://tronscan.org/#/transaction/<h>` and `/address/<a>`.
-
-### Solana (new chain kind: `solana`)
-- New `ChainConfig` kind `solana`. Derivation: SLIP-0010 ed25519, path `m/44'/501'/0'/0'` (Phantom-compatible).
-- Library: `@solana/web3.js` for tx + RPC (`https://api.mainnet-beta.solana.com` with public fallback `https://solana-rpc.publicnode.com`).
-- Native SOL send only to start (no SPL tokens yet).
-- History via RPC `getSignaturesForAddress` + `getParsedTransaction`.
-- Sign message: nacl detached signature over UTF-8 bytes (Phantom-compatible).
-- Explorer: `https://explorer.solana.com/tx/<h>` and `/address/<a>`.
-
-## Cross-cutting changes
-
-### Type system
-- Extend `ChainId` to include `ltc | bch | trx | sol`.
-- Add `TronChain` and `SolanaChain` interfaces. `ChainConfig` union grows to four kinds.
-- `BTC`/`TXC`/`LTC`/`BCH` get an optional `forkId?: number` (BCH only) and `cashAddrPrefix?: string` (BCH only).
-
-### Derivation (`accountQuery` in `Wallet.tsx`)
-- Branch on `kind`: utxo → existing path; evm → existing; **tron** → new `deriveTronAccount`; **solana** → new `deriveSolanaAccount`.
-- New account union: `{ kind: "tron"; account: TronAccount }` and `{ kind: "solana"; account: SolanaAccount }`.
-
-### Send / Receive / History / Sign / Xpub dialogs
-- Each dialog currently branches on utxo vs evm. Add tron + solana branches:
-  - `SendDialog` — render amount input, fetch fee estimate, call chain-specific `buildAndBroadcast`.
-  - `ReceiveDialog` — just renders the address, already chain-agnostic ✅.
-  - `HistoryDialog` + `RecentActivity` — add tron/solana fetchers behind a single `fetchHistory(chain, address)` dispatcher (keeps the UI dumb).
-  - `SignDialog` — add tron/solana signing branches; signatures returned as hex (tron) / base58 (solana).
-  - `XpubDialog` — TRON exposes account xpub (secp256k1, same as EVM); Solana has no xpub concept → show the ed25519 public key with a note.
-
-### Aggregator (`totalQuery` and prices)
-- `priceForChain`: map `ltc → "litecoin"`, `bch → "bitcoin-cash"`, `trx → "tron"`, `sol → "solana"` on CoinGecko.
-- `totalQuery`: add tron/solana balance branches.
-
-### Visible chains
-- Add `ltc`, `bch`, `trx`, `sol` to the default visible list.
-
-### Settings → security
-- `SignDialog` chain picker already iterates `CHAIN_LIST` — auto-includes new chains.
-
-### Assets
-- Generate four logos: `ltc-logo.png`, `bch-logo.png`, `trx-logo.png`, `sol-logo.png`. Register in `chain-style.ts`.
-
-## New / changed files
+Replace the current `OnboardScreen` tab layout (Create / Import / Restore) with a single linear flow:
 
 ```text
-src/lib/chains/index.ts              # add LTC, BCH, TRX, SOL configs + new kinds
-src/lib/wallet/utxo.ts               # BCH fork-id signing path + cashaddr decode on send
-src/lib/wallet/cashaddr.ts           # new — encode/decode CashAddr (P2PKH)
-src/lib/wallet/tron.ts               # new — derive, balance, send, sign, history
-src/lib/wallet/solana.ts             # new — derive, balance, send, sign, history
-src/lib/wallet/history.ts            # dispatcher learns tron/solana
-src/lib/wallet/price.ts              # add new coingecko ids
-src/lib/wallet/visible-chains.ts     # add to DEFAULT
-src/lib/wallet/chain-style.ts        # register 4 new logos
-src/components/wallet/Wallet.tsx     # accountQuery + totalQuery branches
-src/components/wallet/SendDialog.tsx # tron/solana send branches
-src/components/wallet/SignDialog.tsx # tron/solana sign branches
-src/components/wallet/HistoryDialog.tsx
-src/components/wallet/RecentActivity.tsx
-src/components/wallet/XpubDialog.tsx
-src/assets/{ltc,bch,trx,sol}-logo.png
+[Step 1: Scan]  →  [Step 2: Disclaimers]  →  [Step 3: Password]  →  [Step 4: Link Nectar Pay]  →  Wallet
 ```
 
-## Dependencies to add
-- `tronweb` (TRON tx building, broadcast, address utils)
-- `@solana/web3.js` + `tweetnacl` (Solana tx + ed25519 sign)
-- `ed25519-hd-key` (SLIP-0010 derivation for Solana)
-- `bchaddrjs` *(optional — replaces hand-rolled cashaddr if size allows)*
+- **Step 1 — Scan Copper Coin**
+  Big "Scan your Copper Coin" button → opens existing `QrScanDialog`. Expect plain text: 24 space-separated BIP39 words. Validate via `isValidMnemonic`; reject 12-word phrases with a clear error ("Copper Coin must be 24 words"). Hold the mnemonic in component state only — never display the words back on screen.
+  Small "I don't have one yet" link → external info page (placeholder URL for now).
 
-All four are pure JS and work in the browser. None are imported on the server, so Worker compatibility is not an issue.
+- **Step 2 — Disclaimers** (all 4 checkboxes required to continue)
+  1. I understand my Copper Coin is my only backup. If I lose it, my account is gone forever.
+  2. I will keep my Copper Coin safe. Anyone who finds it has unlimited access to my funds. I will store it in a safe or safe deposit box.
+  3. I will never share my Copper Coin. No support agent, no app, no website will ever ask me to scan it elsewhere. It is for me only.
+  4. I understand this wallet is non‑custodial. No one — not AOCS, not Nectar Pay — can recover my funds or reverse a transaction.
 
-## Risks / caveats
-- **BCH API endpoint**: free public Esplora hosts for BCH come and go. Picking `bchplorer.com/api` initially; if it's down we add `apiBase` swap in Settings.
-- **TRON fees**: TRX uses Energy/Bandwidth, not a sat/byte fee. Fee estimate shown as "≈1 TRX" worst-case if account has no free bandwidth.
-- **Solana rent**: receiving SOL into a brand-new account requires the sender to cover rent-exempt minimum (~0.00089 SOL). SendDialog will warn when target balance is 0.
-- **No tokens yet**: TRC20 (USDT-TRON) and SPL (USDC-Solana) are deferred — same pattern as ERC20 already, can add in a follow-up.
+- **Step 3 — Set device password**
+  Same min-8-char password + confirm. Calls existing `createVault(mnemonic, password)`. This is what's used for future unlocks on this device.
 
-## Validation
-- Production build passes.
-- Playwright: unlock wallet, switch to each new chain card, verify address renders in the expected format (ltc1…, bitcoincash:q…, T…, base58 32 chars), verify balance fetch returns 0 without error, verify Send dialog opens and validates a self-address.
+- **Step 4 — Link Nectar Pay** (see section 3 below)
+
+## 2. Xpub derivation
+
+Immediately after `createVault`, derive in memory (no UI for this step — runs in the background while the user reaches Step 4):
+
+- **BTC** — `utxoAccountXpub(mnemonic, btcChain)` → native `xpub` at `m/84'/0'/0'` (or `m/44'/0'/0'` per current default).
+- **TXC** — `utxoAccountXpub(mnemonic, txcChain)` → xpub at TXC's configured BIP44 base.
+- **EVM** — `evmAccountXpub(mnemonic)` → BIP32 xpub at `m/44'/60'/0'` (already supported by `chainAccountXpub`).
+
+Bundle into:
+
+```ts
+type NectarPayload = {
+  version: 1;
+  btc:  { xpub: string; path: string };
+  txc:  { xpub: string; path: string };
+  evm:  { xpub: string; path: string };
+};
+```
+
+Xpubs are public — safe to send over HTTPS. The mnemonic never leaves the device.
+
+## 3. Nectar Pay linking (wallet scans Nectar's QR)
+
+- "Link your Nectar Pay merchant account" screen with two buttons:
+  - **Scan Nectar Pay QR** → reuses `QrScanDialog`.
+  - **Skip for now** (link later from Settings).
+
+- Expected QR payload — JSON (with a fallback for a plain URL):
+
+  ```json
+  { "nectar": "merchant-link", "v": 1, "url": "https://nectar.pay/api/merchants/{id}/link", "token": "one-time-token" }
+  ```
+
+  If the QR is a plain `https://…` URL, treat it as `url` with no token.
+
+- Wallet POSTs `NectarPayload` to `url` with `Authorization: Bearer {token}` (if present). Show success toast with the merchant name returned in the response, or a clear error if the request fails. Failures keep the user on this step so they can retry or skip.
+
+- Persist link status (merchant id + linked-at timestamp) inside the vault metadata so Settings can show "Linked to Nectar Pay merchant XYZ" and offer "Re-link" / "Unlink".
+
+- Add a **Settings → Nectar Pay** entry that re-runs the same scan-and-POST flow at any time, and a manual "Show my xpubs" view (already exists per chain via `XpubDialog`) plus a new "Show all 3 as one QR" option that encodes `NectarPayload` directly — useful if Nectar Pay's UI prefers to scan us.
+
+## 4. Repeat visits
+
+No change to `UnlockScreen` — once a vault exists locally, the user enters their password as today. The Copper Coin scan is only ever required when no vault exists (fresh install, cleared storage, new device).
+
+If `getCachedMnemonic()` exists but `localStorage` has no Nectar link record, surface a non-blocking banner inside the wallet: "Finish linking your Nectar Pay merchant account →".
+
+## Files to change / add
+
+- `src/components/wallet/OnboardScreen.tsx` — rewrite into the 4-step linear flow; delete Create / Import / Restore tabs.
+- `src/lib/wallet/nectar.ts` *(new)* — `buildNectarPayload(mnemonic)`, `parseNectarQr(text)`, `linkNectarMerchant(payload, target)`, plus local persistence helpers.
+- `src/components/wallet/NectarLinkDialog.tsx` *(new)* — reusable link flow (used in onboarding step 4 and from Settings).
+- `src/components/wallet/SettingsDialog.tsx` — add "Nectar Pay" section (status + re-link/unlink + "show combined xpub QR").
+- `src/components/wallet/Wallet.tsx` — add the "finish linking" banner when vault exists but no link record.
+- `src/lib/wallet/seed.ts` — leave `createMnemonic` exported but stop calling it from the UI. No vault-shape changes needed.
+
+## Open items I'll assume unless you say otherwise
+
+- Nectar Pay endpoint contract (URL shape, auth header, response body). I'll code against the JSON shape above and put the actual base URL behind a constant we can swap once you have it.
+- "Skip linking" is allowed — users can finish later from Settings. Tell me if linking must be mandatory before the wallet opens.
+- No additional disclaimers beyond the 4 above. Add more here if you want them.
