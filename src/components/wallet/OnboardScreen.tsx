@@ -251,3 +251,54 @@ function StepIndicator({ step }: { step: Step }) {
     </div>
   );
 }
+
+function HoneycombMark() {
+  // Inline honeycomb + bee silhouette — pure SVG, themed in amber.
+  return (
+    <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+      <div
+        className="absolute inset-0 rounded-full blur-xl opacity-60"
+        style={{ background: "radial-gradient(circle, #f5b942 0%, transparent 70%)" }}
+        aria-hidden
+      />
+      <svg viewBox="0 0 64 64" className="relative h-20 w-20" aria-label="Nectar hive mark" role="img">
+        <defs>
+          <linearGradient id="combFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fcd34d" />
+            <stop offset="100%" stopColor="#d97706" />
+          </linearGradient>
+        </defs>
+        {/* Honeycomb hex cluster */}
+        {[
+          [32, 14], [20, 21], [44, 21], [32, 28], [20, 35], [44, 35], [32, 42],
+        ].map(([cx, cy], i) => (
+          <polygon
+            key={i}
+            points={hexPoints(cx, cy, 6.5)}
+            fill="url(#combFill)"
+            stroke="#78350f"
+            strokeWidth="0.8"
+            opacity={0.95}
+          />
+        ))}
+        {/* Bee */}
+        <g transform="translate(40 46) rotate(20)">
+          <ellipse cx="0" cy="0" rx="7" ry="4.5" fill="#facc15" stroke="#1c1917" strokeWidth="0.9" />
+          <rect x="-4" y="-4.5" width="2" height="9" fill="#1c1917" />
+          <rect x="0" y="-4.5" width="2" height="9" fill="#1c1917" />
+          <ellipse cx="-3" cy="-3" rx="4" ry="2.2" fill="#ffffff" opacity="0.85" transform="rotate(-25 -3 -3)" />
+          <ellipse cx="3" cy="-3" rx="4" ry="2.2" fill="#ffffff" opacity="0.85" transform="rotate(25 3 -3)" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function hexPoints(cx: number, cy: number, r: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
+  }
+  return pts.join(" ");
+}
