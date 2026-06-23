@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { NectarLinkDialog } from "./NectarLinkDialog";
 
 export function SettingsDialog({
   open,
