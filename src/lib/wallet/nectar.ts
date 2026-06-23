@@ -1,6 +1,6 @@
 // Nectar Pay merchant link — derives BTC/TXC/EVM xpubs and posts them to a
 // merchant onboarding endpoint encoded in a QR.
-import { getChain } from "@/lib/chains";
+import { getChain, type UtxoChain } from "@/lib/chains";
 import { utxoAccountXpub, chainAccountXpub } from "./xpub";
 
 const LINK_KEY = "lovable-multi-wallet-nectar-link-v1";
@@ -25,8 +25,8 @@ export interface NectarQrTarget {
 }
 
 export function buildNectarPayload(mnemonic: string): NectarPayload {
-  const btc = utxoAccountXpub(mnemonic, getChain("btc") as never);
-  const txc = utxoAccountXpub(mnemonic, getChain("txc") as never);
+  const btc = utxoAccountXpub(mnemonic, getChain("btc") as UtxoChain);
+  const txc = utxoAccountXpub(mnemonic, getChain("txc") as UtxoChain);
   const evm = chainAccountXpub(mnemonic, getChain("eth"));
   return { version: 1, btc, txc, evm };
 }
