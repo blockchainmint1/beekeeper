@@ -77,13 +77,13 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/40 p-4">
       <div className="w-full max-w-xl">
         <div className="mb-8 text-center">
-          <img src="/aocs-logo.png" alt="AOCS logo" className="mx-auto mb-4 h-16 w-auto object-contain" />
-          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Honest Money Ecosystem
+          <HoneycombMark />
+          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.32em] text-amber-400/90">
+            Nectar · Pollinated Payments
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">Activate your Copper Coin</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">Activate your Copper Coin</h1>
           <p className="mt-2 text-muted-foreground">
-            Scan your Cold Storage Coin to set up Bitcoin, TEXITcoin, and EVM wallets in one shot.
+            Scan your Cold Storage Coin and the hive comes to life — Bitcoin, TEXITcoin, and EVM wallets, all from one queen seed.
           </p>
         </div>
 
