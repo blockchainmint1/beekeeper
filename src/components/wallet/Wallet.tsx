@@ -59,6 +59,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [qrLoginOpen, setQrLoginOpen] = useState(false);
   const [xpubOpen, setXpubOpen] = useState<ChainConfig | null>(null);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
+  const [nectarLinked, setNectarLinked] = useState<boolean>(() => hasNectarLink());
   const visibleIds = useVisibleChainIds();
   const visibleChains = useMemo(
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
