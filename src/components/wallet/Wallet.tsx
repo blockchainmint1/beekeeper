@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
   BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
-  ScanLine, KeyRound, Puzzle,
+  ScanLine, KeyRound, Puzzle, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 import { clearCachedMnemonic, getCachedMnemonic, wipeVault, isVaultBackedUp, downloadVaultBackup } from "@/lib/wallet/seed";
+import { hasNectarLink } from "@/lib/wallet/nectar";
 import type { UtxoAccount } from "@/lib/wallet/utxo";
 import { deriveUtxoAccount } from "@/lib/wallet/utxo";
 import type { EvmAccount } from "@/lib/wallet/evm";
@@ -58,6 +59,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [qrLoginOpen, setQrLoginOpen] = useState(false);
   const [xpubOpen, setXpubOpen] = useState<ChainConfig | null>(null);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
+  const [nectarLinked, setNectarLinked] = useState<boolean>(() => hasNectarLink());
   const visibleIds = useVisibleChainIds();
   const visibleChains = useMemo(
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
@@ -268,6 +270,21 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </section>
       )}
 
+      {!nectarLinked && (
+        <section className="px-5 mt-3">
+          <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Link2 className="w-4 h-4 shrink-0" style={{ color: "var(--success)" }} />
+            <div className="flex-1 text-xs text-foreground/85">
+              <strong className="font-semibold">Finish linking your Nectar Pay merchant account.</strong> Share xpubs so Nectar Pay can watch for payments.
+            </div>
+            <Button size="sm" onClick={() => setSettingsOpen(true)} className="shrink-0 h-7 text-xs">
+              Link
+            </Button>
+          </div>
+        </section>
+      )}
+
+
       {/* Swipeable wallet cards */}
       <section className="mt-6">
         {visibleChains.length > 0 ? (
@@ -420,7 +437,10 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       <SettingsDialog
         open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        onOpenChange={(v) => {
+          setSettingsOpen(v);
+          if (!v) setNectarLinked(hasNectarLink());
+        }}
         onWipe={() => {
           wipeVault();
           onLocked();

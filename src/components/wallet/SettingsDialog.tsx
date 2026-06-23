@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { NectarLinkDialog } from "./NectarLinkDialog";
 
 export function SettingsDialog({
   open,
@@ -38,6 +40,7 @@ export function SettingsDialog({
           <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
+            <TabsTrigger value="nectar"><Link2 className="mr-1 h-3.5 w-3.5" />Nectar Pay</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="reveal">Private key</TabsTrigger>
@@ -47,6 +50,7 @@ export function SettingsDialog({
 
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
           <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
+          <TabsContent value="nectar" className="pt-4"><NectarPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
           <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
@@ -55,6 +59,59 @@ export function SettingsDialog({
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function NectarPanel() {
+  const [link, setLink] = useState<NectarLinkRecord | null>(() => loadNectarLink());
+  const [linkOpen, setLinkOpen] = useState(false);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Link this wallet to a Nectar Pay merchant account. We send your BTC, TEXITcoin, and EVM extended public keys — never your seed or private keys.
+      </p>
+      {link ? (
+        <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+          <div className="font-medium text-emerald-200">
+            Linked{link.merchantName ? ` to ${link.merchantName}` : ""}
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground break-all">
+            {link.url}
+          </div>
+          {link.merchantId && (
+            <div className="text-[11px] text-muted-foreground">Merchant ID: {link.merchantId}</div>
+          )}
+          <div className="text-[11px] text-muted-foreground">
+            Linked {new Date(link.linkedAt).toLocaleString()}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+          Not linked yet. Scan the QR code from your Nectar Pay merchant dashboard to connect.
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Button className="flex-1" onClick={() => setLinkOpen(true)}>
+          <Link2 className="mr-2 h-4 w-4" /> {link ? "Re-link" : "Scan Nectar Pay QR"}
+        </Button>
+        {link && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              clearNectarLink();
+              setLink(null);
+              toast.success("Nectar Pay link removed from this device");
+            }}
+          >
+            <Unlink className="mr-2 h-4 w-4" /> Unlink
+          </Button>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        "Unlink" only forgets the connection on this device. To stop Nectar Pay from watching these xpubs, also remove this wallet inside the Nectar Pay merchant dashboard.
+      </p>
+      <NectarLinkDialog open={linkOpen} onOpenChange={setLinkOpen} onLinked={(r) => setLink(r)} />
+    </div>
   );
 }
 
