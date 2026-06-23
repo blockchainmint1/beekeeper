@@ -1,100 +1,50 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { KeyRound, Sparkles, Download, Upload, ShieldCheck } from "lucide-react";
-import {
-  createMnemonic,
-  isValidMnemonic,
-  createVault,
-  downloadVaultBackup,
-  importVaultBlob,
-} from "@/lib/wallet/seed";
-import { secureCopy } from "@/lib/wallet/security";
+import { ScanLine, ShieldCheck, Link2, CheckCircle2, Loader2 } from "lucide-react";
+import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
+import { QrScanDialog } from "./QrScanDialog";
+import { NectarLinkDialog } from "./NectarLinkDialog";
+import { hasNectarLink } from "@/lib/wallet/nectar";
+
+type Step = 1 | 2 | 3 | 4;
+
+const DISCLAIMERS = [
+  "I understand my Copper Coin is my only backup. If I lose it, my account is gone forever.",
+  "I will keep my Copper Coin safe. Anyone who finds it has unlimited access to my funds. I will store it in a safe or safe deposit box.",
+  "I will never share my Copper Coin. No support agent, no app, and no website will ever ask me to scan it elsewhere. It is for me only.",
+  "I understand this wallet is non-custodial. No one — not AOCS, not Nectar Pay — can recover my funds or reverse a transaction.",
+];
 
 export function OnboardScreen({ onReady }: { onReady: () => void }) {
-  const [tab, setTab] = useState<"create" | "import">("create");
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/40 p-4">
-      <div className="w-full max-w-xl">
-        <div className="mb-8 text-center">
-          <img
-            src="/aocs-logo.png"
-            alt="AOCS logo"
-            className="mx-auto mb-4 h-16 w-auto object-contain"
-          />
-          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Honest Money Ecosystem
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">One Wallet to Rule Them All</h1>
-          <p className="mt-2 text-muted-foreground">
-            One seed phrase. Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all in your browser.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Get started</CardTitle>
-            <CardDescription>
-              Your keys never leave this device. Save your recovery phrase somewhere safe.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "create" | "import")}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="create">
-                  <Sparkles className="mr-2 h-4 w-4" /> Create new
-                </TabsTrigger>
-                <TabsTrigger value="import">
-                  <KeyRound className="mr-2 h-4 w-4" /> Import phrase
-                </TabsTrigger>
-                <TabsTrigger value="restore">
-                  <Upload className="mr-2 h-4 w-4" /> Restore file
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="create" className="pt-4">
-                <CreateFlow onReady={onReady} />
-              </TabsContent>
-              <TabsContent value="import" className="pt-4">
-                <ImportFlow onReady={onReady} />
-              </TabsContent>
-              <TabsContent value="restore" className="pt-4">
-                <RestoreFlow onReady={onReady} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function CreateFlow({ onReady }: { onReady: () => void }) {
-  const [strength, setStrength] = useState<128 | 256>(128);
-  const [mnemonic, setMnemonic] = useState<string>(() => createMnemonic(128));
-  // Multi-step flow: 1=show phrase, 2=verify words, 3=set password, 4=force-download backup
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [acknowledged, setAcknowledged] = useState(false);
+  const [step, setStep] = useState<Step>(1);
+  const [mnemonic, setMnemonic] = useState<string>("");
+  const [scanOpen, setScanOpen] = useState(false);
+  const [acks, setAcks] = useState<boolean[]>(() => DISCLAIMERS.map(() => false));
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [busy, setBusy] = useState(false);
-  const [backupDownloaded, setBackupDownloaded] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linked, setLinked] = useState<boolean>(() => hasNectarLink());
 
-  const words = useMemo(() => mnemonic.split(" "), [mnemonic]);
-  // Pick 3 random word indices to verify
-  const verifyIndices = useMemo(() => {
-    const set = new Set<number>();
-    while (set.size < 3) set.add(Math.floor(Math.random() * words.length));
-    return [...set].sort((a, b) => a - b);
-    // re-computed only when mnemonic changes
-  }, [words]);
-  const [verifyInputs, setVerifyInputs] = useState<Record<number, string>>({});
-  const allVerified = verifyIndices.every(
-    (i) => (verifyInputs[i] ?? "").trim().toLowerCase() === words[i],
-  );
+  function handleScan(text: string) {
+    setScanOpen(false);
+    const m = text.trim().toLowerCase().replace(/\s+/g, " ");
+    const wordCount = m.split(" ").filter(Boolean).length;
+    if (wordCount !== 24) {
+      toast.error("Copper Coin must be 24 words");
+      return;
+    }
+    if (!isValidMnemonic(m)) {
+      toast.error("That doesn't look like a valid Copper Coin recovery phrase");
+      return;
+    }
+    setMnemonic(m);
+    toast.success("Copper Coin recognized");
+    setStep(2);
+  }
 
   async function handleCreate() {
     if (pass1.length < 8) {
@@ -108,7 +58,11 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
     setBusy(true);
     try {
       await createVault(mnemonic, pass1);
-      toast.success("Wallet created — now save your backup file");
+      // Wipe the in-component copy now that the vault is encrypted and cached.
+      setMnemonic("");
+      setPass1("");
+      setPass2("");
+      toast.success("Wallet ready — last step: link Nectar Pay");
       setStep(4);
     } catch (err) {
       toast.error((err as Error).message);
@@ -117,266 +71,183 @@ function CreateFlow({ onReady }: { onReady: () => void }) {
     }
   }
 
-  function handleDownloadBackup() {
-    const ok = downloadVaultBackup();
-    if (ok) {
-      setBackupDownloaded(true);
-      toast.success("Encrypted backup saved");
-    } else {
-      toast.error("No vault to back up");
-    }
-  }
+  const allAcked = acks.every(Boolean);
 
   return (
-    <div className="space-y-4">
-      <StepIndicator step={step} />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/40 p-4">
+      <div className="w-full max-w-xl">
+        <div className="mb-8 text-center">
+          <img src="/aocs-logo.png" alt="AOCS logo" className="mx-auto mb-4 h-16 w-auto object-contain" />
+          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Honest Money Ecosystem
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Activate your Copper Coin</h1>
+          <p className="mt-2 text-muted-foreground">
+            Scan your Cold Storage Coin to set up Bitcoin, TEXITcoin, and EVM wallets in one shot.
+          </p>
+        </div>
 
-      {step === 1 && (
-        <>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Recovery phrase ({words.length} words)</label>
-              <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => { setStrength(128); setMnemonic(createMnemonic(128)); setVerifyInputs({}); }}
-                  className={`px-2 py-1 rounded ${strength === 128 ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
-                >
-                  12 words
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setStrength(256); setMnemonic(createMnemonic(256)); setVerifyInputs({}); }}
-                  className={`px-2 py-1 rounded ${strength === 256 ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
-                  title="24-word phrase — compatible with Ledger import"
-                >
-                  24 words (Ledger)
-                </button>
+        <Card>
+          <CardHeader>
+            <CardTitle>{titleFor(step)}</CardTitle>
+            <CardDescription>{descFor(step)}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <StepIndicator step={step} />
+
+            {step === 1 && (
+              <div className="space-y-3">
+                <Button className="w-full" size="lg" onClick={() => setScanOpen(true)}>
+                  <ScanLine className="mr-2 h-5 w-5" /> Scan my Copper Coin
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Don't have one yet?{" "}
+                  <a
+                    href="https://coldstoragecoins.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Get a Cold Storage Coin
+                  </a>
+                </p>
               </div>
-            </div>
-            <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-3 font-mono text-sm">
-              {words.map((w, i) => (
-                <div key={i} className="flex items-baseline gap-1">
-                  <span className="text-muted-foreground tabular-nums">{i + 1}.</span>
-                  <span>{w}</span>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-3">
+                {DISCLAIMERS.map((text, i) => (
+                  <label key={i} className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={acks[i]}
+                      onChange={(e) =>
+                        setAcks((s) => s.map((v, idx) => (idx === i ? e.target.checked : v)))
+                      }
+                      className="mt-1"
+                    />
+                    <span>{text}</span>
+                  </label>
+                ))}
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setStep(1)} className="flex-1">
+                    ← Back
+                  </Button>
+                  <Button onClick={() => setStep(3)} disabled={!allAcked} className="flex-1">
+                    I agree — continue
+                  </Button>
                 </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-2">
-              <Button size="sm" variant="ghost" onClick={async () => { await secureCopy(mnemonic); toast.success("Phrase copied — auto-clears from clipboard"); }}>Copy</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setMnemonic(createMnemonic(strength)); setVerifyInputs({}); }}>Regenerate</Button>
-            </div>
-          </div>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="mt-0.5" />
-            <span>I have written down my recovery phrase. I understand losing it means losing access to my funds forever.</span>
-          </label>
-          <Button onClick={() => setStep(2)} disabled={!acknowledged} className="w-full">
-            Continue — verify phrase
-          </Button>
-        </>
-      )}
+              </div>
+            )}
 
-      {step === 2 && (
-        <>
-          <div className="rounded-md border bg-muted/40 p-3 text-sm">
-            <p className="font-medium">Prove you wrote it down</p>
-            <p className="text-xs text-muted-foreground">Enter the requested words exactly.</p>
-          </div>
-          <div className="space-y-2">
-            {verifyIndices.map((i) => {
-              const val = verifyInputs[i] ?? "";
-              const ok = val.trim().toLowerCase() === words[i] && val.length > 0;
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="w-16 text-xs text-muted-foreground tabular-nums">Word #{i + 1}</span>
-                  <Input
-                    value={val}
-                    onChange={(e) => setVerifyInputs((s) => ({ ...s, [i]: e.target.value }))}
-                    className={`font-mono text-sm ${ok ? "border-emerald-500/50" : ""}`}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                  />
-                  {ok && <ShieldCheck className="h-4 w-4 text-emerald-500" />}
+            {step === 3 && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Choose a password that unlocks this wallet on this device. You'll enter it every time you open the app. Minimum 8 characters.
+                </p>
+                <Input
+                  type="password"
+                  placeholder="Choose a password (min 8 chars)"
+                  value={pass1}
+                  onChange={(e) => setPass1(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={pass2}
+                  onChange={(e) => setPass2(e.target.value)}
+                />
+                <Button onClick={handleCreate} disabled={busy} className="w-full">
+                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                  {busy ? "Creating wallet…" : "Create wallet"}
+                </Button>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-3">
+                <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                  <p className="font-medium">Link your Nectar Pay merchant account</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Open Nectar Pay on your merchant account, choose "Link wallet", and scan the QR code it shows. We'll share your BTC, TEXITcoin and EVM xpubs so Nectar Pay can watch for incoming payments — your seed and private keys stay here.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setStep(1)} className="flex-1">← Back</Button>
-            <Button onClick={() => setStep(3)} disabled={!allVerified} className="flex-1">
-              Verified — continue
-            </Button>
-          </div>
-        </>
-      )}
+                {linked ? (
+                  <div className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+                    <CheckCircle2 className="h-4 w-4" /> Nectar Pay linked
+                  </div>
+                ) : (
+                  <Button className="w-full" onClick={() => setLinkOpen(true)}>
+                    <Link2 className="mr-2 h-4 w-4" /> Scan Nectar Pay QR
+                  </Button>
+                )}
+                <Button variant={linked ? "default" : "outline"} className="w-full" onClick={onReady}>
+                  {linked ? "Open my wallet →" : "Skip for now — link later in Settings"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-      {step === 3 && (
-        <>
-          <p className="text-sm text-muted-foreground">Choose a password that encrypts your vault on this device. Minimum 8 characters.</p>
-          <Input type="password" placeholder="Choose a password (min 8 chars)" value={pass1} onChange={(e) => setPass1(e.target.value)} />
-          <Input type="password" placeholder="Confirm password" value={pass2} onChange={(e) => setPass2(e.target.value)} />
-          <Button onClick={handleCreate} disabled={busy} className="w-full">
-            {busy ? "Creating…" : "Create wallet"}
-          </Button>
-        </>
-      )}
-
-      {step === 4 && (
-        <>
-          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-            <p className="font-medium text-amber-200">One more step — save your encrypted backup</p>
-            <p className="mt-1 text-xs text-amber-100/80">
-              This file plus your password can restore your wallet on any device, even without the seed phrase.
-              Store it somewhere safe (USB drive, password manager, encrypted cloud).
-            </p>
-          </div>
-          <Button onClick={handleDownloadBackup} className="w-full" variant={backupDownloaded ? "outline" : "default"}>
-            <Download className="mr-2 h-4 w-4" /> {backupDownloaded ? "Download backup again" : "Download encrypted backup"}
-          </Button>
-          <Button onClick={onReady} disabled={!backupDownloaded} className="w-full">
-            {backupDownloaded ? "Open my wallet →" : "Save backup to continue"}
-          </Button>
-        </>
-      )}
+      <QrScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onResult={handleScan}
+        title="Scan your Copper Coin"
+        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 24-word recovery phrase stays on this device."
+      />
+      <NectarLinkDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinked={() => setLinked(true)}
+      />
     </div>
   );
 }
 
-function StepIndicator({ step }: { step: 1 | 2 | 3 | 4 }) {
-  const labels = ["Phrase", "Verify", "Password", "Backup"];
+function titleFor(step: Step): string {
+  return step === 1
+    ? "Scan your Copper Coin"
+    : step === 2
+      ? "Acknowledge the rules"
+      : step === 3
+        ? "Set a device password"
+        : "Link Nectar Pay";
+}
+function descFor(step: Step): string {
+  return step === 1
+    ? "Your Cold Storage Coin is the only way to activate this wallet. No phrase, no wallet."
+    : step === 2
+      ? "These four rules keep your funds yours. Please read each one."
+      : step === 3
+        ? "This password encrypts your wallet on this device. It can't recover your funds — only your Copper Coin can do that."
+        : "Connect this wallet to your merchant account so Nectar Pay can track payments.";
+}
+
+function StepIndicator({ step }: { step: Step }) {
+  const labels = ["Scan", "Rules", "Password", "Link"];
   return (
     <div className="flex items-center gap-1.5 text-[10px]">
       {labels.map((l, i) => {
-        const n = (i + 1) as 1 | 2 | 3 | 4;
+        const n = (i + 1) as Step;
         const active = step === n;
         const done = step > n;
         return (
-          <div key={l} className={`flex-1 rounded-full px-2 py-1 text-center font-medium uppercase tracking-wider transition-colors ${done ? "bg-emerald-500/20 text-emerald-300" : active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+          <div
+            key={l}
+            className={`flex-1 rounded-full px-2 py-1 text-center font-medium uppercase tracking-wider transition-colors ${
+              done
+                ? "bg-emerald-500/20 text-emerald-300"
+                : active
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted text-muted-foreground"
+            }`}
+          >
             {n}. {l}
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function RestoreFlow({ onReady }: { onReady: () => void }) {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [imported, setImported] = useState(false);
-  const [pass, setPass] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        importVaultBlob(String(reader.result));
-        setFileName(file.name);
-        setImported(true);
-        toast.success("Backup loaded — enter your password");
-      } catch (err) {
-        toast.error((err as Error).message);
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  async function handleUnlock() {
-    if (!pass) return;
-    setBusy(true);
-    try {
-      const { unlockVault } = await import("@/lib/wallet/seed");
-      await unlockVault(pass);
-      toast.success("Wallet restored");
-      onReady();
-    } catch {
-      toast.error("Incorrect password for this backup");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Restore from an encrypted JSON backup. You'll still need the password you set when creating it.
-      </p>
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-6 text-sm hover:bg-muted/60">
-        <Upload className="h-4 w-4" />
-        {fileName ?? "Choose backup file (.json)"}
-        <input type="file" accept="application/json,.json" className="hidden" onChange={handleFile} />
-      </label>
-      {imported && (
-        <>
-          <Input type="password" placeholder="Password" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUnlock()} autoFocus />
-          <Button onClick={handleUnlock} disabled={busy || !pass} className="w-full">
-            {busy ? "Unlocking…" : "Unlock restored wallet"}
-          </Button>
-        </>
-      )}
-    </div>
-  );
-}
-
-function ImportFlow({ onReady }: { onReady: () => void }) {
-  const [mnemonic, setMnemonic] = useState("");
-  const [pass1, setPass1] = useState("");
-  const [pass2, setPass2] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function handleImport() {
-    const m = mnemonic.trim().toLowerCase();
-    if (!isValidMnemonic(m)) {
-      toast.error("Invalid recovery phrase");
-      return;
-    }
-    if (pass1.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-    if (pass1 !== pass2) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setBusy(true);
-    try {
-      await createVault(m, pass1);
-      toast.success("Wallet imported");
-      onReady();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <Textarea
-        placeholder="Enter your 12 or 24 word recovery phrase, separated by spaces"
-        rows={4}
-        value={mnemonic}
-        onChange={(e) => setMnemonic(e.target.value)}
-        className="font-mono"
-      />
-      <Input
-        type="password"
-        placeholder="Choose a password (min 8 chars)"
-        value={pass1}
-        onChange={(e) => setPass1(e.target.value)}
-      />
-      <Input
-        type="password"
-        placeholder="Confirm password"
-        value={pass2}
-        onChange={(e) => setPass2(e.target.value)}
-      />
-      <Button onClick={handleImport} disabled={busy} className="w-full">
-        {busy ? "Importing…" : "Import wallet"}
-      </Button>
     </div>
   );
 }
