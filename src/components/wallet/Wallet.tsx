@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 import { clearCachedMnemonic, getCachedMnemonic, wipeVault, isVaultBackedUp, downloadVaultBackup } from "@/lib/wallet/seed";
+import { hasNectarLink } from "@/lib/wallet/nectar";
 import type { UtxoAccount } from "@/lib/wallet/utxo";
 import { deriveUtxoAccount } from "@/lib/wallet/utxo";
 import type { EvmAccount } from "@/lib/wallet/evm";
