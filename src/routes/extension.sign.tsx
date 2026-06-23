@@ -1,9 +1,11 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { decodeRequest, type ExtRequest, type ExtResponse } from "@/lib/extension/protocol";
+import { decodeRequest, type ExtRequest, type ExtResponse, EXT_PROTOCOL_VERSION } from "@/lib/extension/protocol";
+import { QrScanDialog } from "@/components/wallet/QrScanDialog";
+import { ScanLine } from "lucide-react";
 
-const search = z.object({ req: z.string().min(1) });
+const search = z.object({ req: z.string().min(1).optional() });
 
 export const Route = createFileRoute("/extension/sign")({
   validateSearch: search,
@@ -16,10 +18,16 @@ function SignPage() {
   const [extensionId, setExtensionId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "signing" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  const [scanned, setScanned] = useState<ExtRequest | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
-  const req: ExtRequest | null = useMemo(() => {
+  const fromUrl: ExtRequest | null = useMemo(() => {
+    if (!encoded) return null;
     try { return decodeRequest(encoded); } catch { return null; }
   }, [encoded]);
+
+  const req: ExtRequest | null = scanned ?? fromUrl;
 
   useEffect(() => {
     (async () => {
@@ -66,8 +74,44 @@ function SignPage() {
     window.close();
   }
 
+  function handleScan(text: string) {
+    setScanError(null);
+    try {
+      const parsed = parseScannedRequest(text);
+      setScanned(parsed);
+      setStatus("idle");
+      setError("");
+    } catch (e: any) {
+      setScanError(e?.message || "Could not read signature request from QR.");
+    }
+  }
+
   if (!req) {
-    return <Centered>Invalid request payload.</Centered>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-md w-full rounded-2xl border border-border bg-card p-6 text-center">
+          <ScanLine className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h1 className="mt-3 text-lg font-semibold">Scan a signature request</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Point your camera at the QR shown by the requesting site or extension.
+          </p>
+          {scanError && <p className="mt-3 text-sm text-destructive">{scanError}</p>}
+          <button
+            onClick={() => setScanOpen(true)}
+            className="mt-5 w-full rounded-md bg-primary text-primary-foreground py-2 text-sm font-medium"
+          >
+            <ScanLine className="mr-1.5 inline h-4 w-4" /> Scan QR
+          </button>
+        </div>
+        <QrScanDialog
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          onResult={handleScan}
+          title="Scan signature request"
+          description="Scan the QR shown by the dapp or extension to load the signing request."
+        />
+      </div>
+    );
   }
 
   return (
@@ -90,15 +134,22 @@ function SignPage() {
             {status === "signing" ? "Signing…" : "Approve"}
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 text-sm text-muted-foreground">
-      {children}
+        <button
+          onClick={() => { setScanned(null); setScanOpen(true); }}
+          className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+        >
+          <ScanLine className="mr-1 inline h-3 w-3" /> Scan a different request
+        </button>
+      </div>
+
+      <QrScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onResult={handleScan}
+        title="Scan signature request"
+        description="Scan the QR shown by the dapp or extension to load the signing request."
+      />
     </div>
   );
 }
@@ -111,6 +162,35 @@ function labelFor(k: ExtRequest["kind"]): string {
     case "signLogin":  return "Sign in to website";
     case "signTx":     return "Sign transaction";
   }
+}
+
+/**
+ * Accepts any of:
+ *  - raw base64url payload from encodeRequest()
+ *  - a full URL whose `req` query param holds the payload
+ *  - a JSON-stringified ExtRequest
+ */
+function parseScannedRequest(text: string): ExtRequest {
+  const t = text.trim();
+  if (!t) throw new Error("Empty QR contents");
+
+  // URL with ?req=
+  try {
+    const url = new URL(t);
+    const r = url.searchParams.get("req");
+    if (r) return decodeRequest(r);
+  } catch { /* not a URL */ }
+
+  // Raw JSON
+  if (t.startsWith("{")) {
+    const parsed = JSON.parse(t) as ExtRequest;
+    if (parsed?.v !== EXT_PROTOCOL_VERSION) throw new Error("Unsupported protocol version");
+    if (!parsed.id || !parsed.kind || !parsed.origin) throw new Error("Malformed request");
+    return parsed;
+  }
+
+  // Otherwise assume base64url payload
+  return decodeRequest(t);
 }
 
 async function stubSign(req: ExtRequest): Promise<unknown> {
