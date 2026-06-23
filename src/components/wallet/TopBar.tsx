@@ -18,8 +18,8 @@ function apply(t: Theme) {
 }
 
 export function TopBar({
-  initials = "HM",
-  handle = "Honest Money ID",
+  initials = "NP",
+  handle = "Nectar ID",
   onLock,
 }: {
   initials?: string;
@@ -56,7 +56,7 @@ export function TopBar({
           {initials}
         </div>
         <div>
-          <div className="text-[10.5px] text-muted-foreground uppercase tracking-[0.18em]">Honest Money ID</div>
+          <div className="text-[10.5px] text-muted-foreground uppercase tracking-[0.18em]">Nectar ID</div>
           <div className="text-[13.5px] font-semibold -mt-0.5">{handle}</div>
         </div>
       </div>

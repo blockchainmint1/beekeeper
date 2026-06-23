@@ -7,7 +7,7 @@ const search = z.object({ ext: z.string().min(8).optional() });
 export const Route = createFileRoute("/extension/pair")({
   validateSearch: search,
   component: PairPage,
-  head: () => ({ meta: [{ title: "Pair Browser Extension — Honest Money" }] }),
+  head: () => ({ meta: [{ title: "Pair Browser Extension — Nectar" }] }),
 });
 
 function PairPage() {
@@ -46,7 +46,7 @@ function PairPage() {
       <div className="max-w-md w-full rounded-2xl border border-border bg-card p-8 text-center">
         <h1 className="text-2xl font-semibold">Pair browser extension</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Link this wallet with the Honest Money extension so dapps can request signatures.
+          Link this wallet with the Nectar extension so dapps can request signatures.
         </p>
         {status === "missing" && (
           <p className="mt-6 text-sm text-destructive">Missing extension id. Open this page from the extension popup.</p>

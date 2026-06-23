@@ -1,4 +1,4 @@
-// Shared wire protocol between the Honest Money browser extension
+// Shared wire protocol between the Nectar browser extension
 // and the wallet web app. Imported by wallet routes; a copy is also
 // shipped inside the extension bundle via scripts/build-extension.sh.
 

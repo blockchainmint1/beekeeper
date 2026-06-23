@@ -8,7 +8,7 @@ const search = z.object({ req: z.string().min(1) });
 export const Route = createFileRoute("/extension/sign")({
   validateSearch: search,
   component: SignPage,
-  head: () => ({ meta: [{ title: "Confirm Signature — Honest Money" }] }),
+  head: () => ({ meta: [{ title: "Confirm Signature — Nectar" }] }),
 });
 
 function SignPage() {

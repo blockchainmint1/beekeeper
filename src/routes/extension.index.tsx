@@ -7,11 +7,11 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/extension/")({
   head: () => ({
     meta: [
-      { title: "Install Browser Extension — Honest Money" },
+      { title: "Install Browser Extension — Nectar" },
       {
         name: "description",
         content:
-          "Install the Honest Money browser extension to sign in to websites and connect dapps without exporting your keys.",
+          "Install the Nectar browser extension to sign in to websites and connect dapps without exporting your keys.",
       },
     ],
   }),
@@ -42,7 +42,7 @@ function ExtensionInstallPage() {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
             <Puzzle className="h-7 w-7" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Honest Money Browser Extension</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Nectar Browser Extension</h1>
           <p className="mt-2 text-muted-foreground">
             Sign in to websites and connect dapps without your keys ever leaving the wallet.
           </p>
@@ -80,7 +80,7 @@ function ExtensionInstallPage() {
                 Click <span className="font-medium">Load unpacked</span> and select the unzipped <code className="rounded bg-muted px-1.5 py-0.5 text-xs">extension</code> folder.
               </li>
               <li>
-                Click the Honest Money icon in your toolbar, then click <span className="font-medium">Pair with this browser</span>.
+                Click the Nectar icon in your toolbar, then click <span className="font-medium">Pair with this browser</span>.
               </li>
             </ol>
 
