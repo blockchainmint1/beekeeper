@@ -437,7 +437,10 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
 
       <SettingsDialog
         open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        onOpenChange={(v) => {
+          setSettingsOpen(v);
+          if (!v) setNectarLinked(hasNectarLink());
+        }}
         onWipe={() => {
           wipeVault();
           onLocked();
