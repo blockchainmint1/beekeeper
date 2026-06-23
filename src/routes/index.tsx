@@ -9,13 +9,13 @@ import { getCachedMnemonic, hasVault } from "@/lib/wallet/seed";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "One Wallet — BTC · TXC · ISK · ZCU · ETH · BNB · BASE · POL · TRX · SOL" },
+      { title: "Nectar Wallet — BTC · TXC · ISK · ZCU · ETH · BNB · BASE · POL · TRX · SOL" },
       {
         name: "description",
         content:
           "Non-custodial browser wallet for Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana — plus USDC/USDT/DAI — all from one BIP39 seed.",
       },
-      { property: "og:title", content: "One Wallet to Rule Them All" },
+      { property: "og:title", content: "Nectar — One Hive, Every Chain" },
       {
         property: "og:description",
         content:

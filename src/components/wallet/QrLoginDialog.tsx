@@ -144,7 +144,7 @@ export function QrLoginDialog({
             <ScanLine className="h-5 w-5" /> Scan to sign in
           </DialogTitle>
           <DialogDescription>
-            Point the camera at a Honest Money login QR. You'll authenticate with your active <strong>{chain.ticker}</strong> wallet.
+            Point the camera at a Nectar login QR. You'll authenticate with your active <strong>{chain.ticker}</strong> wallet.
           </DialogDescription>
         </DialogHeader>
 
