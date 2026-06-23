@@ -270,6 +270,21 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </section>
       )}
 
+      {!nectarLinked && (
+        <section className="px-5 mt-3">
+          <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Link2 className="w-4 h-4 shrink-0" style={{ color: "var(--success)" }} />
+            <div className="flex-1 text-xs text-foreground/85">
+              <strong className="font-semibold">Finish linking your Nectar Pay merchant account.</strong> Share xpubs so Nectar Pay can watch for payments.
+            </div>
+            <Button size="sm" onClick={() => setSettingsOpen(true)} className="shrink-0 h-7 text-xs">
+              Link
+            </Button>
+          </div>
+        </section>
+      )}
+
+
       {/* Swipeable wallet cards */}
       <section className="mt-6">
         {visibleChains.length > 0 ? (
