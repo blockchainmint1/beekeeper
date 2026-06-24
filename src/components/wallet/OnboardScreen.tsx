@@ -12,9 +12,9 @@ import { hasNectarLink } from "@/lib/wallet/nectar";
 type Step = 1 | 2 | 3 | 4;
 
 const DISCLAIMERS = [
-  "I understand my Copper Coin is my only backup. If I lose it, my account is gone forever.",
-  "I will keep my Copper Coin safe. Anyone who finds it has unlimited access to my funds. I will store it in a safe or safe deposit box.",
-  "I will never share my Copper Coin. No support agent, no app, and no website will ever ask me to scan it elsewhere. It is for me only.",
+  "I understand my copper coin is my only backup. If I lose it, my account is gone forever.",
+  "I will keep my copper coin safe. Anyone who finds it has unlimited access to my funds. I will store it in a safe or safe deposit box.",
+  "I will never share my copper coin. No support agent, no app, and no website will ever ask me to scan it elsewhere. It is for me only.",
   "I understand this wallet is non-custodial. No one — not Nectar Pay, not the hive — can recover my funds or reverse a transaction.",
 ];
 
