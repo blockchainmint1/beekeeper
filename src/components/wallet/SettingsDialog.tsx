@@ -15,6 +15,8 @@ import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { loadPrefs, savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
+import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
 
 export function SettingsDialog({
