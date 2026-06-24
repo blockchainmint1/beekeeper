@@ -1,4 +1,5 @@
-import { Bell, Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 import { useEffect, useState } from "react";
 
 const KEY = "quad-wallet-theme";
