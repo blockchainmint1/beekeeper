@@ -82,8 +82,9 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
             Nectar · Pollinated Payments
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Activate your Beekeeper Account</h1>
-          <p className="mt-2 text-muted-foreground">
-            Scan your Cold Storage Coin and the hive comes to life — Bitcoin, TEXITcoin, and EVM wallets, all from one queen seed.
+          <p className="mt-2 text-muted-foreground whitespace-pre-line">
+            Scan your Cold Storage Coin and the hive comes to life —{"\n"}
+            Bitcoin, TEXITcoin, and EVM wallets, all from one queen seed.
           </p>
         </div>
 
