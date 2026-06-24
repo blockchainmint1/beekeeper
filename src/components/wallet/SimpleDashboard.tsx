@@ -71,7 +71,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             } else if (c.kind === "evm") {
               const a = deriveEvmAccount(mnemonic, c, 0);
               address = a.address;
-              const wei = await evmBalance(c, address);
+              const wei = await evmBalance(c, address as `0x${string}`);
               balance = Number(wei) / 1e18;
             } else if (c.kind === "tron") {
               const a = deriveTronAccount(mnemonic, c, 0);
