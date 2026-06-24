@@ -25,6 +25,7 @@ import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { toast } from "sonner";
 
 type AssetRow = {
