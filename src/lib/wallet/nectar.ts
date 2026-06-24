@@ -2,6 +2,13 @@
 // merchant onboarding endpoint encoded in a QR.
 import { getChain, type UtxoChain } from "@/lib/chains";
 import { utxoAccountXpub, chainAccountXpub } from "./xpub";
+import {
+  buildLinkPayload,
+  signLinkPayload,
+  postLinkPayload,
+  type NectarLinkRequest,
+} from "./nectar-link";
+import { getCachedMnemonic } from "./seed";
 
 const LINK_KEY = "lovable-multi-wallet-nectar-link-v1";
 
@@ -56,42 +63,43 @@ export function parseNectarQr(text: string): NectarQrTarget {
 }
 
 export async function linkNectarMerchant(
-  payload: NectarPayload,
+  _payload: NectarPayload,
   target: NectarQrTarget,
 ): Promise<NectarLinkRecord> {
-  const res = await fetch(target.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(target.token ? { Authorization: `Bearer ${target.token}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    let msg = `Link failed (${res.status})`;
-    try {
-      const j = (await res.json()) as { error?: string; message?: string };
-      msg = j.error || j.message || msg;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg);
-  }
-  let body: { merchantId?: string; merchantName?: string } = {};
-  try {
-    body = (await res.json()) as typeof body;
-  } catch {
-    /* ignore — empty 200 is fine */
-  }
+  const mnemonic = getCachedMnemonic();
+  if (!mnemonic) throw new Error("Wallet is locked — unlock first");
+
+  // Nectar's /wallet-link endpoint requires the signed envelope
+  // { payload, signature, address }. Synthesize a minimal link request from
+  // the legacy QR (plain URL, no challenge_id) using defaults.
+  let from = "nectar-pay.com";
+  try { from = new URL(target.url).hostname; } catch { /* keep default */ }
+  const challengeId =
+    (globalThis.crypto?.randomUUID?.() as string | undefined) ??
+    `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const req: NectarLinkRequest = {
+    v: 1,
+    type: "hm-link-xpubs",
+    challenge_id: challengeId,
+    from,
+    callback_url: target.url,
+    chains: ["BTC", "TXC", "EVM"],
+  };
+
+  const { payload } = buildLinkPayload(mnemonic, req);
+  const { address, signature } = await signLinkPayload(mnemonic, payload);
+  const body = await postLinkPayload(target.url, { payload, signature, address });
+
   const record: NectarLinkRecord = {
-    merchantId: body.merchantId,
-    merchantName: body.merchantName,
+    merchantId: body.store_id,
+    merchantName: body.merchant_name,
     url: target.url,
     linkedAt: Date.now(),
   };
   saveNectarLink(record);
   return record;
 }
+
 
 export function loadNectarLink(): NectarLinkRecord | null {
   if (typeof window === "undefined") return null;
