@@ -4,12 +4,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Loader2, ScanLine, Link2 } from "lucide-react";
 import { QrScanDialog } from "./QrScanDialog";
+import { NectarLinkConsentDialog } from "./NectarLinkConsentDialog";
 import {
   buildNectarPayload,
   linkNectarMerchant,
   parseNectarQr,
   type NectarLinkRecord,
 } from "@/lib/wallet/nectar";
+import { parseNectarLinkRequest, type NectarLinkRequest } from "@/lib/wallet/nectar-link";
 import { getCachedMnemonic } from "@/lib/wallet/seed";
 
 export function NectarLinkDialog({
@@ -23,9 +25,24 @@ export function NectarLinkDialog({
 }) {
   const [scanOpen, setScanOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [consentReq, setConsentReq] = useState<NectarLinkRequest | null>(null);
 
   async function handleScanResult(text: string) {
     setScanOpen(false);
+
+    // Prefer the new link-xpubs envelope — it carries challenge_id, requested
+    // chains, callback origin, and expiry, all of which the consent screen needs.
+    try {
+      const req = parseNectarLinkRequest(text);
+      setConsentReq(req);
+      onOpenChange(false); // hide the picker; consent dialog takes over
+      return;
+    } catch {
+      /* not a link-xpubs payload — fall through to legacy merchant-link form */
+    }
+
+    // Legacy form: plain https URL or { nectar: "merchant-link", url, token? }.
+    // Fires-and-forgets the default BTC/TXC/EVM xpubs without a consent step.
     const mnemonic = getCachedMnemonic();
     if (!mnemonic) {
       toast.error("Wallet is locked — unlock first");
@@ -60,7 +77,7 @@ export function NectarLinkDialog({
             </DialogTitle>
             <DialogDescription>
               Open Nectar Pay on your merchant account, choose "Link wallet", and scan the QR code it shows.
-              We'll send your BTC, TEXITcoin, and EVM extended public keys (xpubs) so Nectar Pay can watch incoming payments. Only public keys leave this device — your seed never does.
+              The wallet will show you exactly which extended public keys (xpubs) it's about to share before anything leaves this device. Your seed never does.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -77,6 +94,18 @@ export function NectarLinkDialog({
         onResult={handleScanResult}
         title="Scan Nectar Pay merchant QR"
         description="Point your camera at the merchant link QR shown by Nectar Pay."
+      />
+      <NectarLinkConsentDialog
+        open={!!consentReq}
+        onOpenChange={(v) => !v && setConsentReq(null)}
+        request={consentReq}
+        onLinked={() => {
+          onLinked?.({
+            url: consentReq?.callback_url ?? "",
+            linkedAt: Date.now(),
+            merchantName: consentReq?.from,
+          });
+        }}
       />
     </>
   );
