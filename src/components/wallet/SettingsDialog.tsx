@@ -53,6 +53,7 @@ export function SettingsDialog({
 
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
           <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
+          <TabsContent value="alerts" className="pt-4"><AlertsPanel /></TabsContent>
           <TabsContent value="nectar" className="pt-4"><NectarPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
