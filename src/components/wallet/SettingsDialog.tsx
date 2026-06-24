@@ -42,6 +42,7 @@ export function SettingsDialog({
           <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
+            <TabsTrigger value="alerts"><Bell className="mr-1 h-3.5 w-3.5" />Alerts</TabsTrigger>
             <TabsTrigger value="nectar"><Link2 className="mr-1 h-3.5 w-3.5" />Nectar Pay</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="password">Password</TabsTrigger>
