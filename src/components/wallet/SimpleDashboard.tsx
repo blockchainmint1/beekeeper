@@ -125,6 +125,35 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     },
   });
 
+  // Detect new incoming transactions and fire notifications.
+  const lastFetchedAt = useRef<number | null>(null);
+  useEffect(() => {
+    const items = historyQuery.data;
+    if (!items) return;
+    // Skip if this is the same data we already processed.
+    const fetchedAt = historyQuery.dataUpdatedAt;
+    if (lastFetchedAt.current === fetchedAt) return;
+    lastFetchedAt.current = fetchedAt;
+
+    const fresh = detectNewIncoming(items);
+    for (const it of fresh) {
+      addNotification({
+        id: `${it.chain.id}:${it.txid}`,
+        chainId: it.chain.id,
+        ticker: it.ticker,
+        amount: it.amount,
+        txid: it.txid,
+        url: it.url,
+        whenSec: Math.floor(Date.now() / 1000),
+        read: false,
+      });
+      toast.success(`+${it.amount} ${it.ticker} received`, {
+        description: it.confirmed ? "Confirmed" : "Pending",
+        action: { label: "View", onClick: () => window.open(it.url, "_blank") },
+      });
+    }
+  }, [historyQuery.data, historyQuery.dataUpdatedAt]);
+
   function handleLock() {
     clearCachedMnemonic();
     onLocked();
