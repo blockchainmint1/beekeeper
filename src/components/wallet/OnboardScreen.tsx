@@ -99,7 +99,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
             {step === 1 && (
               <div className="space-y-3">
                 <Button className="w-full" size="lg" onClick={() => setScanOpen(true)}>
-                  <ScanLine className="mr-2 h-5 w-5" /> Scan my Copper Coin
+                  <ScanLine className="mr-2 h-5 w-5" /> Scan my copper coin
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
                   Don't have one yet?{" "}
