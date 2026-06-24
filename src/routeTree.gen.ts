@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExtensionRoute = ExtensionRouteImport.update({
   id: '/extension',
   path: '/extension',
@@ -44,12 +50,14 @@ const ExtensionPairRoute = ExtensionPairRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/extension': typeof ExtensionRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension/': typeof ExtensionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension': typeof ExtensionIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/extension': typeof ExtensionRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension/': typeof ExtensionIndexRoute
@@ -67,15 +76,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/extension'
+    | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
     | '/extension/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/extension/pair' | '/extension/sign' | '/extension'
+  to: '/' | '/wallet' | '/extension/pair' | '/extension/sign' | '/extension'
   id:
     | '__root__'
     | '/'
     | '/extension'
+    | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
     | '/extension/'
@@ -84,10 +95,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExtensionRoute: typeof ExtensionRouteWithChildren
+  WalletRoute: typeof WalletRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/extension': {
       id: '/extension'
       path: '/extension'
@@ -145,6 +164,7 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtensionRoute: ExtensionRouteWithChildren,
+  WalletRoute: WalletRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
