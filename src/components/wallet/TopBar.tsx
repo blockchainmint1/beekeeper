@@ -1,4 +1,5 @@
-import { Bell, Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 import { useEffect, useState } from "react";
 
 const KEY = "quad-wallet-theme";
@@ -68,13 +69,7 @@ export function TopBar({
         >
           {theme === "dark" ? <Sun className="w-4 h-4" strokeWidth={2.25} /> : <Moon className="w-4 h-4" strokeWidth={2.25} />}
         </button>
-        <button
-          className="w-10 h-10 rounded-full glass-card flex items-center justify-center active:scale-95 transition relative"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" strokeWidth={2.25} />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-[var(--zcu)] ring-2 ring-background" />
-        </button>
+        <NotificationBell />
         {onLock && (
           <button
             onClick={onLock}

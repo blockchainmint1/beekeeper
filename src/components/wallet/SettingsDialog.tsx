@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink } from "lucide-react";
+import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
+import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
 
 export function SettingsDialog({
@@ -40,6 +42,7 @@ export function SettingsDialog({
           <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
             <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
+            <TabsTrigger value="alerts"><Bell className="mr-1 h-3.5 w-3.5" />Alerts</TabsTrigger>
             <TabsTrigger value="nectar"><Link2 className="mr-1 h-3.5 w-3.5" />Nectar Pay</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
             <TabsTrigger value="password">Password</TabsTrigger>
@@ -50,6 +53,7 @@ export function SettingsDialog({
 
           <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
           <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
+          <TabsContent value="alerts" className="pt-4"><AlertsPanel /></TabsContent>
           <TabsContent value="nectar" className="pt-4"><NectarPanel /></TabsContent>
           <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
           <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
@@ -586,6 +590,87 @@ function XpubPanel() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+function AlertsPanel() {
+  const prefs = useNotifPrefs();
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-muted-foreground">
+        Get notified the moment funds arrive in your wallet. Detection runs in this browser whenever the wallet is open — leave the tab open to keep watching.
+      </p>
+
+      {/* In-app */}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Bell className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-sm font-medium">In-app alerts</div>
+              <div className="text-[11px] text-muted-foreground">Toast + bell dropdown when this tab is open.</div>
+            </div>
+          </div>
+          <Switch
+            checked={prefs.inApp}
+            onCheckedChange={(v) => savePrefs({ inApp: v })}
+          />
+        </div>
+      </div>
+
+      {/* Email */}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Mail className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-sm font-medium">Email alerts</div>
+              <div className="text-[11px] text-muted-foreground">We'll email you when funds land — even if this tab is closed (coming soon).</div>
+            </div>
+          </div>
+          <Switch
+            checked={prefs.emailEnabled}
+            disabled
+            onCheckedChange={(v) => savePrefs({ emailEnabled: v })}
+          />
+        </div>
+        <Input
+          type="email"
+          placeholder="you@example.com"
+          value={prefs.email}
+          onChange={(e) => savePrefs({ email: e.target.value })}
+        />
+      </div>
+
+      {/* Telegram */}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Send className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-sm font-medium">Telegram alerts</div>
+              <div className="text-[11px] text-muted-foreground">Send alerts to a Telegram chat (coming soon).</div>
+            </div>
+          </div>
+          <Switch
+            checked={prefs.telegramEnabled}
+            disabled
+            onCheckedChange={(v) => savePrefs({ telegramEnabled: v })}
+          />
+        </div>
+        <Input
+          placeholder="Telegram chat ID (e.g. 1234567890)"
+          value={prefs.telegramChatId}
+          onChange={(e) => savePrefs({ telegramChatId: e.target.value })}
+        />
+        <p className="text-[11px] text-muted-foreground">
+          To get your chat ID, message <span className="font-mono">@userinfobot</span> on Telegram and copy the number it sends back.
+        </p>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Notification settings only live in this browser. Use the same email / chat ID on each device you want alerts on.
+      </p>
     </div>
   );
 }
