@@ -72,12 +72,21 @@ function subscribe(fn: () => void) {
 }
 
 // ---------- Notifications ----------
+// Cached snapshot — useSyncExternalStore requires a stable reference between
+// emits, otherwise React loops forever.
+let cachedNotifs: Notification[] | null = null;
+
 export function loadNotifications(): Notification[] {
-  return readJson<Notification[]>(NOTIFS_KEY, []);
+  if (cachedNotifs === null) {
+    cachedNotifs = readJson<Notification[]>(NOTIFS_KEY, []);
+  }
+  return cachedNotifs;
 }
 
 function saveNotifications(list: Notification[]) {
-  writeJson(NOTIFS_KEY, list.slice(0, MAX_NOTIFS));
+  const next = list.slice(0, MAX_NOTIFS);
+  cachedNotifs = next;
+  writeJson(NOTIFS_KEY, next);
   emit();
 }
 
