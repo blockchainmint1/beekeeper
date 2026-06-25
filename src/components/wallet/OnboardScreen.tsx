@@ -112,6 +112,17 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
                     Get a Cold Storage Coin
                   </a>
                 </p>
+                <p className="text-center text-xs text-muted-foreground">
+                  Really know what you're doing?{" "}
+                  <a
+                    href="https://words.honest.money"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Get some words
+                  </a>
+                </p>
               </div>
             )}
 
