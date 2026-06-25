@@ -206,7 +206,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         open={scanOpen}
         onOpenChange={setScanOpen}
         onResult={handleScan}
-        title="Scan your Copper Coin"
+        title="Scan your copper Cold Storage Coin"
         description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 24-word recovery phrase stays on this device."
       />
       <NectarLinkDialog
@@ -220,7 +220,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
 
 function titleFor(step: Step): string {
   return step === 1
-    ? "Scan your Copper Coin"
+    ? "Scan your copper Cold Storage Coin"
     : step === 2
       ? "Acknowledge the rules"
       : step === 3
