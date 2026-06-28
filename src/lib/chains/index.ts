@@ -1,7 +1,7 @@
 import type { Network } from "bitcoinjs-lib";
 
 export type ChainId =
-  | "btc" | "ltc" | "bch" | "txc" | "isk"
+  | "btc" | "ltc" | "bch" | "doge" | "txc" | "isk"
   | "eth" | "bsc" | "base" | "polygon" | "zchl"
   | "trx" | "sol";
 
@@ -222,6 +222,37 @@ export const BCH: UtxoChain = {
   cashAddrPrefix: "bitcoincash",
 };
 
+// DOGE network — Dogecoin mainnet (legacy P2PKH only, no segwit)
+const DOGE_NETWORK: Network = {
+  messagePrefix: "\x19Dogecoin Signed Message:\n",
+  bech32: "doge", // unused — Dogecoin has no native segwit
+  bip32: { public: 0x0488b21e, private: 0x0488ade4 },
+  pubKeyHash: 0x1e,
+  scriptHash: 0x16,
+  wif: 0x9e,
+};
+
+export const DOGE: UtxoChain = {
+  kind: "utxo",
+  id: "doge",
+  name: "Dogecoin",
+  ticker: "DOGE",
+  network: DOGE_NETWORK,
+  coinType: 3,
+  bip44Base: "m/44'/3'/0'/0",
+  // No segwit on Doge; bip84Base unused but kept for type compatibility.
+  bip84Base: "m/44'/3'/0'/0",
+  defaultAddressType: "legacy",
+  decimals: 8,
+  dustSats: 1_000_000, // Doge dust is ~0.01 DOGE
+  defaultFeeRate: 1000, // sat/vB — Doge fees are tiny in DOGE terms but high in sats
+  apiBase: "https://api.blockchair.com/dogecoin",
+  explorerTx: (h) => `https://blockchair.com/dogecoin/transaction/${h}`,
+  explorerAddr: (a) => `https://blockchair.com/dogecoin/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.82 0.14 85)",
+};
+
 export const ISK: UtxoChain = {
   kind: "utxo",
   id: "isk",
@@ -403,6 +434,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   btc: BTC,
   ltc: LTC,
   bch: BCH,
+  doge: DOGE,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -414,7 +446,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   sol: SOL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, DOGE, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
