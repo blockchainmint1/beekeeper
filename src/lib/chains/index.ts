@@ -1,7 +1,7 @@
 import type { Network } from "bitcoinjs-lib";
 
 export type ChainId =
-  | "btc" | "ltc" | "bch" | "txc" | "isk"
+  | "btc" | "ltc" | "bch" | "doge" | "txc" | "isk"
   | "eth" | "bsc" | "base" | "polygon" | "zchl"
   | "trx" | "sol";
 
