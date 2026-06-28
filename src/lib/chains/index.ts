@@ -434,6 +434,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   btc: BTC,
   ltc: LTC,
   bch: BCH,
+  doge: DOGE,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -445,7 +446,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   sol: SOL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, DOGE, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
