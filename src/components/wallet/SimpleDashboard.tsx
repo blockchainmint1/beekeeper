@@ -67,9 +67,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             if (c.kind === "utxo") {
               const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
               address = a.address;
-              const info = await esplora.addressInfo(c, address);
-              const sats = addressBalanceSats(info).total;
-              balance = sats / 10 ** c.decimals;
+              // HD gap-limit scan — sums every derived receive/change address.
+              const scan = await scanUtxoHd(mnemonic, c, { type: c.defaultAddressType });
+              balance = scan.totalSats / 10 ** c.decimals;
+              const usd = price ? balance * price : 0;
+              rows.push({ chain: c, address, balance, usd, utxoAddrs: scan.active });
+              return;
             } else if (c.kind === "evm") {
               const a = deriveEvmAccount(mnemonic, c, 0);
               address = a.address;
