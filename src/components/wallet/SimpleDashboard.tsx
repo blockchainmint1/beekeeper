@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowDownLeft,
@@ -32,12 +32,61 @@ import { toast } from "sonner";
 
 type AssetRow = {
   chain: ChainConfig;
-  address: string;            // primary display address (receive index 0)
-  utxoAddrs?: HdScanAddress[]; // all HD addresses with history/balance (UTXO only)
-  evmAddrs?: EvmHdAddress[];   // all HD addresses with native/token balance (EVM only)
-  balance: number;            // native units (aggregated across HD branch)
+  address: string;
+  utxoAddrs?: HdScanAddress[];
+  evmAddrs?: EvmHdAddress[];
+  balance: number;
   usd: number;
 };
+
+// Dashboard uses a tighter gap than the full Wallet view — fast first paint,
+// watermark + manual refresh still extend to busier merchants.
+const DASHBOARD_GAP = 20;
+
+async function loadChainAsset(
+  c: ChainConfig,
+  mnemonic: string,
+  price: number | null,
+): Promise<AssetRow> {
+  let address = "";
+  let balance = 0;
+  if (c.kind === "utxo") {
+    const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
+    address = a.address;
+    const gap = DASHBOARD_GAP;
+    const minIndex = scanCeiling(c.id, gap);
+    const scan = await scanUtxoHd(mnemonic, c, {
+      type: c.defaultAddressType,
+      gapLimit: gap,
+      minIndex,
+    });
+    if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+    balance = scan.totalSats / 10 ** c.decimals;
+    return { chain: c, address, balance, usd: price ? balance * price : 0, utxoAddrs: scan.active };
+  }
+  if (c.kind === "evm") {
+    const a = deriveEvmAccount(mnemonic, c, 0);
+    address = a.address;
+    const gap = DASHBOARD_GAP;
+    const count = scanCeiling(c.id, gap);
+    const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
+    if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+    balance = Number(scan.totalNativeWei) / 1e18;
+    return { chain: c, address, balance, usd: price ? balance * price : 0, evmAddrs: scan.active };
+  }
+  if (c.kind === "tron") {
+    const a = deriveTronAccount(mnemonic, c, 0);
+    address = a.address;
+    const sun = await tronBalance(c, address);
+    balance = Number(sun) / 10 ** c.decimals;
+  } else {
+    const a = deriveSolanaAccount(mnemonic, c, 0);
+    address = a.address;
+    const lam = await solanaBalance(c, address);
+    balance = Number(lam) / 10 ** c.decimals;
+  }
+  return { chain: c, address, balance, usd: price ? balance * price : 0 };
+}
 
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
@@ -55,86 +104,48 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     staleTime: 60_000,
   });
 
-  const assetsQuery = useQuery({
-    queryKey: ["simple-assets", visibleIds.join(","), !!pricesQuery.data],
-    enabled: !!mnemonic && !!pricesQuery.data,
-    refetchInterval: 60_000,
-    queryFn: async (): Promise<AssetRow[]> => {
-      const rows: AssetRow[] = [];
-      await Promise.all(
-        visibleChains.map(async (c) => {
-          try {
-            const price = pricesQuery.data ? priceForChain(pricesQuery.data, c) : null;
-            let address = "";
-            let balance = 0;
-            if (c.kind === "utxo") {
-              const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
-              address = a.address;
-              // HD gap-limit scan — sums every derived receive/change address.
-              // Floor = watermark + gap so we always extend past previously seen activity.
-              const gap = 50;
-              const minIndex = scanCeiling(c.id, gap);
-              const scan = await scanUtxoHd(mnemonic, c, {
-                type: c.defaultAddressType,
-                gapLimit: gap,
-                minIndex,
-              });
-              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
-              balance = scan.totalSats / 10 ** c.decimals;
-              const usd = price ? balance * price : 0;
-              rows.push({ chain: c, address, balance, usd, utxoAddrs: scan.active });
-              return;
-            } else if (c.kind === "evm") {
-              const a = deriveEvmAccount(mnemonic, c, 0);
-              address = a.address;
-              // HD scan across derived EVM addresses — aggregate native balance.
-              const gap = 50;
-              const count = scanCeiling(c.id, gap);
-              const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
-              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
-              balance = Number(scan.totalNativeWei) / 1e18;
-              const usd = price ? balance * price : 0;
-              rows.push({ chain: c, address, balance, usd, evmAddrs: scan.active });
-              return;
-
-            } else if (c.kind === "tron") {
-              const a = deriveTronAccount(mnemonic, c, 0);
-              address = a.address;
-              const sun = await tronBalance(c, address);
-              balance = Number(sun) / 10 ** c.decimals;
-            } else {
-              const a = deriveSolanaAccount(mnemonic, c, 0);
-              address = a.address;
-              const lam = await solanaBalance(c, address);
-              balance = Number(lam) / 10 ** c.decimals;
-            }
-            const usd = price ? balance * price : 0;
-            rows.push({ chain: c, address, balance, usd });
-          } catch {
-            /* skip chain on error */
-          }
-        }),
-      );
-      return rows.sort((a, b) => b.usd - a.usd);
-    },
+  // One query PER chain — rows appear independently as each chain finishes.
+  const chainQueries = useQueries({
+    queries: visibleChains.map((c) => ({
+      queryKey: ["simple-asset", c.id, !!pricesQuery.data],
+      enabled: !!mnemonic && !!pricesQuery.data,
+      refetchInterval: 60_000,
+      staleTime: 30_000,
+      queryFn: () =>
+        loadChainAsset(c, mnemonic, pricesQuery.data ? priceForChain(pricesQuery.data, c) : null),
+    })),
   });
 
-  const total = (assetsQuery.data ?? []).reduce((s, r) => s + r.usd, 0);
-  const activeAssets = (assetsQuery.data ?? []).filter((r) => r.balance > 0);
+  const loadedRows: AssetRow[] = useMemo(
+    () =>
+      chainQueries
+        .map((q) => q.data)
+        .filter((r): r is AssetRow => !!r)
+        .sort((a, b) => b.usd - a.usd),
+    [chainQueries],
+  );
+  const loadedCount = chainQueries.filter((q) => !!q.data).length;
+  const allLoaded = visibleChains.length > 0 && loadedCount === visibleChains.length;
+  const anyLoading = chainQueries.some((q) => q.isLoading);
 
-  // Cross-chain recent activity — fetch from chains with native history support
+  const total = loadedRows.reduce((s, r) => s + r.usd, 0);
+  const activeAssets = loadedRows.filter((r) => r.balance > 0);
+
+  // Cross-chain recent activity — only run when at least one row is in.
   const historyQuery = useQuery({
-    queryKey: ["simple-history", assetsQuery.data?.map((a) => `${a.chain.id}:${a.address}`).join(",")],
-    enabled: !!assetsQuery.data && assetsQuery.data.length > 0,
+    queryKey: [
+      "simple-history",
+      loadedRows.map((a) => `${a.chain.id}:${a.address}`).join(","),
+    ],
+    enabled: loadedRows.length > 0,
     refetchInterval: 90_000,
     queryFn: async () => {
-      const rows = assetsQuery.data ?? [];
+      const rows = loadedRows;
       const all = await Promise.all(
         rows
           .filter((r) => hasNativeHistory(r.chain))
           .map(async (r) => {
             try {
-              // For UTXO chains, pull history from every active HD address and dedupe.
               if (r.chain.kind === "utxo" && r.utxoAddrs && r.utxoAddrs.length > 0) {
                 const perAddr = await Promise.all(
                   r.utxoAddrs.map((h) => fetchHistory(r.chain, h.address).catch(() => [])),
@@ -169,7 +180,6 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   useEffect(() => {
     const items = historyQuery.data;
     if (!items) return;
-    // Skip if this is the same data we already processed.
     const fetchedAt = historyQuery.dataUpdatedAt;
     if (lastFetchedAt.current === fetchedAt) return;
     lastFetchedAt.current = fetchedAt;
@@ -202,7 +212,6 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     <AppShell>
       <TopBar onLock={handleLock} handle="My Funds" />
 
-      {/* Tiny wallet link */}
       <div className="px-5 -mt-1">
         <Link
           to="/wallet"
@@ -212,15 +221,17 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </Link>
       </div>
 
-      {/* Total */}
       <section className="px-5 pt-6">
         <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em]">
-          Total Balance
+          Total Balance{!allLoaded && loadedCount > 0 ? ` · ${loadedCount}/${visibleChains.length}` : ""}
         </div>
         <div className="mt-2 flex items-baseline gap-2">
           <h1 className="text-[56px] leading-none font-semibold tracking-tight tabular">
-            {assetsQuery.isLoading ? "—" : formatUsd(total)}
+            {loadedCount === 0 ? "—" : formatUsd(total)}
           </h1>
+          {!allLoaded && anyLoading && loadedCount > 0 && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -231,16 +242,15 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </button>
       </section>
 
-      {/* Asset list */}
       <section className="px-5 mt-5">
-        {assetsQuery.isLoading ? (
+        {loadedCount === 0 && anyLoading ? (
           <div className="glass-card rounded-2xl px-4 py-6 flex items-center justify-center text-sm text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading your funds…
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning your wallets…
           </div>
         ) : activeAssets.length === 0 && !expanded ? (
           <div className="glass-card rounded-2xl px-4 py-6 text-center text-sm text-muted-foreground">
             <WalletIcon className="mx-auto mb-2 h-5 w-5 opacity-60" />
-            No active balances yet.
+            {anyLoading ? "Still scanning some chains…" : "No active balances yet."}
             <div className="mt-2">
               <Link to="/wallet" className="text-foreground underline underline-offset-2">
                 Open your wallet
@@ -250,7 +260,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {(expanded ? assetsQuery.data ?? [] : activeAssets).map((r) => (
+            {(expanded ? loadedRows : activeAssets).map((r) => (
               <div key={r.chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
@@ -275,11 +285,16 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                 </div>
               </div>
             ))}
+            {expanded && anyLoading && (
+              <div className="text-[11px] text-center text-muted-foreground py-1">
+                Still scanning {visibleChains.length - loadedCount} chain
+                {visibleChains.length - loadedCount === 1 ? "" : "s"}…
+              </div>
+            )}
           </div>
         )}
       </section>
 
-      {/* Cash out */}
       <section className="px-5 mt-5">
         <Button
           disabled
@@ -294,7 +309,6 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </p>
       </section>
 
-      {/* Transaction history */}
       <section className="px-5 mt-7">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold">Recent Transactions</h2>
@@ -305,7 +319,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             See all
           </Link>
         </div>
-        {historyQuery.isLoading ? (
+        {historyQuery.isLoading && loadedRows.length > 0 ? (
           <div className="glass-card rounded-2xl px-4 py-6 flex items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
           </div>
