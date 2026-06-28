@@ -19,7 +19,7 @@ import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
 import { clearCachedMnemonic, getCachedMnemonic } from "@/lib/wallet/seed";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
-import { deriveUtxoAccount, esplora, addressBalanceSats, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
+import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, evmBalance } from "@/lib/wallet/evm";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
