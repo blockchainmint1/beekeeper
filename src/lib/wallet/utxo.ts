@@ -134,18 +134,25 @@ export interface HdScanResult {
   totalSats: number;
   active: HdScanAddress[]; // any address with tx_count > 0 OR balance > 0
   scanned: number;
+  highestUsedIndex: number; // -1 if none
 }
 
 /** BIP44/84-style HD scan with gap-limit. Walks receive (chain=0) and change (chain=1)
- *  branches until `gapLimit` consecutive unused addresses are seen. */
+ *  branches until `gapLimit` consecutive unused addresses are seen.
+ *
+ *  Gap is bumped to 50 by default (vs the BIP-44 standard of 20) so merchants
+ *  using rotating receive addresses can burst without us missing payments.
+ *  `minIndex` forces the walker to scan at least that many addresses on each
+ *  branch even when empty — callers pass the persisted watermark + gap. */
 export async function scanUtxoHd(
   mnemonic: string,
   chain: UtxoChain,
-  opts: { type?: AddressType; gapLimit?: number; maxIndex?: number } = {},
+  opts: { type?: AddressType; gapLimit?: number; maxIndex?: number; minIndex?: number } = {},
 ): Promise<HdScanResult> {
   const { bitcoin } = await getLibs();
-  const gapLimit = opts.gapLimit ?? 20;
-  const maxIndex = opts.maxIndex ?? 200;
+  const gapLimit = opts.gapLimit ?? 50;
+  const maxIndex = opts.maxIndex ?? 500;
+  const minIndex = opts.minIndex ?? 0;
   const requestedType = opts.type ?? chain.defaultAddressType;
   const effectiveType: AddressType = chain.cashAddrPrefix ? "legacy" : requestedType;
   const baseWithChain =
@@ -158,11 +165,13 @@ export async function scanUtxoHd(
   const active: HdScanAddress[] = [];
   let totalSats = 0;
   let scanned = 0;
+  let highestUsedIndex = -1;
 
   for (const change of [false, true]) {
     const branchBase = `${accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
-    for (let i = 0; i < maxIndex && consecutiveEmpty < gapLimit; i++) {
+    for (let i = 0; i < maxIndex; i++) {
+      if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
       const node = root.derive(`${branchBase}/${i}`);
       if (!node.publicKey) {
         consecutiveEmpty++;
@@ -186,14 +195,16 @@ export async function scanUtxoHd(
         active.push({ address, index: i, change, type: effectiveType, sats, txCount });
         totalSats += sats;
         consecutiveEmpty = 0;
+        if (!change && i > highestUsedIndex) highestUsedIndex = i;
       } else {
         consecutiveEmpty++;
       }
     }
   }
 
-  return { totalSats, active, scanned };
+  return { totalSats, active, scanned, highestUsedIndex };
 }
+
 
 export async function validateUtxoAddress(addr: string, chain: UtxoChain): Promise<boolean> {
   const { bitcoin } = await getLibs();

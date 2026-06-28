@@ -58,19 +58,21 @@ export interface EvmHdScanResult {
   totalNativeWei: bigint;
   active: EvmHdAddress[]; // any address with native or token balance
   scanned: number;
+  highestUsedIndex: number; // -1 if none
 }
 
 /**
  * Walk derivation indices 0..count-1, fetching native + (optionally) ERC-20 balances.
  * EVM has no on-chain "address used" signal cheap enough to gap-scan like UTXO, so we
- * walk a bounded range with limited concurrency.
+ * walk a bounded range with limited concurrency. Default range bumped to 50 — pair
+ * with a watermark to extend further when merchant activity grows.
  */
 export async function scanEvmHd(
   mnemonic: string,
   chain: EvmChain,
   opts: { count?: number; concurrency?: number; includeTokens?: boolean } = {},
 ): Promise<EvmHdScanResult> {
-  const count = opts.count ?? 20;
+  const count = opts.count ?? 50;
   const concurrency = opts.concurrency ?? 4;
   const includeTokens = opts.includeTokens ?? true;
 
@@ -82,6 +84,7 @@ export async function scanEvmHd(
   const active: EvmHdAddress[] = [];
   let totalNativeWei = 0n;
   let scanned = 0;
+  let highestUsedIndex = -1;
   let cursor = 0;
 
   async function worker() {
@@ -114,6 +117,7 @@ export async function scanEvmHd(
         if (nativeWei > 0n || tokens.length > 0) {
           active.push({ index: job.index, address: job.address, nativeWei, tokens });
           totalNativeWei += nativeWei;
+          if (job.index > highestUsedIndex) highestUsedIndex = job.index;
         }
       } catch {
         /* skip address on RPC failure */
@@ -125,8 +129,9 @@ export async function scanEvmHd(
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
   active.sort((a, b) => a.index - b.index);
-  return { totalNativeWei, active, scanned };
+  return { totalNativeWei, active, scanned, highestUsedIndex };
 }
+
 
 export interface NativeSweepEstimate {
   balance: bigint;

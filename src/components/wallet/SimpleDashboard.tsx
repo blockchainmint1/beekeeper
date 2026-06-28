@@ -22,6 +22,7 @@ import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { scanEvmHd, type EvmHdAddress } from "@/lib/wallet/evm-sweep";
+import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
@@ -70,7 +71,15 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
               const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
               address = a.address;
               // HD gap-limit scan — sums every derived receive/change address.
-              const scan = await scanUtxoHd(mnemonic, c, { type: c.defaultAddressType });
+              // Floor = watermark + gap so we always extend past previously seen activity.
+              const gap = 50;
+              const minIndex = scanCeiling(c.id, gap);
+              const scan = await scanUtxoHd(mnemonic, c, {
+                type: c.defaultAddressType,
+                gapLimit: gap,
+                minIndex,
+              });
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
               balance = scan.totalSats / 10 ** c.decimals;
               const usd = price ? balance * price : 0;
               rows.push({ chain: c, address, balance, usd, utxoAddrs: scan.active });
@@ -79,11 +88,15 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
               const a = deriveEvmAccount(mnemonic, c, 0);
               address = a.address;
               // HD scan across derived EVM addresses — aggregate native balance.
-              const scan = await scanEvmHd(mnemonic, c, { count: 20, includeTokens: false });
+              const gap = 50;
+              const count = scanCeiling(c.id, gap);
+              const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
               balance = Number(scan.totalNativeWei) / 1e18;
               const usd = price ? balance * price : 0;
               rows.push({ chain: c, address, balance, usd, evmAddrs: scan.active });
               return;
+
             } else if (c.kind === "tron") {
               const a = deriveTronAccount(mnemonic, c, 0);
               address = a.address;
