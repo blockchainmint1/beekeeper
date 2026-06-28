@@ -148,15 +148,38 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
     } catch { /* ignore */ }
     throw new Error(msg);
   }
-  const m = (await res.json()) as NectarManifest;
-  if (m.v !== 1 || m.type !== "hm-link-xpubs") throw new Error("Bad manifest");
-  if (typeof m.exp !== "number") throw new Error("Manifest missing exp");
+  const raw = await res.text();
+  let m: NectarManifest;
+  try {
+    m = JSON.parse(raw) as NectarManifest;
+  } catch {
+    const preview = raw.slice(0, 80).replace(/\s+/g, " ");
+    throw new Error(`Manifest not JSON: "${preview}"`);
+  }
+  if (m === null || typeof m !== "object") throw new Error("Manifest not an object");
+  // Surface which top-level fields are wrong so we can tell whose bug this is.
+  const missing: string[] = [];
+  if (m.v !== 1) missing.push(`v=${JSON.stringify((m as { v?: unknown }).v)}`);
+  if (m.type !== "hm-link-xpubs") missing.push(`type=${JSON.stringify((m as { type?: unknown }).type)}`);
+  if (typeof m.challenge_id !== "string") missing.push("challenge_id");
+  if (typeof m.from !== "string") missing.push("from");
+  if (typeof m.callback_url !== "string") missing.push("callback_url");
+  if (typeof m.manifest_url !== "string") missing.push("manifest_url");
+  if (typeof m.exp !== "number") missing.push("exp");
+  if (typeof m.allow_new_wallet !== "boolean") missing.push("allow_new_wallet");
+  if (typeof m.known_addresses_count !== "number") missing.push("known_addresses_count");
+  if (typeof m.known_addresses_hash !== "string") missing.push("known_addresses_hash");
+  if (missing.length) {
+    console.error("[nectar] bad manifest payload:", m);
+    throw new Error(`Manifest missing/invalid: ${missing.join(", ")}`);
+  }
   if (Date.now() / 1000 > m.exp) throw new Error("Link code expired");
   // Origin guard — kills api.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
-  const mu = new URL(m.manifest_url);
-  const cu = new URL(m.callback_url);
+  let mu: URL, cu: URL;
+  try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
+  try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }
   if (mu.protocol !== "https:") throw new Error("Manifest must be https");
-  if (mu.host !== cu.host) throw new Error("Manifest/callback host mismatch");
+  if (mu.host !== cu.host) throw new Error(`Host mismatch: manifest=${mu.host} callback=${cu.host}`);
   if (!m.callback_url.startsWith(mu.origin + "/")) {
     throw new Error("Callback escapes manifest origin");
   }
