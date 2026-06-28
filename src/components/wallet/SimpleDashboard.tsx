@@ -115,6 +115,22 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           .filter((r) => hasNativeHistory(r.chain))
           .map(async (r) => {
             try {
+              // For UTXO chains, pull history from every active HD address and dedupe.
+              if (r.chain.kind === "utxo" && r.utxoAddrs && r.utxoAddrs.length > 0) {
+                const perAddr = await Promise.all(
+                  r.utxoAddrs.map((h) => fetchHistory(r.chain, h.address).catch(() => [])),
+                );
+                const seen = new Set<string>();
+                const merged: Array<Awaited<ReturnType<typeof fetchHistory>>[number] & { chain: ChainConfig }> = [];
+                for (const items of perAddr) {
+                  for (const it of items) {
+                    if (seen.has(it.txid)) continue;
+                    seen.add(it.txid);
+                    merged.push({ ...it, chain: r.chain });
+                  }
+                }
+                return merged.slice(0, 10);
+              }
               const items = await fetchHistory(r.chain, r.address);
               return items.slice(0, 5).map((it) => ({ ...it, chain: r.chain }));
             } catch {
