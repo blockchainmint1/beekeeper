@@ -19,7 +19,7 @@ import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
 import { clearCachedMnemonic, getCachedMnemonic } from "@/lib/wallet/seed";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
-import { deriveUtxoAccount, esplora, addressBalanceSats } from "@/lib/wallet/utxo";
+import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, evmBalance } from "@/lib/wallet/evm";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
@@ -30,8 +30,9 @@ import { toast } from "sonner";
 
 type AssetRow = {
   chain: ChainConfig;
-  address: string;
-  balance: number; // native units
+  address: string;            // primary display address (receive index 0)
+  utxoAddrs?: HdScanAddress[]; // all HD addresses with history/balance (UTXO only)
+  balance: number;            // native units (aggregated across HD branch for UTXO)
   usd: number;
 };
 
@@ -66,9 +67,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             if (c.kind === "utxo") {
               const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
               address = a.address;
-              const info = await esplora.addressInfo(c, address);
-              const sats = addressBalanceSats(info).total;
-              balance = sats / 10 ** c.decimals;
+              // HD gap-limit scan — sums every derived receive/change address.
+              const scan = await scanUtxoHd(mnemonic, c, { type: c.defaultAddressType });
+              balance = scan.totalSats / 10 ** c.decimals;
+              const usd = price ? balance * price : 0;
+              rows.push({ chain: c, address, balance, usd, utxoAddrs: scan.active });
+              return;
             } else if (c.kind === "evm") {
               const a = deriveEvmAccount(mnemonic, c, 0);
               address = a.address;
@@ -111,6 +115,22 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           .filter((r) => hasNativeHistory(r.chain))
           .map(async (r) => {
             try {
+              // For UTXO chains, pull history from every active HD address and dedupe.
+              if (r.chain.kind === "utxo" && r.utxoAddrs && r.utxoAddrs.length > 0) {
+                const perAddr = await Promise.all(
+                  r.utxoAddrs.map((h) => fetchHistory(r.chain, h.address).catch(() => [])),
+                );
+                const seen = new Set<string>();
+                const merged: Array<Awaited<ReturnType<typeof fetchHistory>>[number] & { chain: ChainConfig }> = [];
+                for (const items of perAddr) {
+                  for (const it of items) {
+                    if (seen.has(it.txid)) continue;
+                    seen.add(it.txid);
+                    merged.push({ ...it, chain: r.chain });
+                  }
+                }
+                return merged.slice(0, 10);
+              }
               const items = await fetchHistory(r.chain, r.address);
               return items.slice(0, 5).map((it) => ({ ...it, chain: r.chain }));
             } catch {

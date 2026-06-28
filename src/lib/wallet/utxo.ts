@@ -119,6 +119,82 @@ export async function deriveUtxoAccount(
   };
 }
 
+/* ─────────── HD scan (gap-limit, both receive + change chains) ─────────── */
+
+export interface HdScanAddress {
+  address: string;
+  index: number;
+  change: boolean;
+  type: AddressType;
+  sats: number;
+  txCount: number;
+}
+
+export interface HdScanResult {
+  totalSats: number;
+  active: HdScanAddress[]; // any address with tx_count > 0 OR balance > 0
+  scanned: number;
+}
+
+/** BIP44/84-style HD scan with gap-limit. Walks receive (chain=0) and change (chain=1)
+ *  branches until `gapLimit` consecutive unused addresses are seen. */
+export async function scanUtxoHd(
+  mnemonic: string,
+  chain: UtxoChain,
+  opts: { type?: AddressType; gapLimit?: number; maxIndex?: number } = {},
+): Promise<HdScanResult> {
+  const { bitcoin } = await getLibs();
+  const gapLimit = opts.gapLimit ?? 20;
+  const maxIndex = opts.maxIndex ?? 200;
+  const requestedType = opts.type ?? chain.defaultAddressType;
+  const effectiveType: AddressType = chain.cashAddrPrefix ? "legacy" : requestedType;
+  const baseWithChain =
+    effectiveType === "segwit" ? chain.bip84Base : chain.bip44Base;
+  // baseWithChain ends in "/0" (receive). Strip to get the account-level base.
+  const accountBase = baseWithChain.replace(/\/0$/, "");
+  const seed = mnemonicToSeed(mnemonic);
+  const root = HDKey.fromMasterSeed(seed);
+
+  const active: HdScanAddress[] = [];
+  let totalSats = 0;
+  let scanned = 0;
+
+  for (const change of [false, true]) {
+    const branchBase = `${accountBase}/${change ? 1 : 0}`;
+    let consecutiveEmpty = 0;
+    for (let i = 0; i < maxIndex && consecutiveEmpty < gapLimit; i++) {
+      const node = root.derive(`${branchBase}/${i}`);
+      if (!node.publicKey) {
+        consecutiveEmpty++;
+        continue;
+      }
+      let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
+      if (chain.cashAddrPrefix) {
+        try { address = toCashAddr(address); } catch { /* keep legacy */ }
+      }
+      scanned++;
+      let info: AddressInfo;
+      try {
+        info = await esplora.addressInfo(chain, address);
+      } catch {
+        consecutiveEmpty++;
+        continue;
+      }
+      const sats = addressBalanceSats(info).total;
+      const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
+      if (txCount > 0 || sats > 0) {
+        active.push({ address, index: i, change, type: effectiveType, sats, txCount });
+        totalSats += sats;
+        consecutiveEmpty = 0;
+      } else {
+        consecutiveEmpty++;
+      }
+    }
+  }
+
+  return { totalSats, active, scanned };
+}
+
 export async function validateUtxoAddress(addr: string, chain: UtxoChain): Promise<boolean> {
   const { bitcoin } = await getLibs();
   if (chain.cashAddrPrefix) {
