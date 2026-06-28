@@ -223,6 +223,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         { label: "Sign", icon: PenLine, onClick: () => setSignOpen(true) },
         { label: "QR Login", icon: ScanLine, onClick: () => setQrLoginOpen(true) },
         { label: "Xpub", icon: KeyRound, onClick: () => setXpubOpen(activeChain) },
+        ...(activeChain.kind === "evm"
+          ? [{ label: "Sweep", icon: Recycle, onClick: () => setSweepOpen(activeChain) } as ActionItem]
+          : []),
         { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
         { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
         { label: "Extension", icon: Puzzle, onClick: downloadExtension },
