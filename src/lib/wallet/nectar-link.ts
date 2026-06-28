@@ -72,7 +72,7 @@ export const NECTAR_TO_LOCAL: Record<NectarChainKey, ChainId | null> = {
   LTC: "ltc",
   BCH: "bch",
   TRX: "trx",
-  DOGE: null, // not configured yet — wallet will report it as unsupported
+  DOGE: "doge",
 };
 
 export interface NectarLinkRequest {
