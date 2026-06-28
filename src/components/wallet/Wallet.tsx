@@ -462,6 +462,17 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       {xpubOpen && (
         <XpubDialog open={!!xpubOpen} onOpenChange={(v) => !v && setXpubOpen(null)} chain={xpubOpen} />
       )}
+      {sweepOpen && sweepOpen.kind === "evm" && (
+        <EvmSweepDialog
+          open={!!sweepOpen}
+          onOpenChange={(v) => !v && setSweepOpen(null)}
+          chain={sweepOpen}
+          mnemonic={mnemonic}
+        />
+      {/* placeholder fragment closer */}
+      {false && (
+        <></>
+      )}
     </AppShell>
   );
 }
