@@ -78,8 +78,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             } else if (c.kind === "evm") {
               const a = deriveEvmAccount(mnemonic, c, 0);
               address = a.address;
-              const wei = await evmBalance(c, address as `0x${string}`);
-              balance = Number(wei) / 1e18;
+              // HD scan across derived EVM addresses — aggregate native balance.
+              const scan = await scanEvmHd(mnemonic, c, { count: 20, includeTokens: false });
+              balance = Number(scan.totalNativeWei) / 1e18;
+              const usd = price ? balance * price : 0;
+              rows.push({ chain: c, address, balance, usd, evmAddrs: scan.active });
+              return;
             } else if (c.kind === "tron") {
               const a = deriveTronAccount(mnemonic, c, 0);
               address = a.address;
