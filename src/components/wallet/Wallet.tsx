@@ -31,7 +31,6 @@ import { QrLoginDialog } from "./QrLoginDialog";
 import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
-import { evmBalance } from "@/lib/wallet/evm";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { EvmSweepDialog } from "./EvmSweepDialog";
 import { useIdleLock } from "@/lib/wallet/security";
