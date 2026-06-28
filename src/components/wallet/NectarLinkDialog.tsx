@@ -132,13 +132,19 @@ export function NectarLinkDialog({
       />
       <NectarLinkConsentDialog
         open={!!consentReq}
-        onOpenChange={(v) => !v && setConsentReq(null)}
+        onOpenChange={(v) => {
+          if (!v) {
+            setConsentReq(null);
+            setConsentManifest(null);
+          }
+        }}
         request={consentReq}
+        manifest={consentManifest}
         onLinked={() => {
           onLinked?.({
             url: consentReq?.callback_url ?? "",
             linkedAt: Date.now(),
-            merchantName: consentReq?.from,
+            merchantName: consentManifest?.merchant_name ?? consentReq?.from,
           });
         }}
       />
