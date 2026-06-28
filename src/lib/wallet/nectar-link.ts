@@ -104,6 +104,106 @@ export interface NectarLinkResponse {
   chains_linked?: NectarChainKey[];
 }
 
+/* ─────────────────────────────── Manifest ─────────────────────────────── */
+//
+// Nectar QR now encodes the manifest URL directly:
+//   https://<host>/api/public/v1/wallet-link?token=<token>
+// GET it → manifest. POSTing the signed payload back to the same URL claims
+// the token. callback_url and manifest_url are the same URL by design.
+
+export interface NectarManifest {
+  v: 1;
+  type: "hm-link-xpubs";
+  challenge_id: string;
+  from: string;
+  callback_url: string;
+  manifest_url: string;
+  chains: NectarChainKey[];
+  exp: number; // seconds
+  allow_new_wallet: boolean;
+  known_addresses_count: number;
+  known_addresses_hash: string; // hex lowercase
+  store_id?: string;
+  merchant_name?: string;
+}
+
+/** Recognize a Nectar manifest URL. Returns the URL string if it is one. */
+export function parseNectarManifestUrl(raw: string): string | null {
+  const t = raw.trim();
+  if (!/^https:\/\//i.test(t)) return null;
+  let u: URL;
+  try { u = new URL(t); } catch { return null; }
+  if (!/\/wallet-link\/?$/.test(u.pathname)) return null;
+  if (!u.searchParams.get("token")) return null;
+  return u.toString();
+}
+
+export async function fetchNectarManifest(url: string): Promise<NectarManifest> {
+  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    let msg = `Manifest fetch failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string; message?: string; hint?: string };
+      msg = j.hint || j.error || j.message || msg;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  const m = (await res.json()) as NectarManifest;
+  if (m.v !== 1 || m.type !== "hm-link-xpubs") throw new Error("Bad manifest");
+  if (typeof m.exp !== "number") throw new Error("Manifest missing exp");
+  if (Date.now() / 1000 > m.exp) throw new Error("Link code expired");
+  // Origin guard — kills api.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
+  const mu = new URL(m.manifest_url);
+  const cu = new URL(m.callback_url);
+  if (mu.protocol !== "https:") throw new Error("Manifest must be https");
+  if (mu.host !== cu.host) throw new Error("Manifest/callback host mismatch");
+  if (!m.callback_url.startsWith(mu.origin + "/")) {
+    throw new Error("Callback escapes manifest origin");
+  }
+  m.chains = normalizeChains(m.chains);
+  return m;
+}
+
+/** Hash recipe locked with Nectar — must stay byte-exact.
+ *  sha256( dedupe(trim) → filter(Boolean) → sort → join("\n") )
+ *  hex lowercase, no trailing newline, addresses compared case-sensitively
+ *  (base58check). Empty set → e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855. */
+export async function hashAddressSet(addresses: string[]): Promise<string> {
+  const normalized = Array.from(new Set(addresses.map((a) => a.trim())))
+    .filter(Boolean)
+    .sort()
+    .join("\n");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Returns true when myAddress is provably in the merchant's known-address set
+ *  (hash([myAddress]) is impossible to match unless the set is just {myAddress},
+ *  so we check hash of singleton — server also accepts and re-checks). For
+ *  count > 1 the wallet can't prove membership without the raw list, so a
+ *  positive match only confirms when count === 1. count === 0 → new-wallet path. */
+export async function isAddressInKnownSet(
+  myAddress: string,
+  manifest: NectarManifest,
+): Promise<boolean> {
+  if (manifest.known_addresses_count === 0) return false;
+  if (manifest.known_addresses_count === 1) {
+    const h = await hashAddressSet([myAddress]);
+    return h === manifest.known_addresses_hash.toLowerCase();
+  }
+  // For larger sets the client can't prove membership from a hash alone — the
+  // server is the source of truth. Optimistically attempt the sign; the server
+  // re-verifies and returns 403 { code: "unknown_signer" } if we're not in.
+  return true;
+}
+
+/** Derive the wallet's TXC identity address (m/44'/696969'/0'/0/0 legacy P2PKH). */
+export async function deriveTxcIdentityAddress(mnemonic: string): Promise<string> {
+  const txc = CHAINS.txc as UtxoChain;
+  const acct = await deriveUtxoAccount(mnemonic, txc, 0, "legacy");
+  return acct.address;
+}
+
 /* ─────────────────────────────── Parsing ─────────────────────────────── */
 
 function normalizeChains(raw: unknown): NectarChainKey[] {
