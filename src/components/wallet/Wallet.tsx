@@ -469,9 +469,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
           chain={sweepOpen}
           mnemonic={mnemonic}
         />
-      {/* placeholder fragment closer */}
-      {false && (
-        <></>
       )}
     </AppShell>
   );
