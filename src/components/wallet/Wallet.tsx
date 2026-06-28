@@ -60,6 +60,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [multiOpen, setMultiOpen] = useState(false);
   const [qrLoginOpen, setQrLoginOpen] = useState(false);
   const [xpubOpen, setXpubOpen] = useState<ChainConfig | null>(null);
+  const [sweepOpen, setSweepOpen] = useState<ChainConfig | null>(null);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
   const [nectarLinked, setNectarLinked] = useState<boolean>(() => hasNectarLink());
   const visibleIds = useVisibleChainIds();
