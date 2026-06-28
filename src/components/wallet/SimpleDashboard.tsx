@@ -30,8 +30,9 @@ import { toast } from "sonner";
 
 type AssetRow = {
   chain: ChainConfig;
-  address: string;
-  balance: number; // native units
+  address: string;            // primary display address (receive index 0)
+  utxoAddrs?: HdScanAddress[]; // all HD addresses with history/balance (UTXO only)
+  balance: number;            // native units (aggregated across HD branch for UTXO)
   usd: number;
 };
 
