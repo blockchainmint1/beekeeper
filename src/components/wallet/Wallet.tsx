@@ -197,8 +197,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               const sats = addressBalanceSats(info).total;
               total += (sats / 10 ** c.decimals) * price;
             } else if (c.kind === "evm") {
-              const wei = await evmBalance(c, (a as { account: EvmAccount }).account.address);
-              total += (Number(wei) / 1e18) * price;
+              // Aggregate native balance across all derived EVM addresses.
+              const scan = await scanEvmHd(mnemonic, c, { count: 20, includeTokens: false });
+              total += (Number(scan.totalNativeWei) / 1e18) * price;
             } else if (c.kind === "tron") {
               const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
               total += (Number(sun) / 10 ** c.decimals) * price;
