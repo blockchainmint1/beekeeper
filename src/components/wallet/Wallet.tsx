@@ -196,8 +196,12 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               const sats = addressBalanceSats(info).total;
               total += (sats / 10 ** c.decimals) * price;
             } else if (c.kind === "evm") {
-              // Aggregate native balance across all derived EVM addresses.
-              const scan = await scanEvmHd(mnemonic, c, { count: 20, includeTokens: false });
+              // Aggregate native balance across all derived EVM addresses,
+              // extending the scan past the watermark for active merchants.
+              const gap = 50;
+              const count = scanCeiling(c.id, gap);
+              const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
               total += (Number(scan.totalNativeWei) / 1e18) * price;
             } else if (c.kind === "tron") {
               const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
