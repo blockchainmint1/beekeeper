@@ -182,10 +182,10 @@ export function NectarLinkConsentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5" /> Share receive keys with {request.from}?
+            <KeyRound className="h-5 w-5" /> Share receive keys with {merchantLabel}?
           </DialogTitle>
           <DialogDescription>
-            {request.from} is asking to import your receive-side extended public keys
+            {merchantLabel} is asking to import your receive-side extended public keys
             so it can watch for incoming payments. Only public keys leave this device — your seed never does.
           </DialogDescription>
         </DialogHeader>
