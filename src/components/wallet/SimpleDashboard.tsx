@@ -21,6 +21,7 @@ import { clearCachedMnemonic, getCachedMnemonic } from "@/lib/wallet/seed";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, evmBalance } from "@/lib/wallet/evm";
+import { scanEvmHd, type EvmHdAddress } from "@/lib/wallet/evm-sweep";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
