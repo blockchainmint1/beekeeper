@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ChainId } from "@/lib/chains";
 
 const KEY = "quad-wallet-visible-chains";
-const DEFAULT: ChainId[] = ["txc", "btc", "ltc", "bch", "isk", "eth", "sol", "trx", "zchl"];
+const DEFAULT: ChainId[] = ["txc", "btc", "ltc", "bch", "doge", "isk", "eth", "sol", "trx", "zchl"];
 
 function read(): ChainId[] {
   if (typeof localStorage === "undefined") return DEFAULT;
