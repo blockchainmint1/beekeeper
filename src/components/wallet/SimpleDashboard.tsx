@@ -33,7 +33,8 @@ type AssetRow = {
   chain: ChainConfig;
   address: string;            // primary display address (receive index 0)
   utxoAddrs?: HdScanAddress[]; // all HD addresses with history/balance (UTXO only)
-  balance: number;            // native units (aggregated across HD branch for UTXO)
+  evmAddrs?: EvmHdAddress[];   // all HD addresses with native/token balance (EVM only)
+  balance: number;            // native units (aggregated across HD branch)
   usd: number;
 };
 
