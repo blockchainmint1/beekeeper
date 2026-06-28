@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
   BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
-  ScanLine, KeyRound, Puzzle, Link2,
+  ScanLine, KeyRound, Puzzle, Link2, Recycle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
