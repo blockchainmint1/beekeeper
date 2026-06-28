@@ -11,7 +11,13 @@ import {
   parseNectarQr,
   type NectarLinkRecord,
 } from "@/lib/wallet/nectar";
-import { parseNectarLinkRequest, type NectarLinkRequest } from "@/lib/wallet/nectar-link";
+import {
+  fetchNectarManifest,
+  parseNectarLinkRequest,
+  parseNectarManifestUrl,
+  type NectarLinkRequest,
+  type NectarManifest,
+} from "@/lib/wallet/nectar-link";
 import { getCachedMnemonic } from "@/lib/wallet/seed";
 
 export function NectarLinkDialog({
