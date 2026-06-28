@@ -237,6 +237,46 @@ export function NectarLinkConsentDialog({
             </div>
           )}
 
+          {myAddress && (
+            <div className="rounded-2xl border border-border bg-card/40 px-3 py-2.5">
+              <div className="text-xs text-muted-foreground">Signing as (TXC identity)</div>
+              <div className="mt-1 break-all text-xs tabular text-foreground/80">{myAddress}</div>
+            </div>
+          )}
+
+          {signerStatus.kind === "blocked" && (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                <span>{signerStatus.reason}</span>
+              </div>
+            </div>
+          )}
+
+          {signerStatus.kind === "new-wallet" && (
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs">
+              <div className="flex items-start gap-2">
+                <Sparkles className="mt-px h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <div className="space-y-2">
+                  <div>
+                    <strong>New wallet on {merchantLabel}.</strong> This wallet has
+                    never been used with this merchant before. Linking will register
+                    it as an authorized signer going forward.
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={acknowledgedNew}
+                      onChange={(e) => setAcknowledgedNew(e.target.checked)}
+                      className="h-3.5 w-3.5 accent-amber-500"
+                    />
+                    <span>I understand and want to continue.</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Extended public keys let merchants generate fresh receive addresses on
             their own. They cannot move, spend, or sign anything — that still
@@ -256,7 +296,15 @@ export function NectarLinkConsentDialog({
           <Button
             className="flex-1"
             onClick={handleApprove}
-            disabled={busy || !!error || !derived || derived.supported.length === 0}
+            disabled={
+              busy ||
+              !!error ||
+              !derived ||
+              derived.supported.length === 0 ||
+              signerStatus.kind === "loading" ||
+              signerStatus.kind === "blocked" ||
+              (signerStatus.kind === "new-wallet" && !acknowledgedNew)
+            }
           >
             {busy ? (
               <>
