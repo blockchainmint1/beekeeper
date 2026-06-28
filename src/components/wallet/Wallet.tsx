@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send, ArrowDownToLine, History as HistoryIcon, PenLine, Send as SendMulti,
   BookUser, Settings as SettingsIcon, ShieldAlert, Download, Plus, TrendingUp, Pickaxe, Clock,
-  ScanLine, KeyRound, Puzzle, Link2,
+  ScanLine, KeyRound, Puzzle, Link2, Recycle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -31,7 +31,8 @@ import { QrLoginDialog } from "./QrLoginDialog";
 import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
-import { evmBalance } from "@/lib/wallet/evm";
+import { scanEvmHd } from "@/lib/wallet/evm-sweep";
+import { EvmSweepDialog } from "./EvmSweepDialog";
 import { useIdleLock } from "@/lib/wallet/security";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { AppShell } from "./AppShell";
@@ -58,6 +59,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   const [multiOpen, setMultiOpen] = useState(false);
   const [qrLoginOpen, setQrLoginOpen] = useState(false);
   const [xpubOpen, setXpubOpen] = useState<ChainConfig | null>(null);
+  const [sweepOpen, setSweepOpen] = useState<ChainConfig | null>(null);
   const [backedUp, setBackedUp] = useState<boolean>(() => isVaultBackedUp());
   const [nectarLinked, setNectarLinked] = useState<boolean>(() => hasNectarLink());
   const visibleIds = useVisibleChainIds();
@@ -194,8 +196,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
               const sats = addressBalanceSats(info).total;
               total += (sats / 10 ** c.decimals) * price;
             } else if (c.kind === "evm") {
-              const wei = await evmBalance(c, (a as { account: EvmAccount }).account.address);
-              total += (Number(wei) / 1e18) * price;
+              // Aggregate native balance across all derived EVM addresses.
+              const scan = await scanEvmHd(mnemonic, c, { count: 20, includeTokens: false });
+              total += (Number(scan.totalNativeWei) / 1e18) * price;
             } else if (c.kind === "tron") {
               const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
               total += (Number(sun) / 10 ** c.decimals) * price;
@@ -220,6 +223,9 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         { label: "Sign", icon: PenLine, onClick: () => setSignOpen(true) },
         { label: "QR Login", icon: ScanLine, onClick: () => setQrLoginOpen(true) },
         { label: "Xpub", icon: KeyRound, onClick: () => setXpubOpen(activeChain) },
+        ...(activeChain.kind === "evm"
+          ? [{ label: "Sweep", icon: Recycle, onClick: () => setSweepOpen(activeChain) } as ActionItem]
+          : []),
         { label: "Multi", icon: SendMulti, onClick: () => setMultiOpen(true) },
         { label: "Contacts", icon: BookUser, onClick: () => setContactsOpen(true) },
         { label: "Extension", icon: Puzzle, onClick: downloadExtension },
@@ -455,6 +461,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
       )}
       {xpubOpen && (
         <XpubDialog open={!!xpubOpen} onOpenChange={(v) => !v && setXpubOpen(null)} chain={xpubOpen} />
+      )}
+      {sweepOpen && sweepOpen.kind === "evm" && (
+        <EvmSweepDialog
+          open={!!sweepOpen}
+          onOpenChange={(v) => !v && setSweepOpen(null)}
+          chain={sweepOpen}
+          mnemonic={mnemonic}
+        />
       )}
     </AppShell>
   );
