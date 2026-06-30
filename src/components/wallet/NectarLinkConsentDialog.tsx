@@ -66,6 +66,7 @@ export function NectarLinkConsentDialog({
   useEffect(() => {
     if (!open) return;
     setMnemonic(getCachedMnemonic() ?? "");
+    setServerError(null);
   }, [open]);
 
   // Pre-derive xpubs the moment the dialog opens so the user can see what
