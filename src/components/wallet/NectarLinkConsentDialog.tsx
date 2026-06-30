@@ -109,14 +109,10 @@ export function NectarLinkConsentDialog({
 
         // Three-way branch
         if (manifest.known_addresses_count === 0) {
-          if (manifest.allow_new_wallet) {
-            setSignerStatus({ kind: "new-wallet", allowed: true });
-          } else {
-            setSignerStatus({
-              kind: "blocked",
-              reason: "This merchant has no authorized wallet on file yet and hasn't opted into first-link claims. Ask the merchant to re-mint the code with the new-wallet option enabled.",
-            });
-          }
+          // First wallet ever for this merchant — always allow without the
+          // new-wallet warning. There's no prior wallet to displace, so this
+          // is just enrollment, not a takeover.
+          setSignerStatus({ kind: "known" });
           return;
         }
 
