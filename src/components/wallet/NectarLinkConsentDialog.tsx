@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, AlertTriangle, KeyRound, Globe, Sparkles } from "lucide-react";
+import { Loader2, ShieldCheck, AlertTriangle, KeyRound, Globe, Sparkles, Copy } from "lucide-react";
 import {
   buildLinkPayload,
   callbackMatchesOrigin,
