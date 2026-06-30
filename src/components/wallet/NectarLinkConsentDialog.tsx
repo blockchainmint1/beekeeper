@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, AlertTriangle, KeyRound, Globe, Sparkles } from "lucide-react";
+import { Loader2, ShieldCheck, AlertTriangle, KeyRound, Globe, Sparkles, Copy } from "lucide-react";
 import {
   buildLinkPayload,
   callbackMatchesOrigin,
@@ -52,6 +52,7 @@ export function NectarLinkConsentDialog({
   const [myAddress, setMyAddress] = useState<string | null>(null);
   const [signerStatus, setSignerStatus] = useState<SignerStatus>({ kind: "loading" });
   const [acknowledgedNew, setAcknowledgedNew] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const originOk = useMemo(
     () => (request ? callbackMatchesOrigin(request.from, request.callback_url) : true),
@@ -65,6 +66,7 @@ export function NectarLinkConsentDialog({
   useEffect(() => {
     if (!open) return;
     setMnemonic(getCachedMnemonic() ?? "");
+    setServerError(null);
   }, [open]);
 
   // Pre-derive xpubs the moment the dialog opens so the user can see what
@@ -181,7 +183,9 @@ export function NectarLinkConsentDialog({
       onLinked?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Link failed");
+      const msg = e instanceof Error ? e.message : "Link failed";
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -252,10 +256,49 @@ export function NectarLinkConsentDialog({
 
           {myAddress && (
             <div className="rounded-2xl border border-border bg-card/40 px-3 py-2.5">
-              <div className="text-xs text-muted-foreground">Signing as (TXC identity)</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs text-muted-foreground">Signing as (TXC identity)</div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-card hover:text-foreground"
+                  onClick={() => {
+                    navigator.clipboard.writeText(myAddress);
+                    toast.success("Address copied");
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </button>
+              </div>
               <div className="mt-1 break-all text-xs tabular text-foreground/80">{myAddress}</div>
             </div>
           )}
+
+          {serverError && (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                <div>
+                  <div className="font-semibold">Nectar rejected the link</div>
+                  <div className="mt-0.5 text-destructive/90">{serverError}</div>
+                </div>
+              </div>
+              {/registered|unknown signer|not authorized/i.test(serverError) && myAddress && (
+                <div className="rounded-lg bg-background/40 px-2 py-1.5 text-foreground/80">
+                  <div className="font-medium text-foreground">What this means</div>
+                  <div className="mt-1">
+                    Another wallet is already on file for <strong>{merchantLabel}</strong>.
+                    To link this wallet, sign in to your Nectar Pay merchant dashboard
+                    and either:
+                  </div>
+                  <ul className="ml-4 mt-1 list-disc space-y-0.5">
+                    <li>Add this address as an authorized signer, or</li>
+                    <li>Enable "Allow new wallet" and re-mint the link QR.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
 
           {signerStatus.kind === "blocked" && (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
