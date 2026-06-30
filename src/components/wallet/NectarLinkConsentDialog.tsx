@@ -42,8 +42,8 @@ export function NectarLinkConsentDialog({
   manifest?: NectarManifest | null;
   onLinked?: () => void;
 }) {
-  const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const [busy, setBusy] = useState(false);
+  const [mnemonic, setMnemonic] = useState<string>("");
   const [derived, setDerived] = useState<{
     supported: NectarChainKey[];
     unsupported: NectarChainKey[];
@@ -58,10 +58,19 @@ export function NectarLinkConsentDialog({
     [request],
   );
 
+  // Re-read the cached mnemonic each time the dialog opens. A useMemo([])
+  // would freeze an empty value if the dialog mounted before the vault was
+  // unlocked, leaving the user staring at a disabled Approve button with no
+  // explanation.
+  useEffect(() => {
+    if (!open) return;
+    setMnemonic(getCachedMnemonic() ?? "");
+  }, [open]);
+
   // Pre-derive xpubs the moment the dialog opens so the user can see what
   // will actually be shared before they tap Approve.
   useEffect(() => {
-    if (!open || !request || !mnemonic) {
+    if (!open || !request) {
       setDerived(null);
       setError(null);
       setMyAddress(null);
@@ -69,6 +78,14 @@ export function NectarLinkConsentDialog({
       setAcknowledgedNew(false);
       return;
     }
+    if (!mnemonic) {
+      setDerived(null);
+      setMyAddress(null);
+      setSignerStatus({ kind: "loading" });
+      setError("Wallet is locked — unlock first, then re-scan the Nectar QR.");
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {
