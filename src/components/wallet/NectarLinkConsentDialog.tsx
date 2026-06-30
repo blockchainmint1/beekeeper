@@ -52,6 +52,7 @@ export function NectarLinkConsentDialog({
   const [myAddress, setMyAddress] = useState<string | null>(null);
   const [signerStatus, setSignerStatus] = useState<SignerStatus>({ kind: "loading" });
   const [acknowledgedNew, setAcknowledgedNew] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const originOk = useMemo(
     () => (request ? callbackMatchesOrigin(request.from, request.callback_url) : true),
