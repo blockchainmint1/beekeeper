@@ -182,7 +182,9 @@ export function NectarLinkConsentDialog({
       onLinked?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Link failed");
+      const msg = e instanceof Error ? e.message : "Link failed";
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
