@@ -4,8 +4,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  ChevronDown,
-  ChevronRight,
   Loader2,
   Repeat,
   ArrowRight,
@@ -38,7 +36,7 @@ type AssetRow = {
   usd: number;
 };
 
-// Dashboard homepage shows these five chains in the initial breakdown.
+// Dashboard homepage only shows these five chains in the breakdown.
 // The full wallet and recent transactions still scan every visible chain.
 const PRIMARY_CHAIN_IDS: ChainId[] = ["txc", "eth", "base", "bsc", "btc"];
 
@@ -95,7 +93,6 @@ async function loadChainAsset(
 
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
-  const [expanded, setExpanded] = useState(false);
   const visibleIds = useVisibleChainIds();
   const visibleChains = useMemo(
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
