@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Loader2,
   Repeat,
-  Wallet as WalletIcon,
   ArrowRight,
   Banknote,
   LogOut,
