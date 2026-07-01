@@ -260,7 +260,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {(expanded ? loadedRows : primaryRows).map((item) => {
+            {(expanded ? expandedRows : primaryRows).map((item) => {
               const r = expanded ? item : item.row;
               const chain = expanded ? item.chain : item.chain;
               return (
