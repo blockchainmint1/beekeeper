@@ -134,12 +134,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const allLoaded = visibleChains.length > 0 && loadedCount === visibleChains.length;
   const anyLoading = chainQueries.some((q) => q.isLoading);
 
-  const primaryRows = useMemo(
+  const primaryRows: BreakdownItem[] = useMemo(
     () =>
       PRIMARY_CHAIN_IDS.map((id) => ({ chain: CHAINS[id], row: loadedRows.find((r) => r.chain.id === id) })),
     [loadedRows],
   );
-  const expandedRows = useMemo(() => loadedRows.map((r) => ({ chain: r.chain, row: r })), [loadedRows]);
+  const expandedRows: BreakdownItem[] = useMemo(() => loadedRows.map((r) => ({ chain: r.chain, row: r })), [loadedRows]);
 
   const total = loadedRows.reduce((s, r) => s + r.usd, 0);
   const activeAssets = loadedRows.filter((r) => r.balance > 0);
