@@ -142,7 +142,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const primaryLoadingCount = visiblePrimaryCount - primaryLoadedCount;
 
 
-  const total = loadedRows.reduce((s, r) => s + r.usd, 0);
+  const total = primaryRows.reduce((s, p) => s + (p.row?.usd ?? 0), 0);
 
   // Cross-chain recent activity — only run when at least one row is in.
   const historyQuery = useQuery({
@@ -236,23 +236,16 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
       <section className="px-5 pt-6">
         <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em]">
-          Total Balance{!allLoaded && loadedCount > 0 ? ` · ${loadedCount}/${visibleChains.length}` : ""}
+          Total Balance{!primaryAllLoaded && primaryLoadedCount > 0 ? ` · ${primaryLoadedCount}/${visiblePrimaryCount}` : ""}
         </div>
         <div className="mt-2 flex items-baseline gap-2">
           <h1 className="text-[56px] leading-none font-semibold tracking-tight tabular">
-            {loadedCount === 0 ? "—" : formatUsd(total)}
+            {primaryLoadedCount === 0 ? "—" : formatUsd(total)}
           </h1>
-          {!allLoaded && anyLoading && loadedCount > 0 && (
+          {!primaryAllLoaded && anyLoading && primaryLoadedCount > 0 && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition"
-        >
-          {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-          {expanded ? "Hide breakdown" : "Show breakdown"}
-        </button>
       </section>
 
       <section className="px-5 mt-5">
@@ -262,7 +255,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {(expanded ? expandedRows : primaryRows).map((item) => {
+            {primaryRows.map((item) => {
               const r = item.row;
               const chain = item.chain;
               return (
@@ -299,16 +292,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                 </div>
               );
             })}
-            {!expanded && anyLoading && (
+            {!primaryAllLoaded && anyLoading && primaryLoadingCount > 0 && (
               <div className="text-[11px] text-center text-muted-foreground py-1">
-                Still scanning {primaryRows.filter((p) => !p.row).length} chain
-                {primaryRows.filter((p) => !p.row).length === 1 ? "" : "s"}…
-              </div>
-            )}
-            {expanded && anyLoading && (
-              <div className="text-[11px] text-center text-muted-foreground py-1">
-                Still scanning {visibleChains.length - loadedCount} chain
-                {visibleChains.length - loadedCount === 1 ? "" : "s"}…
+                Still scanning {primaryLoadingCount} chain
+                {primaryLoadingCount === 1 ? "" : "s"}…
               </div>
             )}
           </div>
