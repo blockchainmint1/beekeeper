@@ -130,18 +130,17 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const allLoaded = visibleChains.length > 0 && loadedCount === visibleChains.length;
   const anyLoading = chainQueries.some((q) => q.isLoading);
 
-  const visiblePrimaryCount = PRIMARY_CHAIN_IDS.filter((id) => visibleIds.includes(id)).length;
-  const primaryLoadedCount = primaryRows.filter((p) => !!p.row).length;
-  const primaryAllLoaded = primaryLoadedCount === visiblePrimaryCount;
-  const primaryLoadingCount = visiblePrimaryCount - primaryLoadedCount;
-
-
   const primaryRows: BreakdownItem[] = useMemo(
     () =>
       PRIMARY_CHAIN_IDS.map((id) => ({ chain: CHAINS[id], row: loadedRows.find((r) => r.chain.id === id) })),
     [loadedRows],
   );
-  const expandedRows: BreakdownItem[] = useMemo(() => loadedRows.map((r) => ({ chain: r.chain, row: r })), [loadedRows]);
+
+  const visiblePrimaryCount = PRIMARY_CHAIN_IDS.filter((id) => visibleIds.includes(id)).length;
+  const primaryLoadedCount = primaryRows.filter((p) => !!p.row).length;
+  const primaryAllLoaded = primaryLoadedCount === visiblePrimaryCount;
+  const primaryLoadingCount = visiblePrimaryCount - primaryLoadedCount;
+
 
   const total = loadedRows.reduce((s, r) => s + r.usd, 0);
 
