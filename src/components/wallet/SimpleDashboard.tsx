@@ -13,7 +13,7 @@ import {
   Banknote,
   LogOut,
 } from "lucide-react";
-import { CHAIN_LIST, type ChainConfig, type ChainId } from "@/lib/chains";
+import { CHAINS, CHAIN_LIST, type ChainConfig, type ChainId } from "@/lib/chains";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
