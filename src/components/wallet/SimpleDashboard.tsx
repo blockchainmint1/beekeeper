@@ -263,8 +263,8 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         ) : (
           <div className="space-y-2">
             {(expanded ? expandedRows : primaryRows).map((item) => {
-              const r = expanded ? item : item.row;
-              const chain = expanded ? item.chain : item.chain;
+              const r = item.row;
+              const chain = item.chain;
               return (
                 <div key={chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
                   <div
