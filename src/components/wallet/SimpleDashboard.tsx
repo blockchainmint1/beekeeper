@@ -132,6 +132,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const allLoaded = visibleChains.length > 0 && loadedCount === visibleChains.length;
   const anyLoading = chainQueries.some((q) => q.isLoading);
 
+  const primaryRows = useMemo(
+    () =>
+      PRIMARY_CHAIN_IDS.map((id) => ({ chain: CHAINS[id], row: loadedRows.find((r) => r.chain.id === id) })),
+    [loadedRows],
+  );
+
   const total = loadedRows.reduce((s, r) => s + r.usd, 0);
   const activeAssets = loadedRows.filter((r) => r.balance > 0);
 
