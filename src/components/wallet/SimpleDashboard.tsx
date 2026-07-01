@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -8,6 +8,7 @@ import {
   Repeat,
   ArrowRight,
   Banknote,
+  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { CHAINS, CHAIN_LIST, type ChainConfig, type ChainId } from "@/lib/chains";
