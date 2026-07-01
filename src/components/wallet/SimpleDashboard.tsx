@@ -93,6 +93,7 @@ async function loadChainAsset(
 }
 
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
+  const [expanded, setExpanded] = useState(false);
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const visibleIds = useVisibleChainIds();
   const visibleChains = useMemo(
