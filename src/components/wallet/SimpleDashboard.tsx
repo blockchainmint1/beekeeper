@@ -257,44 +257,51 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           <div className="glass-card rounded-2xl px-4 py-6 flex items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning your wallets…
           </div>
-        ) : activeAssets.length === 0 && !expanded ? (
-          <div className="glass-card rounded-2xl px-4 py-6 text-center text-sm text-muted-foreground">
-            <WalletIcon className="mx-auto mb-2 h-5 w-5 opacity-60" />
-            {anyLoading ? "Still scanning some chains…" : "No active balances yet."}
-            <div className="mt-2">
-              <Link to="/wallet" className="text-foreground underline underline-offset-2">
-                Open your wallet
-              </Link>{" "}
-              to receive your first payment.
-            </div>
-          </div>
         ) : (
           <div className="space-y-2">
-            {(expanded ? loadedRows : activeAssets).map((r) => (
-              <div key={r.chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
-                  style={{
-                    background: `color-mix(in oklab, ${r.chain.color} 22%, transparent)`,
-                    color: r.chain.color,
-                  }}
-                >
-                  {r.chain.ticker.slice(0, 3)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm">{r.chain.ticker}</span>
-                    <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+            {(expanded ? loadedRows : primaryRows).map((item) => {
+              const r = expanded ? item : item.row;
+              const chain = expanded ? item.chain : item.chain;
+              return (
+                <div key={chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                    style={{
+                      background: `color-mix(in oklab, ${chain.color} 22%, transparent)`,
+                      color: chain.color,
+                    }}
+                  >
+                    {chain.ticker.slice(0, 3)}
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                    <span className="truncate">{r.chain.name}</span>
-                    <span className="tabular">
-                      {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {r.chain.ticker}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm">{chain.ticker}</span>
+                      {r ? (
+                        <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+                      ) : (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">{chain.name}</span>
+                      {r ? (
+                        <span className="tabular">
+                          {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
+                        </span>
+                      ) : (
+                        <span>Scanning…</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+            {!expanded && anyLoading && (
+              <div className="text-[11px] text-center text-muted-foreground py-1">
+                Still scanning {primaryRows.filter((p) => !p.row).length} chain
+                {primaryRows.filter((p) => !p.row).length === 1 ? "" : "s"}…
               </div>
-            ))}
+            )}
             {expanded && anyLoading && (
               <div className="text-[11px] text-center text-muted-foreground py-1">
                 Still scanning {visibleChains.length - loadedCount} chain
