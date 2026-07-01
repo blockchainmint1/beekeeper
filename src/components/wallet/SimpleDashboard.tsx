@@ -257,48 +257,62 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {primaryRows.map((item) => {
-              const r = item.row;
-              const chain = item.chain;
-              return (
-                <div key={chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
-                    style={{
-                      background: `color-mix(in oklab, ${chain.color} 22%, transparent)`,
-                      color: chain.color,
-                    }}
-                  >
-                    {chain.ticker.slice(0, 3)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-sm">{chain.ticker}</span>
-                      {r ? (
-                        <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
-                      ) : (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                      )}
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              className="w-full glass-card flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition hover:bg-muted/40"
+            >
+              <span>{expanded ? "Hide breakdown" : "Show breakdown"}</span>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {expanded && (
+              <>
+                {primaryRows.map((item) => {
+                  const r = item.row;
+                  const chain = item.chain;
+                  return (
+                    <div key={chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                        style={{
+                          background: `color-mix(in oklab, ${chain.color} 22%, transparent)`,
+                          color: chain.color,
+                        }}
+                      >
+                        {chain.ticker.slice(0, 3)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-sm">{chain.ticker}</span>
+                          {r ? (
+                            <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+                          ) : (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span className="truncate">{chain.name}</span>
+                          {r ? (
+                            <span className="tabular">
+                              {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
+                            </span>
+                          ) : (
+                            <span>Scanning…</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                      <span className="truncate">{chain.name}</span>
-                      {r ? (
-                        <span className="tabular">
-                          {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
-                        </span>
-                      ) : (
-                        <span>Scanning…</span>
-                      )}
-                    </div>
+                  );
+                })}
+                {!primaryAllLoaded && anyLoading && primaryLoadingCount > 0 && (
+                  <div className="text-[11px] text-center text-muted-foreground py-1">
+                    Still scanning {primaryLoadingCount} chain
+                    {primaryLoadingCount === 1 ? "" : "s"}…
                   </div>
-                </div>
-              );
-            })}
-            {!primaryAllLoaded && anyLoading && primaryLoadingCount > 0 && (
-              <div className="text-[11px] text-center text-muted-foreground py-1">
-                Still scanning {primaryLoadingCount} chain
-                {primaryLoadingCount === 1 ? "" : "s"}…
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
