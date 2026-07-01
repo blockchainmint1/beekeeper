@@ -141,7 +141,6 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const expandedRows: BreakdownItem[] = useMemo(() => loadedRows.map((r) => ({ chain: r.chain, row: r })), [loadedRows]);
 
   const total = loadedRows.reduce((s, r) => s + r.usd, 0);
-  const activeAssets = loadedRows.filter((r) => r.balance > 0);
 
   // Cross-chain recent activity — only run when at least one row is in.
   const historyQuery = useQuery({
