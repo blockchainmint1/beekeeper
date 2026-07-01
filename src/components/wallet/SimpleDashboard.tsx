@@ -43,6 +43,8 @@ type AssetRow = {
 // The full wallet and recent transactions still scan every visible chain.
 const PRIMARY_CHAIN_IDS: ChainId[] = ["txc", "eth", "base", "bsc", "btc"];
 
+type BreakdownItem = { chain: ChainConfig; row?: AssetRow };
+
 // Dashboard uses a tighter gap than the full Wallet view — fast first paint,
 // watermark + manual refresh still extend to busier merchants.
 const DASHBOARD_GAP = 20;
