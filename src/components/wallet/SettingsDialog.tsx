@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, HardDriveDownload, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
@@ -21,6 +20,30 @@ import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
 
+type SectionId =
+  | "security" | "wallets" | "alerts" | "nectar"
+  | "backup" | "password" | "reveal" | "xpub" | "danger";
+
+interface SectionDef {
+  id: SectionId;
+  label: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  destructive?: boolean;
+}
+
+const SECTIONS: SectionDef[] = [
+  { id: "security", label: "Security",     hint: "Auto-lock, biometrics, anti-phishing",    icon: ShieldCheck },
+  { id: "wallets",  label: "Wallets",      hint: "Show, hide, and reorder chains",          icon: Layers },
+  { id: "alerts",   label: "Alerts",       hint: "In-app, email, and Telegram alerts",      icon: Bell },
+  { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
+  { id: "backup",   label: "Backup",       hint: "Download the encrypted vault file",       icon: HardDriveDownload },
+  { id: "password", label: "Password",     hint: "Re-encrypt with a new password",          icon: Lock },
+  { id: "reveal",   label: "Private key",  hint: "Export a per-chain private key or WIF",   icon: Key },
+  { id: "xpub",     label: "xpub",         hint: "Share your EVM account xpub",             icon: Share2 },
+  { id: "danger",   label: "Danger zone",  hint: "Erase the encrypted vault from this device", icon: Trash2, destructive: true },
+];
+
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -30,43 +53,103 @@ export function SettingsDialog({
   onOpenChange: (v: boolean) => void;
   onWipe: () => void;
 }) {
+  const [active, setActive] = useState<SectionId | null>(null);
+
+  // Reset to the section list every time the dialog closes.
+  useEffect(() => {
+    if (!open) setActive(null);
+  }, [open]);
+
+  const section = active ? SECTIONS.find((s) => s.id === active) ?? null : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Wallet settings</DialogTitle>
-          <DialogDescription>
-            Manage your encrypted vault. Everything here stays in this browser.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs defaultValue="security">
-          <TabsList className="flex w-full overflow-x-auto">
-            <TabsTrigger value="security"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Security</TabsTrigger>
-            <TabsTrigger value="wallets"><Layers className="mr-1 h-3.5 w-3.5" />Wallets</TabsTrigger>
-            <TabsTrigger value="alerts"><Bell className="mr-1 h-3.5 w-3.5" />Alerts</TabsTrigger>
-            <TabsTrigger value="nectar"><Link2 className="mr-1 h-3.5 w-3.5" />Nectar Pay</TabsTrigger>
-            <TabsTrigger value="backup">Backup</TabsTrigger>
-            <TabsTrigger value="password">Password</TabsTrigger>
-            <TabsTrigger value="reveal">Private key</TabsTrigger>
-            <TabsTrigger value="xpub"><Share2 className="mr-1 h-3.5 w-3.5" />xpub</TabsTrigger>
-            <TabsTrigger value="danger">Danger</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="security" className="pt-4"><SecurityPanel /></TabsContent>
-          <TabsContent value="wallets" className="pt-4"><WalletsPanel /></TabsContent>
-          <TabsContent value="alerts" className="pt-4"><AlertsPanel /></TabsContent>
-          <TabsContent value="nectar" className="pt-4"><NectarPanel /></TabsContent>
-          <TabsContent value="backup" className="pt-4"><BackupPanel /></TabsContent>
-          <TabsContent value="password" className="pt-4"><PasswordPanel /></TabsContent>
-          <TabsContent value="reveal" className="pt-4"><RevealPanel /></TabsContent>
-          <TabsContent value="xpub" className="pt-4"><XpubPanel /></TabsContent>
-          <TabsContent value="danger" className="pt-4"><DangerPanel onWipe={onWipe} /></TabsContent>
-        </Tabs>
+      <DialogContent
+        className="
+          flex h-[100dvh] w-screen max-w-none flex-col gap-0 rounded-none p-0
+          sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-lg sm:rounded-lg
+        "
+      >
+        {section ? (
+          <>
+            <div className="flex items-center gap-1 border-b px-2 py-2 sm:px-4 sm:py-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-1 gap-1 px-2 text-sm"
+                onClick={() => setActive(null)}
+              >
+                <ChevronLeft className="h-4 w-4" /> Settings
+              </Button>
+              <DialogTitle className="ml-1 truncate text-base font-semibold">
+                {section.label}
+              </DialogTitle>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+              {section.id === "security" && <SecurityPanel />}
+              {section.id === "wallets"  && <WalletsPanel />}
+              {section.id === "alerts"   && <AlertsPanel />}
+              {section.id === "nectar"   && <NectarPanel />}
+              {section.id === "backup"   && <BackupPanel />}
+              {section.id === "password" && <PasswordPanel />}
+              {section.id === "reveal"   && <RevealPanel />}
+              {section.id === "xpub"     && <XpubPanel />}
+              {section.id === "danger"   && <DangerPanel onWipe={onWipe} />}
+            </div>
+          </>
+        ) : (
+          <>
+            <DialogHeader className="border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+              <DialogTitle>Wallet settings</DialogTitle>
+              <DialogDescription>
+                Manage your encrypted vault. Everything here stays in this browser.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
+              <ul className="space-y-1.5">
+                {SECTIONS.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActive(s.id)}
+                        className={`
+                          flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition
+                          hover:bg-muted/50 active:bg-muted
+                          ${s.destructive ? "border-destructive/40 hover:bg-destructive/5" : ""}
+                        `}
+                      >
+                        <span
+                          className={`
+                            grid h-9 w-9 shrink-0 place-items-center rounded-md
+                            ${s.destructive ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}
+                          `}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block truncate text-sm font-medium ${s.destructive ? "text-destructive" : ""}`}>
+                            {s.label}
+                          </span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {s.hint}
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function NectarPanel() {
   const [link, setLink] = useState<NectarLinkRecord | null>(() => loadNectarLink());
