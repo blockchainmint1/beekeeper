@@ -15,6 +15,7 @@ import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { useScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX, SCAN_GAP_DEFAULT } from "@/lib/wallet/scan-prefs";
 import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
 import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
