@@ -132,9 +132,9 @@ async function loadChainAsset(
     const a = deriveEvmAccount(mnemonic, c, 0);
     address = a.address;
     const gap = scanGap;
-    const count = scanCeiling(c.id, gap);
+    const count = scanCeiling(c.id, gap, 20, "evm");
     const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: true });
-    if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+    if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex, "evm");
     balance = Number(scan.totalNativeWei) / 1e18;
     const nativeUsd = nativePrice ? balance * nativePrice : 0;
 

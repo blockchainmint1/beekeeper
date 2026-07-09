@@ -28,9 +28,9 @@ export function EvmTokensPanel({
     refetchInterval: 90_000,
     staleTime: 30_000,
     queryFn: async () => {
-      const count = scanCeiling(chain.id, getScanGap());
+      const count = scanCeiling(chain.id, getScanGap(), 20, "evm");
       const result = await scanEvmHd(mnemonic, chain, { count, includeTokens: true });
-      if (result.highestUsedIndex >= 0) bumpWatermark(chain.id, result.highestUsedIndex);
+      if (result.highestUsedIndex >= 0) bumpWatermark(chain.id, result.highestUsedIndex, "evm");
       return result;
     },
   });
