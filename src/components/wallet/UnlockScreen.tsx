@@ -1,16 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Upload, Wallet as WalletIcon } from "lucide-react";
-import { unlockVault, wipeVault, importVaultBlob } from "@/lib/wallet/seed";
+import { Lock, Upload, Wallet as WalletIcon, Fingerprint } from "lucide-react";
+import { unlockVault, wipeVault, importVaultBlob, cacheMnemonic } from "@/lib/wallet/seed";
 import { useSecurityPrefs } from "@/lib/wallet/security";
+import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
 export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; onReset: () => void }) {
   const [pass, setPass] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bioEnabled, setBioEnabled] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
   const prefs = useSecurityPrefs();
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const status = await getBiometricStatus();
+      if (!cancelled && status.available && status.enabled) {
+        setBioEnabled(true);
+        // Auto-prompt on mount for a native-feeling unlock.
+        void handleBiometric();
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handle() {
     setBusy(true);
@@ -21,6 +38,21 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
       toast.error("Incorrect password");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleBiometric() {
+    setBioBusy(true);
+    try {
+      const pw = await unlockWithBiometric();
+      if (!pw) return;
+      const mnemonic = await unlockVault(pw);
+      cacheMnemonic(mnemonic);
+      onUnlocked();
+    } catch {
+      toast.error("Biometric unlock failed — use your password");
+    } finally {
+      setBioBusy(false);
     }
   }
 
@@ -65,13 +97,24 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
               </p>
             </div>
           )}
+          {bioEnabled && (
+            <Button
+              variant="outline"
+              onClick={handleBiometric}
+              disabled={bioBusy}
+              className="w-full"
+            >
+              <Fingerprint className="mr-2 h-4 w-4" />
+              {bioBusy ? "Waiting…" : "Unlock with biometrics"}
+            </Button>
+          )}
           <Input
             type="password"
             placeholder="Password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handle()}
-            autoFocus
+            autoFocus={!bioEnabled}
           />
           <Button onClick={handle} disabled={busy || !pass} className="w-full">
             <Lock className="mr-2 h-4 w-4" /> {busy ? "Unlocking…" : "Unlock"}
