@@ -131,7 +131,7 @@ async function loadChainAsset(
   if (c.kind === "evm") {
     const a = deriveEvmAccount(mnemonic, c, 0);
     address = a.address;
-    const gap = DASHBOARD_GAP;
+    const gap = scanGap;
     const count = scanCeiling(c.id, gap);
     const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: true });
     if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
