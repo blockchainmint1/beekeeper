@@ -180,6 +180,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const visibleIds = useVisibleChainIds();
+  const scanGap = useScanGap();
   const visibleChains = useMemo(
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
     [visibleIds],
@@ -195,12 +196,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   // One query PER chain — rows appear independently as each chain finishes.
   const chainQueries = useQueries({
     queries: visibleChains.map((c) => ({
-      queryKey: ["simple-asset", c.id, !!pricesQuery.data],
+      queryKey: ["simple-asset", c.id, !!pricesQuery.data, scanGap],
       enabled: !!mnemonic && !!pricesQuery.data,
       refetchInterval: 60_000,
       staleTime: 30_000,
       queryFn: () =>
-        loadChainAsset(c, mnemonic, pricesQuery.data),
+        loadChainAsset(c, mnemonic, pricesQuery.data, scanGap),
     })),
   });
 
