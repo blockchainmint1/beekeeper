@@ -42,6 +42,10 @@ export async function fetchAllPrices(): Promise<PriceMap> {
   ids.add("bitcoin");
   ids.add("litecoin");
   ids.add("bitcoin-cash");
+  ids.add("dogecoin");
+  // TXC + ISK have no CoinGecko listing; CMC fallback fills them by ticker.
+  ids.add("txc");
+  ids.add("isk");
   for (const c of CHAIN_LIST) {
     if (c.kind === "evm" && c.coingeckoId) ids.add(c.coingeckoId);
     if (c.kind === "evm") for (const t of c.tokens) if (t.coingeckoId) ids.add(t.coingeckoId);
@@ -94,6 +98,20 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     }),
   );
 
+  // CoinMarketCap fallback for anything still missing after CoinGecko + Coinbase.
+  // Runs server-side (CMC_API key stays private) and covers coins Coinbase doesn't
+  // list (POL, TRX, DAI, ISK, etc.).
+  const stillMissing = [...ids].filter((k) => out[k] == null);
+  if (stillMissing.length > 0) {
+    try {
+      const { fetchCmcPrices } = await import("./price.functions");
+      const cmc = await fetchCmcPrices({ data: { keys: stillMissing } });
+      for (const [k, v] of Object.entries(cmc)) {
+        if (typeof v === "number" && isFinite(v) && v > 0) out[k] = v;
+      }
+    } catch { /* ignore */ }
+  }
+
   // Ultimate stablecoin safety net: pin to $1 if every feed failed. USDT/USDC
   // depegs are rare enough that showing "$1" beats showing "$0" for a merchant
   // sitting on thousands of stables.
@@ -108,9 +126,11 @@ export async function fetchAllPrices(): Promise<PriceMap> {
 export function priceForChain(prices: PriceMap, chain: ChainConfig): number | null {
   if (chain.kind === "utxo") {
     if (chain.id === "txc") return prices["txc"] ?? null;
+    if (chain.id === "isk") return prices["isk"] ?? null;
     if (chain.id === "btc") return prices["bitcoin"] ?? null;
     if (chain.id === "ltc") return prices["litecoin"] ?? null;
     if (chain.id === "bch") return prices["bitcoin-cash"] ?? null;
+    if (chain.id === "doge") return prices["dogecoin"] ?? null;
     return null;
   }
   if (chain.kind === "evm") {

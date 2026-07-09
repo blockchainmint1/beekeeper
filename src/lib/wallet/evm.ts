@@ -24,14 +24,29 @@ export interface EvmAccount {
   signer: HDAccount;
 }
 
+/** Alchemy same-origin proxy URL for chains we support there.
+ *  Prepended to the public-RPC fallback list so viem hits Alchemy first —
+ *  it's dramatically more reliable than public endpoints for balance/token
+ *  reads on mobile networks that get 429'd off the free rpc mesh. */
+const ALCHEMY_PROXY_CHAINS = new Set(["eth", "bsc", "base", "polygon"]);
+function alchemyProxyUrl(chain: EvmChain): string | null {
+  if (!ALCHEMY_PROXY_CHAINS.has(chain.id)) return null;
+  if (typeof window === "undefined") return null;
+  return `${window.location.origin}/api/public/rpc/alchemy/${chain.id}`;
+}
+
+function chainRpcUrls(chain: EvmChain): string[] {
+  const proxy = alchemyProxyUrl(chain);
+  return proxy ? [proxy, ...chain.rpcUrls] : chain.rpcUrls;
+}
+
 function chainDef(chain: EvmChain) {
-  // For now we only ship Ethereum mainnet. New EVM chains can extend the mapping.
   return {
     ...mainnet,
     id: chain.evmChainId,
     name: chain.name,
     nativeCurrency: { name: chain.nativeSymbol, symbol: chain.nativeSymbol, decimals: 18 },
-    rpcUrls: { default: { http: chain.rpcUrls } },
+    rpcUrls: { default: { http: chainRpcUrls(chain) } },
   };
 }
 
@@ -39,8 +54,7 @@ function chainDef(chain: EvmChain) {
  * Try each configured RPC in turn. Returns the first successful response.
  */
 function rpcClient(chain: EvmChain) {
-  // viem http() picks a single url; we cycle by creating per-attempt clients.
-  return chain.rpcUrls.map((url) =>
+  return chainRpcUrls(chain).map((url) =>
     createPublicClient({ chain: chainDef(chain), transport: http(url) }),
   );
 }
@@ -109,7 +123,7 @@ export async function sendEvm(args: {
   const wallet = createWalletClient({
     account: account.signer,
     chain: chainDef(account.chain),
-    transport: http(account.chain.rpcUrls[0]),
+    transport: http(chainRpcUrls(account.chain)[0]),
   });
   return wallet.sendTransaction({ to, value: amountWei });
 }
