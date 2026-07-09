@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ChainConfig, UtxoChain, EvmChain } from "@/lib/chains";
-import { esplora, addressBalanceSats, deriveUtxoAccount } from "@/lib/wallet/utxo";
+import { deriveUtxoAccount, scanUtxoHd } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, evmBalance } from "@/lib/wallet/evm";
+import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchAllPrices, priceForChain } from "@/lib/wallet/price";
+import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
+import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { MetalWalletCard } from "./MetalWalletCard";
 
 export function MetalWalletCardConnected({
@@ -16,6 +19,8 @@ export function MetalWalletCardConnected({
   mnemonic: string;
   onClick?: () => void;
 }) {
+  const gap = useScanGap();
+
   const accountQuery = useQuery({
     queryKey: ["account", chain.id],
     queryFn: async () => {
@@ -35,24 +40,42 @@ export function MetalWalletCardConnected({
   });
 
   const balQuery = useQuery({
-    queryKey: ["balance", chain.id, accountQuery.data?.account.address],
+    queryKey: ["balance", chain.id, accountQuery.data?.account.address, gap],
     enabled: !!accountQuery.data,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     retry: 1,
     retryDelay: 1500,
     queryFn: async () => {
       const a = accountQuery.data!;
       if (a.kind === "utxo") {
+        // Sum across all HD-derived addresses (receive + change), not just index 0.
         try {
-          const info = await esplora.addressInfo(chain as UtxoChain, a.account.address);
-          return addressBalanceSats(info).total / 10 ** chain.decimals;
+          const gapNow = getScanGap();
+          const res = await scanUtxoHd(mnemonic, chain as UtxoChain, {
+            gapLimit: gapNow,
+            minIndex: gapNow,
+          });
+          if (res.highestUsedIndex >= 0) bumpWatermark(chain.id, res.highestUsedIndex);
+          return res.totalSats / 10 ** chain.decimals;
         } catch {
           return 0;
         }
       }
       if (a.kind === "evm") {
-        const wei = await evmBalance(chain as EvmChain, a.account.address);
-        return Number(wei) / 1e18;
+        // Sum native balance across derived addresses via Multicall3.
+        try {
+          const count = scanCeiling(chain.id, getScanGap(), 20, "evm");
+          const res = await scanEvmHd(mnemonic, chain as EvmChain, {
+            count,
+            includeTokens: false,
+          });
+          if (res.highestUsedIndex >= 0) bumpWatermark(chain.id, res.highestUsedIndex, "evm");
+          return Number(res.totalNativeWei) / 1e18;
+        } catch {
+          // Fallback to index-0 direct read.
+          const wei = await evmBalance(chain as EvmChain, a.account.address);
+          return Number(wei) / 1e18;
+        }
       }
       if (a.kind === "tron") {
         const sun = await tronBalance(chain as never, a.account.address);
