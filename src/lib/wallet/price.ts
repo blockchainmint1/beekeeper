@@ -73,9 +73,37 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     }
   } catch { /* ignore */ }
 
+  // Fallback price feed: Coinbase spot (no auth, no rate-limit for reasonable use).
+  // CoinGecko frequently 429s from mobile networks and residential IPs; without
+  // this fallback USDT/USDC/ETH would be valued at $0 in the dashboard total.
+  const missing: Array<{ cg: string; pair: string }> = [];
+  if (out["tether"] == null)     missing.push({ cg: "tether",     pair: "USDT-USD" });
+  if (out["usd-coin"] == null)   missing.push({ cg: "usd-coin",   pair: "USDC-USD" });
+  if (out["ethereum"] == null)   missing.push({ cg: "ethereum",   pair: "ETH-USD"  });
+  if (out["binancecoin"] == null) missing.push({ cg: "binancecoin", pair: "BNB-USD" });
+  if (out["bitcoin"] == null)    missing.push({ cg: "bitcoin",    pair: "BTC-USD"  });
+  await Promise.all(
+    missing.map(async ({ cg, pair }) => {
+      try {
+        const r = await fetch(`https://api.coinbase.com/v2/prices/${pair}/spot`);
+        if (!r.ok) return;
+        const j = (await r.json()) as { data?: { amount?: string } };
+        const px = j.data?.amount ? parseFloat(j.data.amount) : NaN;
+        if (isFinite(px) && px > 0) out[cg] = px;
+      } catch { /* ignore */ }
+    }),
+  );
+
+  // Ultimate stablecoin safety net: pin to $1 if every feed failed. USDT/USDC
+  // depegs are rare enough that showing "$1" beats showing "$0" for a merchant
+  // sitting on thousands of stables.
+  if (out["tether"] == null)   out["tether"]   = 1;
+  if (out["usd-coin"] == null) out["usd-coin"] = 1;
+
   saveCache(out);
   return out;
 }
+
 
 export function priceForChain(prices: PriceMap, chain: ChainConfig): number | null {
   if (chain.kind === "utxo") {
