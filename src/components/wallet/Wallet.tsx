@@ -30,7 +30,7 @@ import { MultiSendDialog } from "./MultiSendDialog";
 import { QrLoginDialog } from "./QrLoginDialog";
 import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
-import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
+import { esplora, addressBalanceSats, scanUtxoHd } from "@/lib/wallet/utxo";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
@@ -197,15 +197,16 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
           if (!price) return;
           try {
             if (c.kind === "utxo") {
-              const info = await esplora.addressInfo(c, a.account.address);
-              const sats = addressBalanceSats(info).total;
-              total += (sats / 10 ** c.decimals) * price;
+              // Aggregate across all HD-derived UTXO addresses (receive + change).
+              const scan = await scanUtxoHd(mnemonic, c, { gapLimit: gap, minIndex: gap });
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+              total += (scan.totalSats / 10 ** c.decimals) * price;
             } else if (c.kind === "evm") {
               // Aggregate native balance across all derived EVM addresses,
               // extending the scan past the watermark for active merchants.
-              const count = scanCeiling(c.id, gap);
+              const count = scanCeiling(c.id, gap, 20, "evm");
               const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
-              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex, "evm");
               total += (Number(scan.totalNativeWei) / 1e18) * price;
             } else if (c.kind === "tron") {
               const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
