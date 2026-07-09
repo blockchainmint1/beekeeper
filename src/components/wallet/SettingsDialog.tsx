@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
 import { changePassword, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
+import { getBiometricStatus, enableBiometric, disableBiometric } from "@/lib/native/biometric";
+import { Fingerprint } from "lucide-react";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
@@ -218,6 +220,8 @@ function SecurityPanel() {
   const prefs = useSecurityPrefs();
   return (
     <div className="space-y-4">
+      <BiometricRow />
+
       <div>
         <Label className="text-xs">Auto-lock after idle (minutes)</Label>
         <Select
