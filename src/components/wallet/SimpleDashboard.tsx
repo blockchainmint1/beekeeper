@@ -26,7 +26,17 @@ import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
+import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
 import { toast } from "sonner";
+
+type PriceMap = Record<string, number>;
+
+type TokenLine = {
+  symbol: string;
+  name?: string;
+  formatted: string;
+  usd: number | null;
+};
 
 type AssetRow = {
   chain: ChainConfig;
@@ -34,7 +44,9 @@ type AssetRow = {
   utxoAddrs?: HdScanAddress[];
   evmAddrs?: EvmHdAddress[];
   balance: number;
-  usd: number;
+  usd: number; // native + all tokens combined
+  nativeUsd: number;
+  tokens: TokenLine[];
 };
 
 // Dashboard homepage only shows these five chains in the breakdown.
@@ -47,11 +59,17 @@ type BreakdownItem = { chain: ChainConfig; row?: AssetRow };
 // watermark + manual refresh still extend to busier merchants.
 const DASHBOARD_GAP = 20;
 
+function priceForCg(prices: PriceMap | undefined, id?: string): number | null {
+  if (!prices || !id) return null;
+  return prices[id] ?? null;
+}
+
 async function loadChainAsset(
   c: ChainConfig,
   mnemonic: string,
-  price: number | null,
+  prices: PriceMap | undefined,
 ): Promise<AssetRow> {
+  const nativePrice = prices ? priceForChain(prices, c) : null;
   let address = "";
   let balance = 0;
   if (c.kind === "utxo") {
@@ -66,17 +84,80 @@ async function loadChainAsset(
     });
     if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
     balance = scan.totalSats / 10 ** c.decimals;
-    return { chain: c, address, balance, usd: price ? balance * price : 0, utxoAddrs: scan.active };
+    const nativeUsd = nativePrice ? balance * nativePrice : 0;
+
+    // TXC: aggregate Omni-layer tokens (L2 stables) across every active address.
+    const tokens: TokenLine[] = [];
+    if (c.id === "txc" && c.supportsOmni && scan.active.length > 0) {
+      try {
+        const perAddr = await Promise.all(
+          scan.active.map((h) =>
+            getOmniBalancesForAddress({ data: { address: h.address } }).catch(() => []),
+          ),
+        );
+        const agg = new Map<number, { name: string; total: number }>();
+        for (const items of perAddr) {
+          for (const it of items) {
+            const bal = parseFloat(it.balance);
+            if (!isFinite(bal) || bal <= 0) continue;
+            const prev = agg.get(it.propertyid);
+            agg.set(it.propertyid, {
+              name: it.name ?? `Property #${it.propertyid}`,
+              total: (prev?.total ?? 0) + bal,
+            });
+          }
+        }
+        for (const { name, total } of agg.values()) {
+          tokens.push({
+            symbol: name,
+            formatted: total.toLocaleString(undefined, { maximumFractionDigits: 6 }),
+            usd: null, // Omni tokens have no price feed
+          });
+        }
+      } catch { /* ignore omni failures */ }
+    }
+
+    return {
+      chain: c,
+      address,
+      balance,
+      usd: nativeUsd,
+      nativeUsd,
+      tokens,
+      utxoAddrs: scan.active,
+    };
   }
   if (c.kind === "evm") {
     const a = deriveEvmAccount(mnemonic, c, 0);
     address = a.address;
     const gap = DASHBOARD_GAP;
     const count = scanCeiling(c.id, gap);
-    const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
+    const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: true });
     if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
     balance = Number(scan.totalNativeWei) / 1e18;
-    return { chain: c, address, balance, usd: price ? balance * price : 0, evmAddrs: scan.active };
+    const nativeUsd = nativePrice ? balance * nativePrice : 0;
+
+    const tokens: TokenLine[] = scan.tokenTotals.map((tt) => {
+      const amount = Number(tt.raw) / 10 ** tt.token.decimals;
+      const px = priceForCg(prices, tt.token.coingeckoId);
+      return {
+        symbol: tt.token.symbol,
+        name: tt.token.name,
+        formatted: amount.toLocaleString(undefined, { maximumFractionDigits: 6 }),
+        usd: px != null ? amount * px : null,
+      };
+    });
+    const tokenUsd = tokens.reduce((s, t) => s + (t.usd ?? 0), 0);
+
+    return {
+      chain: c,
+      address,
+      balance,
+      usd: nativeUsd + tokenUsd,
+      nativeUsd,
+      tokens,
+      evmAddrs: scan.active,
+    };
   }
   if (c.kind === "tron") {
     const a = deriveTronAccount(mnemonic, c, 0);
@@ -89,8 +170,10 @@ async function loadChainAsset(
     const lam = await solanaBalance(c, address);
     balance = Number(lam) / 10 ** c.decimals;
   }
-  return { chain: c, address, balance, usd: price ? balance * price : 0 };
+  const nativeUsd = nativePrice ? balance * nativePrice : 0;
+  return { chain: c, address, balance, usd: nativeUsd, nativeUsd, tokens: [] };
 }
+
 
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const [expanded, setExpanded] = useState(false);
