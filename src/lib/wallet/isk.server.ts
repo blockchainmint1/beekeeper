@@ -1,5 +1,6 @@
 // Server-only helper to call the Iskander (ISK) coin JSON-RPC.
 // Reads credentials from environment at call time so they never ship to the client.
+import process from "node:process";
 
 export interface IskRpcErrorShape {
   code: number;
