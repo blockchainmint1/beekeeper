@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
+import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -46,6 +47,12 @@ const ExtensionPairRoute = ExtensionPairRouteImport.update({
   path: '/pair',
   getParentRoute: () => ExtensionRoute,
 } as any)
+const ApiPublicRpcAlchemyChainRoute =
+  ApiPublicRpcAlchemyChainRouteImport.update({
+    id: '/api/public/rpc/alchemy/$chain',
+    path: '/api/public/rpc/alchemy/$chain',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByFullPath {
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension/': typeof ExtensionIndexRoute
+  '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,6 +69,7 @@ export interface FileRoutesByTo {
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension': typeof ExtensionIndexRoute
+  '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,6 +79,7 @@ export interface FileRoutesById {
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
   '/extension/': typeof ExtensionIndexRoute
+  '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,8 +90,15 @@ export interface FileRouteTypes {
     | '/extension/pair'
     | '/extension/sign'
     | '/extension/'
+    | '/api/public/rpc/alchemy/$chain'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/wallet' | '/extension/pair' | '/extension/sign' | '/extension'
+  to:
+    | '/'
+    | '/wallet'
+    | '/extension/pair'
+    | '/extension/sign'
+    | '/extension'
+    | '/api/public/rpc/alchemy/$chain'
   id:
     | '__root__'
     | '/'
@@ -90,12 +107,14 @@ export interface FileRouteTypes {
     | '/extension/pair'
     | '/extension/sign'
     | '/extension/'
+    | '/api/public/rpc/alchemy/$chain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExtensionRoute: typeof ExtensionRouteWithChildren
   WalletRoute: typeof WalletRoute
+  ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -142,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExtensionPairRouteImport
       parentRoute: typeof ExtensionRoute
     }
+    '/api/public/rpc/alchemy/$chain': {
+      id: '/api/public/rpc/alchemy/$chain'
+      path: '/api/public/rpc/alchemy/$chain'
+      fullPath: '/api/public/rpc/alchemy/$chain'
+      preLoaderRoute: typeof ApiPublicRpcAlchemyChainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -165,6 +191,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtensionRoute: ExtensionRouteWithChildren,
   WalletRoute: WalletRoute,
+  ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
