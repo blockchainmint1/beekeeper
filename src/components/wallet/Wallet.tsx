@@ -350,14 +350,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         )}
       </section>
 
-      {/* Wallet-aware floating action panel */}
-      {activeChain && (
-        <section className="px-5 mt-6">
-          <ActionPanel chain={activeChain} actions={actions} />
-        </section>
-      )}
-
-      {/* Omni Layer tokens (TXC) */}
+      {/* Tokens on this chain */}
       {activeChain?.kind === "utxo" && activeChain.supportsOmni && (
         <section className="px-5 mt-5">
           <OmniTokensPanel
@@ -367,8 +360,45 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </section>
       )}
 
+      {activeChain?.kind === "evm" && activeChain.tokens.length > 0 && (
+        <section className="px-5 mt-5">
+          <EvmTokensPanel
+            chain={activeChain}
+            mnemonic={mnemonic}
+            address={accountQuery.data?.[activeChain.id]?.account.address ?? null}
+          />
+        </section>
+      )}
+
+      {/* Recent activity */}
+      <section className="px-5 mt-7">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold">Recent Activity</h2>
+          {activeChain && (
+            <button onClick={() => setHistoryOpen(activeChain)} className="text-xs text-muted-foreground font-medium">
+              See all
+            </button>
+          )}
+        </div>
+        <RecentActivity
+          chain={activeChain}
+          address={accountQuery.data?.[activeChain?.id ?? ""]?.account.address}
+          onSeeAll={() => activeChain && setHistoryOpen(activeChain)}
+        />
+      </section>
+
+      {/* Wallet-aware action panel (moved lower — primary Send/Receive live on cards) */}
+      {activeChain && (
+        <section className="px-5 mt-8">
+          <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em] mb-2">
+            Wallet actions
+          </div>
+          <ActionPanel chain={activeChain} actions={actions} />
+        </section>
+      )}
+
       {/* Activity / status strip */}
-      <section className="px-5 mt-5 grid grid-cols-2 gap-3">
+      <section className="px-5 mt-5 mb-6 grid grid-cols-2 gap-3">
         <div className="glass-card rounded-2xl p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Pickaxe className="w-3.5 h-3.5" /> Active Chain
@@ -387,22 +417,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </div>
       </section>
 
-      {/* Recent activity */}
-      <section className="px-5 mt-7">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold">Recent Activity</h2>
-          {activeChain && (
-            <button onClick={() => setHistoryOpen(activeChain)} className="text-xs text-muted-foreground font-medium">
-              See all
-            </button>
-          )}
-        </div>
-        <RecentActivity
-          chain={activeChain}
-          address={accountQuery.data?.[activeChain?.id ?? ""]?.account.address}
-          onSeeAll={() => activeChain && setHistoryOpen(activeChain)}
-        />
-      </section>
 
 
       {sendOpen && activeAccount && (
