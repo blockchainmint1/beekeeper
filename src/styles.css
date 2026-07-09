@@ -200,8 +200,15 @@
   body {
     background-image: var(--gradient-mesh);
     background-attachment: fixed;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-family: "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
     letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: "Satoshi", "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  code, pre, .font-mono, .tabular {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
     /* Native shell: respect the iOS notch / Dynamic Island and Android gesture bar. */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
