@@ -15,6 +15,7 @@ import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
 import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib/wallet/evm";
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { useScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX, SCAN_GAP_DEFAULT } from "@/lib/wallet/scan-prefs";
 import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
 import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
@@ -204,6 +205,41 @@ function NectarPanel() {
   );
 }
 
+function ScanDepthRow() {
+  const gap = useScanGap();
+  const [draft, setDraft] = useState<number>(gap);
+  useEffect(() => { setDraft(gap); }, [gap]);
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <Label className="text-xs">Address scan depth</Label>
+        <span className="text-sm font-semibold tabular-nums">{draft}</span>
+      </div>
+      <input
+        type="range"
+        min={SCAN_GAP_MIN}
+        max={SCAN_GAP_MAX}
+        step={5}
+        value={draft}
+        onChange={(e) => setDraft(Number(e.target.value))}
+        onPointerUp={() => setScanGap(draft)}
+        onKeyUp={() => setScanGap(draft)}
+        className="w-full accent-primary"
+        aria-label="Address scan depth"
+      />
+      <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+        <span>{SCAN_GAP_MIN} (default {SCAN_GAP_DEFAULT})</span>
+        <span>{SCAN_GAP_MAX}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        How many derived addresses per chain to check on each refresh. Raise
+        this if you've been receiving to many addresses and some funds don't
+        show up. Higher = slower scans.
+      </p>
+    </div>
+  );
+}
+
 function WalletsPanel() {
   const visible = useVisibleChainIds();
   const visibleChains = visible
@@ -229,6 +265,8 @@ function WalletsPanel() {
 
   return (
     <div className="space-y-4">
+      <ScanDepthRow />
+
       <p className="text-xs text-muted-foreground">
         Reorder to control swipe order. Hidden chains stay derived from your seed — they just don't render.
       </p>

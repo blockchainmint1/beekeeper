@@ -21,6 +21,7 @@ import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { scanEvmHd, type EvmHdAddress } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
+import { useScanGap } from "@/lib/wallet/scan-prefs";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
@@ -55,9 +56,8 @@ const PRIMARY_CHAIN_IDS: ChainId[] = ["txc", "eth", "base", "bsc", "btc"];
 
 type BreakdownItem = { chain: ChainConfig; row?: AssetRow };
 
-// Dashboard uses a tighter gap than the full Wallet view — fast first paint,
-// watermark + manual refresh still extend to busier merchants.
-const DASHBOARD_GAP = 20;
+// Dashboard scan gap is user-tunable in Settings → Wallets. Default 20
+// (BIP-44 standard); higher values catch funds sitting on high indexes.
 
 function priceForCg(prices: PriceMap | undefined, id?: string): number | null {
   if (!prices || !id) return null;
@@ -68,6 +68,7 @@ async function loadChainAsset(
   c: ChainConfig,
   mnemonic: string,
   prices: PriceMap | undefined,
+  scanGap: number,
 ): Promise<AssetRow> {
   const nativePrice = prices ? priceForChain(prices, c) : null;
   let address = "";
@@ -75,7 +76,7 @@ async function loadChainAsset(
   if (c.kind === "utxo") {
     const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
     address = a.address;
-    const gap = DASHBOARD_GAP;
+    const gap = scanGap;
     const minIndex = scanCeiling(c.id, gap);
     const scan = await scanUtxoHd(mnemonic, c, {
       type: c.defaultAddressType,
@@ -130,7 +131,7 @@ async function loadChainAsset(
   if (c.kind === "evm") {
     const a = deriveEvmAccount(mnemonic, c, 0);
     address = a.address;
-    const gap = DASHBOARD_GAP;
+    const gap = scanGap;
     const count = scanCeiling(c.id, gap);
     const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: true });
     if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
@@ -179,6 +180,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const visibleIds = useVisibleChainIds();
+  const scanGap = useScanGap();
   const visibleChains = useMemo(
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
     [visibleIds],
@@ -194,12 +196,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   // One query PER chain — rows appear independently as each chain finishes.
   const chainQueries = useQueries({
     queries: visibleChains.map((c) => ({
-      queryKey: ["simple-asset", c.id, !!pricesQuery.data],
+      queryKey: ["simple-asset", c.id, !!pricesQuery.data, scanGap],
       enabled: !!mnemonic && !!pricesQuery.data,
       refetchInterval: 60_000,
       staleTime: 30_000,
       queryFn: () =>
-        loadChainAsset(c, mnemonic, pricesQuery.data),
+        loadChainAsset(c, mnemonic, pricesQuery.data, scanGap),
     })),
   });
 

@@ -33,6 +33,7 @@ import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
+import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { EvmSweepDialog } from "./EvmSweepDialog";
 import { useIdleLock } from "@/lib/wallet/security";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
@@ -178,12 +179,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   });
 
   // Aggregate native USD across all chains
+  const scanGap = useScanGap();
   const totalQuery = useQuery({
-    queryKey: ["total-native", accountQuery.data && Object.keys(accountQuery.data).join(",")],
+    queryKey: ["total-native", accountQuery.data && Object.keys(accountQuery.data).join(","), scanGap],
     enabled: !!accountQuery.data && !!pricesQuery.data,
     refetchInterval: 60_000,
     queryFn: async () => {
       const data = accountQuery.data!;
+      const gap = getScanGap();
       let total = 0;
       await Promise.all(
         CHAIN_LIST.map(async (c) => {
@@ -199,7 +202,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
             } else if (c.kind === "evm") {
               // Aggregate native balance across all derived EVM addresses,
               // extending the scan past the watermark for active merchants.
-              const gap = 50;
               const count = scanCeiling(c.id, gap);
               const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
               if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
