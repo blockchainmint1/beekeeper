@@ -42,6 +42,7 @@ import { TopBar } from "./TopBar";
 import { MetalWalletCardConnected } from "./MetalWalletCardConnected";
 import { ActionPanel, type ActionItem } from "./ActionPanel";
 import { OmniTokensPanel } from "./OmniTokensPanel";
+import { EvmTokensPanel } from "./EvmTokensPanel";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
