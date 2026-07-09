@@ -52,56 +52,73 @@
 :root {
   --radius: 1.25rem;
 
-  /* Luxury dark fintech — Apple-grade (default) */
-  --background: oklch(0.14 0.01 260);
-  --foreground: oklch(0.98 0.005 250);
+  /* NectarPay brand system — Hive Navy foundation, Honey accent.
+     Source: https://nectar-pay.com/brand */
+  --honey-50:  oklch(0.97 0.04 85);
+  --honey-100: oklch(0.94 0.09 85);
+  --honey-200: oklch(0.89 0.14 82);
+  --honey-300: oklch(0.83 0.17 78);
+  --honey-400: oklch(0.77 0.17 72);   /* #F6A21E — primary honey */
+  --honey-500: oklch(0.71 0.17 62);   /* #E8880C */
+  --honey-600: oklch(0.60 0.16 55);   /* #C56E08 */
+  --navy-900:  oklch(0.20 0.04 260);  /* #0D1B33 — Hive Navy */
+  --ink:       oklch(0.29 0.02 260);  /* #2B3242 */
+  --slate:     oklch(0.55 0.02 260);  /* #6A7182 */
+  --sand:      oklch(0.92 0.01 80);   /* #EBE6DA */
+  --mist:      oklch(0.95 0.008 80);  /* #F3EEE2 */
+  --comb:      oklch(0.98 0.005 80);  /* #FAF8F3 */
 
-  --card: oklch(0.19 0.012 260);
-  --card-foreground: oklch(0.98 0.005 250);
+  /* Dark surface (default) built on Hive Navy */
+  --background: var(--navy-900);
+  --foreground: oklch(0.98 0.005 80);
 
-  --popover: oklch(0.18 0.012 260);
-  --popover-foreground: oklch(0.98 0.005 250);
+  --card: oklch(0.24 0.03 260);
+  --card-foreground: oklch(0.98 0.005 80);
 
-  --primary: oklch(0.98 0.005 250);
-  --primary-foreground: oklch(0.14 0.01 260);
+  --popover: oklch(0.22 0.03 260);
+  --popover-foreground: oklch(0.98 0.005 80);
 
-  --secondary: oklch(0.24 0.012 260);
-  --secondary-foreground: oklch(0.98 0.005 250);
+  --primary: var(--honey-400);
+  --primary-foreground: var(--navy-900);
 
-  --muted: oklch(0.22 0.012 260);
-  --muted-foreground: oklch(0.65 0.015 260);
+  --secondary: oklch(0.28 0.03 260);
+  --secondary-foreground: oklch(0.98 0.005 80);
 
-  --accent: oklch(0.26 0.015 260);
-  --accent-foreground: oklch(0.98 0.005 250);
+  --muted: oklch(0.26 0.025 260);
+  --muted-foreground: oklch(0.68 0.02 260);
 
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0.005 250);
+  --accent: oklch(0.30 0.035 260);
+  --accent-foreground: oklch(0.98 0.005 80);
+
+  --destructive: oklch(0.62 0.22 25);  /* #E5484D */
+  --destructive-foreground: oklch(0.98 0.005 80);
 
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.65 0.18 250);
+  --ring: var(--honey-400);
 
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --chart-1: var(--honey-400);
+  --chart-2: oklch(0.72 0.17 155);
+  --chart-3: oklch(0.65 0.18 250);
+  --chart-4: oklch(0.62 0.24 295);
+  --chart-5: oklch(0.65 0.246 16);
 
-  /* Ecosystem brand colors (used as fallbacks; per-chain --chain* overrides win) */
+  /* Ecosystem brand colors */
   --txc: oklch(0.62 0.19 245);
   --txc-glow: oklch(0.72 0.21 245);
-  --isk: oklch(0.78 0.14 80);
-  --isk-glow: oklch(0.86 0.15 85);
+  --isk: var(--honey-300);
+  --isk-glow: var(--honey-200);
   --zcu: oklch(0.62 0.24 295);
   --zcu-glow: oklch(0.72 0.26 295);
 
-  --success: oklch(0.72 0.17 155);
+  --success: oklch(0.62 0.14 155);  /* #1E9E6A */
   --glass: oklch(1 0 0 / 6%);
 
-  /* Metallic/ambient gradients */
+  /* Honey mesh atmosphere */
   --gradient-mesh:
-    radial-gradient(at 20% 0%, oklch(0.3 0.15 250 / 0.4) 0px, transparent 50%),
-    radial-gradient(at 80% 100%, oklch(0.3 0.2 295 / 0.3) 0px, transparent 50%);
+    radial-gradient(at 20% 0%, oklch(0.35 0.10 60 / 0.35) 0px, transparent 55%),
+    radial-gradient(at 80% 100%, oklch(0.30 0.06 260 / 0.4) 0px, transparent 55%);
+  --gradient-honey: linear-gradient(135deg, var(--honey-300) 0%, var(--honey-400) 50%, var(--honey-500) 100%);
 
   --shadow-card:
     0 30px 70px -28px oklch(0 0 0 / 0.6),
@@ -129,6 +146,7 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
+
 
 .light {
   --background: oklch(0.985 0.003 250);
@@ -182,8 +200,15 @@
   body {
     background-image: var(--gradient-mesh);
     background-attachment: fixed;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-family: "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
     letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: "Satoshi", "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  code, pre, .font-mono, .tabular {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
     /* Native shell: respect the iOS notch / Dynamic Island and Android gesture bar. */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);

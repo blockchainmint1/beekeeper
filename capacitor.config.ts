@@ -31,7 +31,7 @@ const config: CapacitorConfig = {
   appId: "money.honest.beekeeper",
   appName: "Beekeeper",
   webDir: "dist/client",
-  backgroundColor: "#0b0f14",
+  backgroundColor: "#0D1B33",
   server: {
     ...(REMOTE_URL ? { url: REMOTE_URL } : {}),
     hostname: REMOTE_URL ? new URL(REMOTE_URL).hostname : WEBVIEW_HOSTNAME,
@@ -42,23 +42,23 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: "always",
-    backgroundColor: "#0b0f14",
+    backgroundColor: "#0D1B33",
   },
   android: {
-    backgroundColor: "#0b0f14",
+    backgroundColor: "#0D1B33",
     allowMixedContent: false,
   },
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
       launchShowDuration: 900,
-      backgroundColor: "#0b0f14",
+      backgroundColor: "#0D1B33",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
     },
     StatusBar: {
       style: "DARK",
-      backgroundColor: "#0b0f14",
+      backgroundColor: "#0D1B33",
     },
   },
 };
