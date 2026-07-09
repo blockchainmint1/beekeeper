@@ -298,6 +298,88 @@ function SecurityPanel() {
   );
 }
 
+function BiometricRow() {
+  const [status, setStatus] = useState<{ available: boolean; enabled: boolean }>({ available: false, enabled: false });
+  const [busy, setBusy] = useState(false);
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => {
+    void getBiometricStatus().then(setStatus);
+  }, []);
+
+  if (!status.available) return null;
+
+  async function enable() {
+    if (!pw) { toast.error("Enter your wallet password to enable biometrics"); return; }
+    setBusy(true);
+    try {
+      // Verify password is correct before storing it in the Keychain/Keystore.
+      await unlockVault(pw);
+      await enableBiometric(pw);
+      setStatus({ available: true, enabled: true });
+      setPw(""); setShowPw(false);
+      toast.success("Biometric unlock enabled");
+    } catch (err) {
+      toast.error((err as Error).message ?? "Could not enable biometrics");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disable() {
+    setBusy(true);
+    try {
+      await disableBiometric();
+      setStatus({ available: true, enabled: false });
+      toast.success("Biometric unlock disabled");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Fingerprint className="h-4 w-4 text-primary" />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Biometric unlock</p>
+          <p className="text-[11px] text-muted-foreground">
+            Unlock with Face ID / fingerprint. Your password is stored in the OS Keychain / Keystore, released only after biometric verification.
+          </p>
+        </div>
+      </div>
+      {status.enabled ? (
+        <Button size="sm" variant="outline" onClick={disable} disabled={busy} className="w-full">
+          Disable biometric unlock
+        </Button>
+      ) : showPw ? (
+        <div className="space-y-2">
+          <Input
+            type="password"
+            placeholder="Wallet password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={enable} disabled={busy || !pw} className="flex-1">
+              {busy ? "Enabling…" : "Confirm & enable"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowPw(false); setPw(""); }} disabled={busy}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button size="sm" onClick={() => setShowPw(true)} className="w-full">
+          Enable biometric unlock
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function BackupPanel() {
   const download = () => {
     const text = exportVaultJson();
