@@ -35,7 +35,7 @@ function alchemyProxyUrl(chain: EvmChain): string | null {
   return `${window.location.origin}/api/public/rpc/alchemy/${chain.id}`;
 }
 
-function chainRpcUrls(chain: EvmChain): string[] {
+export function chainRpcUrls(chain: EvmChain): string[] {
   const proxy = alchemyProxyUrl(chain);
   return proxy ? [proxy, ...chain.rpcUrls] : chain.rpcUrls;
 }
