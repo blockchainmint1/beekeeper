@@ -76,7 +76,7 @@ async function loadChainAsset(
   if (c.kind === "utxo") {
     const a = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
     address = a.address;
-    const gap = DASHBOARD_GAP;
+    const gap = scanGap;
     const minIndex = scanCeiling(c.id, gap);
     const scan = await scanUtxoHd(mnemonic, c, {
       type: c.defaultAddressType,
