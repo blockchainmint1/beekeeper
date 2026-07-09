@@ -1,65 +1,116 @@
-## Goal
-Notify the user the moment new funds land in their Beekeeper wallet — in-app, by email, and on Telegram.
+# Package Beekeeper as native iOS / Android app
 
-## Architecture note (important)
-Beekeeper is non-custodial: the mnemonic lives in the browser, there's no Supabase user account. So:
+Port HME Mobile's proven Capacitor setup — already through a security audit and shipping to TestFlight — into this project, adapted for the Beekeeper wallet (multi-chain, `lovable-multi-wallet-vault-v1` keystore).
 
-- **Detection runs client-side**, by diffing the existing transaction history poll against a "seen" set in localStorage.
-- **Notification prefs (email, Telegram chat id, toggles) live in localStorage** keyed to the wallet — no central account.
-- The server only does delivery (email send / Telegram send). It never sees private keys.
+## What ships
 
-## Pieces I'll build
+**Native shell**
+- Capacitor 8 wrapping the current TanStack Start web app
+- iOS project → `.ipa` for TestFlight / App Store
+- Android project → signed `.apk` (sideload) and `.aab` (Play Store)
+- Same web bundle runs unchanged in browser, PWA, and native
 
-### 1. In-app (toast + bell)
-- `useNotifications` hook + provider that:
-  - Watches the existing `historyQuery` (cross-chain).
-  - On startup, snapshots current tx ids as "seen" (no flood of historical alerts).
-  - On every refetch, any new `direction === "in"` tx becomes a Notification.
-- Notifications stored in `localStorage` (last 50) with `read` flag.
-- New `<NotificationBell />` in `TopBar` (bell icon + unread badge + popover list, click row → open explorer, "Mark all read").
-- Fire `toast.success("+0.0042 BTC received")` on new arrivals.
+**Security posture (adopted verbatim from HME's audit)**
+- Bundled web assets (no `server.url` in release) — store binary never runs remote code
+- Stable WebView origin so the existing encrypted vault (`lovable-multi-wallet-vault-v1`) keeps unlocking after install
+- Biometric unlock (Face ID / Touch ID / Android fingerprint) via Keychain / Keystore
+- CSP already in place stays in place
 
-### 2. Notification settings (in existing `SettingsDialog`)
-New "Alerts" section with three toggles + fields:
-- **In-app** — on by default, no config.
-- **Email** — email address + on/off toggle.
-- **Telegram** — chat id + on/off + a small "How do I get my chat id?" helper that links to `@BeekeeperAlertsBot` with `/start` instructions.
+**Native niceties**
+- Face ID / Touch ID unlock on the UnlockScreen
+- Haptics on send success / failure
+- Native share sheet on Receive
+- Native QR scanner (way faster than webcam) for the Scan dialog
+- Safe-area padding, status bar theming, keyboard resize
+- Deep-link handler stub (ready for future `beekeeper://` or Nectar tap-to-pay)
 
-### 3. Delivery server functions (TanStack `createServerFn`)
-- `sendEmailAlert({ to, subject, html })` — uses **Lovable Emails** (built-in). Requires enabling Lovable Cloud + email domain.
-- `sendTelegramAlert({ chatId, text })` — uses **Telegram connector** through the Lovable connector gateway.
-- Both: per-IP in-memory rate limit (e.g. 10/min) so the public endpoints can't be trivially abused.
+## Identity
 
-### 4. New "Beekeeper Alerts" email template
-Branded React Email template: amount, asset, short txid, explorer link, "View in wallet" CTA.
+| | Proposed |
+|---|---|
+| Bundle ID | `money.honest.beekeeper` |
+| Display name | `Beekeeper` |
+| WebView hostname | `beekeeper.honest.money` (stable origin — critical for vault continuity) |
+| Theme color | `#0b0f14` (matches current dark theme) |
 
-### 5. Telegram bot setup
-- I'll connect the Telegram connector (you'll create a bot in @BotFather and paste the token into the connector dialog — Lovable handles the rest).
-- No webhook needed for outgoing alerts. We send from the server when the client reports a new tx.
+**Confirm before I generate:** bundle ID and display name. Everything else follows.
 
-## Flow on a new incoming tx
+## Files to add
+
+**Config / scripts**
 ```text
-client polls history  →  diff vs localStorage "seen"
-                         │
-                         ├─ add to in-app notifications + toast
-                         ├─ if email enabled  → POST sendEmailAlert
-                         └─ if telegram enabled → POST sendTelegramAlert
+capacitor.config.ts                       # bundled, stable hostname, allowNavigation locked
+scripts/generate-capacitor-index.mjs      # renders TanStack SPA shell → dist/client/index.html
+scripts/patch-android-manifest.mjs        # perms (CAMERA, USE_BIOMETRIC), deep-link filters
+scripts/patch-android-icons.mjs           # adaptive icons from brand mark
+scripts/harden-ios-native.mjs             # Info.plist (NSFaceID/Camera usage), deployment target
+.github/workflows/android-apk.yml         # CI builds signed APK
+.github/workflows/generate-keystore.yml   # one-shot helper to generate release keystore
+package.json                              # add: build, cap:sync, cap:assets, ios:setup, ios:reset,
+                                          #      android:setup, android:apk, android:reset, ios:harden
+assets/icon.png (1024×1024)               # I'll generate from Beekeeper brand
+assets/splash.png (2732×2732)             # I'll generate
 ```
 
-## What I need from you mid-flow
-1. Approve enabling **Lovable Cloud** (one click — required for email infra).
-2. Approve setting up an **email domain** for `beekeeper.money` (DNS step at your registrar).
-3. Create a Telegram bot in `@BotFather` and link the **Telegram connector** when prompted (one paste).
+**Web-layer glue (`src/lib/native/*`)**
+```text
+platform.ts      # isNative() / nativePlatform() guards
+biometric.ts     # Face ID / Touch ID enable / disable / unlockWithBiometric()
+ui.ts            # hapticSuccess/Error/Tap, shareText, initNativeChrome, hideSplash
+deeplink.ts      # App URL listener stub (no-op until we wire a scheme)
+```
 
-## Out of scope for this pass
-- Outgoing/cash-out alerts (you asked for incoming only).
-- Confirmation-state transitions (first-sight → confirmed) — just one alert per tx for now.
-- Per-asset thresholds, quiet hours, multi-device sync. Easy to add later.
+**Component wiring**
+```text
+src/routes/__root.tsx           # call initNativeChrome() + hideSplash() on mount
+src/components/wallet/UnlockScreen.tsx    # "Unlock with Face ID" button when enabled
+src/components/wallet/SettingsDialog.tsx  # toggle to enable/disable biometrics
+src/components/wallet/QrScanDialog.tsx    # use BarcodeScanner on native, webcam on web
+src/components/wallet/ReceiveDialog.tsx   # use shareText() instead of copy-only
+src/components/wallet/SendDialog.tsx      # hapticSuccess/hapticError on result
+src/styles.css                            # safe-area-inset padding on root shell
+```
 
-## Deliverable order
-1. In-app bell + toast + settings UI + localStorage plumbing (works immediately, no Cloud).
-2. Enable Cloud + email domain prompt + email template + `sendEmailAlert`.
-3. Connect Telegram connector + `sendTelegramAlert`.
-4. Wire prefs to call the delivery fns from the detection loop.
+**Docs**
+```text
+CAPACITOR.md   # how to build iOS/Android locally
+ANDROID.md     # CI workflow + keystore instructions
+```
 
-Ship it?
+## Deps to add
+```text
+@capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
+@capacitor/app @capacitor/haptics @capacitor/share @capacitor/status-bar
+@capacitor/keyboard @capacitor/splash-screen @capacitor/clipboard
+@capacitor/browser @capacitor/network
+@capacitor-community/barcode-scanner
+@aparajita/capacitor-biometric-auth
+@aparajita/capacitor-secure-storage
+@capacitor/assets (dev)
+```
+
+## Critical invariants
+
+1. **Do not change `server.hostname` after first release.** localStorage is keyed by origin. Changing the WebView origin orphans every user's encrypted vault. Fixed at `beekeeper.honest.money` from day one.
+2. **No `server.url` in release builds.** Loading remote JS = store rejection + supply-chain risk. Dev-only via `BEEKEEPER_REMOTE_URL` env var.
+3. **Biometric stores the password, not the seed.** Same design as HME — the vault stays encrypted with the user's password; biometrics gates a Keychain read that hands the password back to the existing unlock flow. Password remains the recovery path.
+4. **Sandbox can't run `cap add ios/android`.** I add config + scripts + CI. You (on a Mac / Linux box) run `bun run ios:setup` and `bun run android:setup` once to generate the native projects, then commit them.
+
+## What you'll need on your end (I can't do these)
+
+- **iOS build:** a Mac with Xcode + Apple Developer account ($99/yr) to archive and upload to TestFlight
+- **Android release:** run the "Generate Android Keystore" GitHub Action once, save the `.jks` in 1Password, paste the four `ANDROID_*` secrets into repo settings — then every push to the `android` branch produces a signed APK artifact
+- **Play Store:** $25 one-time developer account (only if you want Play Store distribution — APK sideload works without it)
+
+## Rollout order (single turn)
+
+1. Add deps → 2. Config + scripts → 3. `src/lib/native/*` → 4. Wire biometric into UnlockScreen + settings → 5. Wire haptics/share/scan → 6. Generate icon + splash → 7. Root layout: safe-area + initNativeChrome + hideSplash → 8. CI workflows → 9. Docs.
+
+I won't touch business logic, chain code, or the vault format. Vault stays where it is; native shell just wraps it.
+
+---
+
+**Confirm to proceed:**
+- Bundle ID `money.honest.beekeeper`?
+- Display name `Beekeeper`?
+- OK to generate a new brand icon + splash from the current Beekeeper visual identity (I'll match the honeycomb / amber theme), or do you have existing 1024×1024 PNGs you want me to use?

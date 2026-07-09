@@ -79,27 +79,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "referrer", content: "no-referrer" },
-      { title: "Quad Wallet" },
-      { name: "description", content: "A browser-based wallet supporting Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Quad Wallet" },
-      { property: "og:description", content: "A browser-based wallet supporting Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana." },
+      { name: "theme-color", content: "#0b0f14" },
+      { title: "Beekeeper — Self-custody multi-chain wallet" },
+      { name: "description", content: "Beekeeper is a self-custody wallet for Bitcoin, TEXITcoin, Ethereum, Base, BNB Chain and more. Part of the honest.money ecosystem." },
+      { name: "author", content: "Honest Money" },
+      { property: "og:title", content: "Beekeeper — Self-custody multi-chain wallet" },
+      { property: "og:description", content: "Self-custody wallet for TEXITcoin, Bitcoin, ETH, Base, BSC. Part of the honest.money ecosystem." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Quad Wallet" },
-      { name: "twitter:description", content: "A browser-based wallet supporting Bitcoin, TEXITcoin, Iskander Coin, Zero Chill, Ethereum, BNB, Base, Polygon, TRON and Solana." },
-
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c47404dc-a535-4c94-8cb4-5d53bd2b63f7/id-preview-e844e2c4--acf3b9f4-cbbd-4508-b757-654929f24a6e.lovable.app-1780827997431.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c47404dc-a535-4c94-8cb4-5d53bd2b63f7/id-preview-e844e2c4--acf3b9f4-cbbd-4508-b757-654929f24a6e.lovable.app-1780827997431.png" },
+      { name: "twitter:title", content: "Beekeeper — Self-custody multi-chain wallet" },
+      { name: "twitter:description", content: "Self-custody wallet for TEXITcoin, Bitcoin, ETH, Base, BSC. Part of the honest.money ecosystem." },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
     ],
   }),
   shellComponent: RootShell,
@@ -124,6 +118,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    // Native shell setup: status bar, keyboard resize, hide splash.
+    // All no-ops on web / Lovable preview.
+    void (async () => {
+      const { initNativeChrome, hideSplash } = await import("../lib/native/ui");
+      await initNativeChrome();
+      await hideSplash();
+    })();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
