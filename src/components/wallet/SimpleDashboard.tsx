@@ -199,7 +199,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
       refetchInterval: 60_000,
       staleTime: 30_000,
       queryFn: () =>
-        loadChainAsset(c, mnemonic, pricesQuery.data ? priceForChain(pricesQuery.data, c) : null),
+        loadChainAsset(c, mnemonic, pricesQuery.data),
     })),
   });
 
