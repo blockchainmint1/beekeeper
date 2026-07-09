@@ -3,6 +3,7 @@
 // other public EVM RPC. Only allows a safe read/broadcast method allowlist
 // so the endpoint can't be turned into a general-purpose oracle.
 
+import process from "node:process";
 import { createFileRoute } from "@tanstack/react-router";
 
 const ALCHEMY_NETWORK: Record<string, string> = {
