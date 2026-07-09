@@ -248,15 +248,39 @@ async function esploraGet<T>(chain: UtxoChain, path: string): Promise<T> {
 }
 
 export const esplora = {
-  addressInfo: (chain: UtxoChain, a: string) =>
-    esploraGet<AddressInfo>(chain, `/address/${a}`),
-  addressUtxos: (chain: UtxoChain, a: string) =>
-    esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`),
-  addressTxs: (chain: UtxoChain, a: string) =>
-    esploraGet<unknown[]>(chain, `/address/${a}/txs`),
-  txHex: (chain: UtxoChain, txid: string) =>
-    esploraGet<string>(chain, `/tx/${txid}/hex`),
+  addressInfo: async (chain: UtxoChain, a: string): Promise<AddressInfo> => {
+    if (chain.id === "isk") {
+      const { iskAddressInfo } = await import("./isk.functions");
+      return iskAddressInfo({ data: { address: a } });
+    }
+    return esploraGet<AddressInfo>(chain, `/address/${a}`);
+  },
+  addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
+    if (chain.id === "isk") {
+      const { iskAddressUtxos } = await import("./isk.functions");
+      return iskAddressUtxos({ data: { address: a } });
+    }
+    return esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`);
+  },
+  addressTxs: async (chain: UtxoChain, a: string): Promise<unknown[]> => {
+    if (chain.id === "isk") {
+      const { iskAddressTxs } = await import("./isk.functions");
+      return iskAddressTxs({ data: { address: a } });
+    }
+    return esploraGet<unknown[]>(chain, `/address/${a}/txs`);
+  },
+  txHex: async (chain: UtxoChain, txid: string): Promise<string> => {
+    if (chain.id === "isk") {
+      const { iskTxHex } = await import("./isk.functions");
+      return iskTxHex({ data: { txid } });
+    }
+    return esploraGet<string>(chain, `/tx/${txid}/hex`);
+  },
   async broadcast(chain: UtxoChain, rawHex: string): Promise<string> {
+    if (chain.id === "isk") {
+      const { iskBroadcast } = await import("./isk.functions");
+      return iskBroadcast({ data: { rawHex } });
+    }
     const res = await fetch(`${chain.apiBase}/tx`, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
