@@ -34,6 +34,7 @@ const ALLOWED_METHODS = new Set([
   "web3_clientVersion",
   "alchemy_getTokenBalances",
   "alchemy_getTokenMetadata",
+  "alchemy_getAssetTransfers",
 ]);
 
 interface JsonRpcCall {
