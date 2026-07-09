@@ -241,11 +241,18 @@ export interface AddressInfo {
 }
 
 async function esploraGet<T>(chain: UtxoChain, path: string): Promise<T> {
-  const res = await fetch(`${chain.apiBase}${path}`);
-  if (!res.ok) throw new Error(`${chain.ticker} esplora ${path} ${res.status}`);
-  const ct = res.headers.get("content-type") || "";
-  return (ct.includes("application/json") ? res.json() : res.text()) as Promise<T>;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 12_000);
+  try {
+    const res = await fetch(`${chain.apiBase}${path}`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`${chain.ticker} esplora ${path} ${res.status}`);
+    const ct = res.headers.get("content-type") || "";
+    return (ct.includes("application/json") ? res.json() : res.text()) as Promise<T>;
+  } finally {
+    clearTimeout(t);
+  }
 }
+
 
 export const esplora = {
   addressInfo: async (chain: UtxoChain, a: string): Promise<AddressInfo> => {
