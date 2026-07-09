@@ -30,7 +30,7 @@ import { MultiSendDialog } from "./MultiSendDialog";
 import { QrLoginDialog } from "./QrLoginDialog";
 import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
-import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
+import { esplora, addressBalanceSats, scanUtxoHd } from "@/lib/wallet/utxo";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
