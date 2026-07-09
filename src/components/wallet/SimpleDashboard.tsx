@@ -56,9 +56,8 @@ const PRIMARY_CHAIN_IDS: ChainId[] = ["txc", "eth", "base", "bsc", "btc"];
 
 type BreakdownItem = { chain: ChainConfig; row?: AssetRow };
 
-// Dashboard uses a tighter gap than the full Wallet view — fast first paint,
-// watermark + manual refresh still extend to busier merchants.
-const DASHBOARD_GAP = 20;
+// Dashboard scan gap is user-tunable in Settings → Wallets. Default 20
+// (BIP-44 standard); higher values catch funds sitting on high indexes.
 
 function priceForCg(prices: PriceMap | undefined, id?: string): number | null {
   if (!prices || !id) return null;
@@ -69,6 +68,7 @@ async function loadChainAsset(
   c: ChainConfig,
   mnemonic: string,
   prices: PriceMap | undefined,
+  scanGap: number,
 ): Promise<AssetRow> {
   const nativePrice = prices ? priceForChain(prices, c) : null;
   let address = "";
