@@ -94,6 +94,20 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     }),
   );
 
+  // CoinMarketCap fallback for anything still missing after CoinGecko + Coinbase.
+  // Runs server-side (CMC_API key stays private) and covers coins Coinbase doesn't
+  // list (POL, TRX, DAI, ISK, etc.).
+  const stillMissing = [...ids].filter((k) => out[k] == null);
+  if (stillMissing.length > 0) {
+    try {
+      const { fetchCmcPrices } = await import("./price.functions");
+      const cmc = await fetchCmcPrices({ data: { keys: stillMissing } });
+      for (const [k, v] of Object.entries(cmc)) {
+        if (typeof v === "number" && isFinite(v) && v > 0) out[k] = v;
+      }
+    } catch { /* ignore */ }
+  }
+
   // Ultimate stablecoin safety net: pin to $1 if every feed failed. USDT/USDC
   // depegs are rare enough that showing "$1" beats showing "$0" for a merchant
   // sitting on thousands of stables.
