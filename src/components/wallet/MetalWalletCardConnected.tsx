@@ -38,11 +38,17 @@ export function MetalWalletCardConnected({
     queryKey: ["balance", chain.id, accountQuery.data?.account.address],
     enabled: !!accountQuery.data,
     refetchInterval: 30_000,
+    retry: 1,
+    retryDelay: 1500,
     queryFn: async () => {
       const a = accountQuery.data!;
       if (a.kind === "utxo") {
-        const info = await esplora.addressInfo(chain as UtxoChain, a.account.address);
-        return addressBalanceSats(info).total / 10 ** chain.decimals;
+        try {
+          const info = await esplora.addressInfo(chain as UtxoChain, a.account.address);
+          return addressBalanceSats(info).total / 10 ** chain.decimals;
+        } catch {
+          return 0;
+        }
       }
       if (a.kind === "evm") {
         const wei = await evmBalance(chain as EvmChain, a.account.address);
@@ -56,6 +62,7 @@ export function MetalWalletCardConnected({
       return Number(lamports) / 1_000_000_000;
     },
   });
+
 
   const priceQuery = useQuery({
     queryKey: ["prices"],
