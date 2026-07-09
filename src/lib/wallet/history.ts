@@ -68,10 +68,17 @@ export async function fetchHistory(chain: ChainConfig, address: string): Promise
     const { fetchSolanaHistory } = await import("./solana");
     return fetchSolanaHistory(chain, address);
   }
-  // EVM: full history requires an indexer; punt to explorer link.
+  // EVM: Alchemy alchemy_getAssetTransfers via same-origin proxy for the
+  // chains we've provisioned. Non-Alchemy EVM chains still punt to explorer.
+  const { isAlchemyEvm, fetchEvmHistory } = await import("./evm-history");
+  if (isAlchemyEvm(chain.id)) {
+    return fetchEvmHistory(chain, address);
+  }
   return [];
 }
 
 export function hasNativeHistory(chain: ChainConfig): boolean {
-  return chain.kind === "utxo" || chain.kind === "tron" || chain.kind === "solana";
+  if (chain.kind === "utxo" || chain.kind === "tron" || chain.kind === "solana") return true;
+  // EVM chains covered by Alchemy get in-app history too.
+  return chain.kind === "evm" && ["eth", "bsc", "base", "polygon"].includes(chain.id);
 }
