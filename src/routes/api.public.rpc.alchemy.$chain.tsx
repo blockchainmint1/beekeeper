@@ -60,10 +60,7 @@ export const Route = createFileRoute("/api/public/rpc/alchemy/$chain")({
         const network = ALCHEMY_NETWORK[params.chain];
         if (!network) return new Response("Unknown chain", { status: 404 });
         const key = process.env.ALCHEMY_API;
-        if (!key) {
-          const keys = Object.keys(process.env ?? {}).sort().join(",");
-          return new Response(`Alchemy not configured. env keys: ${keys}`, { status: 503 });
-        }
+        if (!key) return new Response("Alchemy not configured", { status: 503 });
 
         let body: JsonRpcCall | JsonRpcCall[];
         try {
