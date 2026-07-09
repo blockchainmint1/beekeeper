@@ -356,39 +356,60 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                   const r = item.row;
                   const chain = item.chain;
                   return (
-                    <div key={chain.id} className="glass-card flex items-center gap-3 rounded-xl p-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
-                        style={{
-                          background: `color-mix(in oklab, ${chain.color} 22%, transparent)`,
-                          color: chain.color,
-                        }}
-                      >
-                        {chain.ticker.slice(0, 3)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-sm">{chain.ticker}</span>
-                          {r ? (
-                            <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
-                          ) : (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                          )}
+                    <div key={chain.id} className="glass-card flex flex-col gap-2 rounded-xl p-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                          style={{
+                            background: `color-mix(in oklab, ${chain.color} 22%, transparent)`,
+                            color: chain.color,
+                          }}
+                        >
+                          {chain.ticker.slice(0, 3)}
                         </div>
-                        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                          <span className="truncate">{chain.name}</span>
-                          {r ? (
-                            <span className="tabular">
-                              {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
-                            </span>
-                          ) : (
-                            <span>Scanning…</span>
-                          )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-sm">{chain.ticker}</span>
+                            {r ? (
+                              <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+                            ) : (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                            <span className="truncate">{chain.name}</span>
+                            {r ? (
+                              <span className="tabular">
+                                {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
+                              </span>
+                            ) : (
+                              <span>Scanning…</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      {r && r.tokens.length > 0 && (
+                        <div className="pl-12 -mt-0.5 flex flex-col gap-1 border-l border-border/40 ml-4">
+                          {r.tokens.map((t) => (
+                            <div
+                              key={t.symbol}
+                              className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pl-3"
+                            >
+                              <span className="truncate">
+                                <span className="font-medium text-foreground/80">{t.symbol}</span>
+                                <span className="tabular ml-1.5">{t.formatted}</span>
+                              </span>
+                              {t.usd != null && (
+                                <span className="tabular">{formatUsd(t.usd)}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
                 {!primaryAllLoaded && anyLoading && primaryLoadingCount > 0 && (
                   <div className="text-[11px] text-center text-muted-foreground py-1">
                     Still scanning {primaryLoadingCount} chain
