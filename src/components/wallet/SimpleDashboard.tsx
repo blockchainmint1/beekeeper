@@ -21,6 +21,7 @@ import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { scanEvmHd, type EvmHdAddress } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
+import { useScanGap } from "@/lib/wallet/scan-prefs";
 import { deriveTronAccount, tronBalance } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
