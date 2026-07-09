@@ -33,6 +33,7 @@ import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
+import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { EvmSweepDialog } from "./EvmSweepDialog";
 import { useIdleLock } from "@/lib/wallet/security";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
