@@ -264,6 +264,10 @@ export const esplora = {
       const { txcAddressInfo } = await import("./txc.functions");
       return txcAddressInfo({ data: { address: a } });
     }
+    if (chain.id === "btc") {
+      const { btcAddressInfo } = await import("./blockcypher.functions");
+      return btcAddressInfo({ data: { address: a } });
+    }
     return esploraGet<AddressInfo>(chain, `/address/${a}`);
   },
   addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
