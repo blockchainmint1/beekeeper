@@ -253,12 +253,20 @@ export const esplora = {
       const { iskAddressInfo } = await import("./isk.functions");
       return iskAddressInfo({ data: { address: a } });
     }
+    if (chain.id === "txc") {
+      const { txcAddressInfo } = await import("./txc.functions");
+      return txcAddressInfo({ data: { address: a } });
+    }
     return esploraGet<AddressInfo>(chain, `/address/${a}`);
   },
   addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
     if (chain.id === "isk") {
       const { iskAddressUtxos } = await import("./isk.functions");
       return iskAddressUtxos({ data: { address: a } });
+    }
+    if (chain.id === "txc") {
+      const { txcAddressUtxos } = await import("./txc.functions");
+      return txcAddressUtxos({ data: { address: a } });
     }
     return esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`);
   },
@@ -267,6 +275,10 @@ export const esplora = {
       const { iskAddressTxs } = await import("./isk.functions");
       return iskAddressTxs({ data: { address: a } });
     }
+    if (chain.id === "txc") {
+      const { txcAddressTxs } = await import("./txc.functions");
+      return txcAddressTxs({ data: { address: a } });
+    }
     return esploraGet<unknown[]>(chain, `/address/${a}/txs`);
   },
   txHex: async (chain: UtxoChain, txid: string): Promise<string> => {
@@ -274,12 +286,20 @@ export const esplora = {
       const { iskTxHex } = await import("./isk.functions");
       return iskTxHex({ data: { txid } });
     }
+    if (chain.id === "txc") {
+      const { txcTxHex } = await import("./txc.functions");
+      return txcTxHex({ data: { txid } });
+    }
     return esploraGet<string>(chain, `/tx/${txid}/hex`);
   },
   async broadcast(chain: UtxoChain, rawHex: string): Promise<string> {
     if (chain.id === "isk") {
       const { iskBroadcast } = await import("./isk.functions");
       return iskBroadcast({ data: { rawHex } });
+    }
+    if (chain.id === "txc") {
+      const { txcBroadcast } = await import("./txc.functions");
+      return txcBroadcast({ data: { rawHex } });
     }
     const res = await fetch(`${chain.apiBase}/tx`, {
       method: "POST",
