@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "referrer", content: "no-referrer" },
-      { name: "theme-color", content: "#0b0f14" },
+      { name: "theme-color", content: "#0D1B33" },
       { title: "Beekeeper — Self-custody wallet · NectarPay ecosystem" },
       { name: "description", content: "Beekeeper is a self-custody, non-custodial wallet for TEXITcoin, Bitcoin, Ethereum, Base, BNB Chain and stablecoins. Part of the honest.money and NectarPay ecosystem — your keys, your money, zero fees." },
       { name: "author", content: "Honest Money" },
