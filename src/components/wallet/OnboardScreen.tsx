@@ -33,8 +33,8 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     setScanOpen(false);
     const m = text.trim().toLowerCase().replace(/\s+/g, " ");
     const wordCount = m.split(" ").filter(Boolean).length;
-    if (wordCount !== 24) {
-      toast.error("Copper Coin must be 24 words");
+    if (wordCount !== 12 && wordCount !== 24) {
+      toast.error("Recovery phrase must be 12 or 24 words");
       return;
     }
     if (!isValidMnemonic(m)) {
@@ -207,7 +207,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         onOpenChange={setScanOpen}
         onResult={handleScan}
         title="Scan your copper Cold Storage Coin"
-        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 24-word recovery phrase stays on this device."
+        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 12- or 24-word recovery phrase stays on this device."
       />
       <NectarLinkDialog
         open={linkOpen}
