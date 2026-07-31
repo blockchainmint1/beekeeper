@@ -207,7 +207,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         onOpenChange={setScanOpen}
         onResult={handleScan}
         title="Scan your copper Cold Storage Coin"
-        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 24-word recovery phrase stays on this device."
+        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 12- or 24-word recovery phrase stays on this device."
       />
       <NectarLinkDialog
         open={linkOpen}
