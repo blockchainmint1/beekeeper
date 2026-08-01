@@ -14,7 +14,7 @@ import {
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { EvmChain, Erc20Token } from "@/lib/chains";
-import { deriveEvmAccount, evmPrivateKey } from "./evm";
+import { chainRpcUrls, deriveEvmAccount, evmPrivateKey } from "./evm";
 
 function chainDef(chain: EvmChain) {
   return {
@@ -22,7 +22,7 @@ function chainDef(chain: EvmChain) {
     id: chain.evmChainId,
     name: chain.name,
     nativeCurrency: { name: chain.nativeSymbol, symbol: chain.nativeSymbol, decimals: 18 },
-    rpcUrls: { default: { http: chain.rpcUrls } },
+    rpcUrls: { default: { http: chainRpcUrls(chain) } },
   };
 }
 
@@ -31,7 +31,7 @@ async function withFallback<T>(
   fn: (c: ReturnType<typeof createPublicClient>) => Promise<T>,
 ): Promise<T> {
   let lastErr: unknown;
-  for (const url of chain.rpcUrls) {
+  for (const url of chainRpcUrls(chain)) {
     try {
       return await fn(createPublicClient({ chain: chainDef(chain), transport: http(url) }));
     } catch (e) {
@@ -308,7 +308,7 @@ export async function sweepEvmNative(args: {
   const wallet = createWalletClient({
     account: signer,
     chain: chainDef(chain),
-    transport: http(chain.rpcUrls[0]),
+    transport: http(chainRpcUrls(chain)[0]),
   });
   return wallet.sendTransaction({ to, value: est.sendable });
 }
@@ -337,7 +337,7 @@ export async function sweepEvmToken(args: {
   const wallet = createWalletClient({
     account: signer,
     chain: chainDef(chain),
-    transport: http(chain.rpcUrls[0]),
+    transport: http(chainRpcUrls(chain)[0]),
   });
   return wallet.writeContract({
     address: token.address,

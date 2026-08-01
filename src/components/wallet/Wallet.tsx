@@ -30,9 +30,10 @@ import { MultiSendDialog } from "./MultiSendDialog";
 import { QrLoginDialog } from "./QrLoginDialog";
 import { XpubDialog } from "./XpubDialog";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
-import { esplora, addressBalanceSats } from "@/lib/wallet/utxo";
+import { esplora, addressBalanceSats, scanUtxoHd } from "@/lib/wallet/utxo";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
+import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { EvmSweepDialog } from "./EvmSweepDialog";
 import { useIdleLock } from "@/lib/wallet/security";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
@@ -41,6 +42,7 @@ import { TopBar } from "./TopBar";
 import { MetalWalletCardConnected } from "./MetalWalletCardConnected";
 import { ActionPanel, type ActionItem } from "./ActionPanel";
 import { OmniTokensPanel } from "./OmniTokensPanel";
+import { EvmTokensPanel } from "./EvmTokensPanel";
 
 type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -178,12 +180,14 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
   });
 
   // Aggregate native USD across all chains
+  const scanGap = useScanGap();
   const totalQuery = useQuery({
-    queryKey: ["total-native", accountQuery.data && Object.keys(accountQuery.data).join(",")],
+    queryKey: ["total-native", accountQuery.data && Object.keys(accountQuery.data).join(","), scanGap],
     enabled: !!accountQuery.data && !!pricesQuery.data,
     refetchInterval: 60_000,
     queryFn: async () => {
       const data = accountQuery.data!;
+      const gap = getScanGap();
       let total = 0;
       await Promise.all(
         CHAIN_LIST.map(async (c) => {
@@ -193,16 +197,16 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
           if (!price) return;
           try {
             if (c.kind === "utxo") {
-              const info = await esplora.addressInfo(c, a.account.address);
-              const sats = addressBalanceSats(info).total;
-              total += (sats / 10 ** c.decimals) * price;
+              // Aggregate across all HD-derived UTXO addresses (receive + change).
+              const scan = await scanUtxoHd(mnemonic, c, { gapLimit: gap, minIndex: gap });
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+              total += (scan.totalSats / 10 ** c.decimals) * price;
             } else if (c.kind === "evm") {
               // Aggregate native balance across all derived EVM addresses,
               // extending the scan past the watermark for active merchants.
-              const gap = 50;
-              const count = scanCeiling(c.id, gap);
+              const count = scanCeiling(c.id, gap, 20, "evm");
               const scan = await scanEvmHd(mnemonic, c, { count, includeTokens: false });
-              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex);
+              if (scan.highestUsedIndex >= 0) bumpWatermark(c.id, scan.highestUsedIndex, "evm");
               total += (Number(scan.totalNativeWei) / 1e18) * price;
             } else if (c.kind === "tron") {
               const sun = await tronBalance(c, (a as { account: TronAccount }).account.address);
@@ -347,14 +351,7 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         )}
       </section>
 
-      {/* Wallet-aware floating action panel */}
-      {activeChain && (
-        <section className="px-5 mt-6">
-          <ActionPanel chain={activeChain} actions={actions} />
-        </section>
-      )}
-
-      {/* Omni Layer tokens (TXC) */}
+      {/* Tokens on this chain */}
       {activeChain?.kind === "utxo" && activeChain.supportsOmni && (
         <section className="px-5 mt-5">
           <OmniTokensPanel
@@ -364,8 +361,45 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </section>
       )}
 
+      {activeChain?.kind === "evm" && activeChain.tokens.length > 0 && (
+        <section className="px-5 mt-5">
+          <EvmTokensPanel
+            chain={activeChain}
+            mnemonic={mnemonic}
+            address={accountQuery.data?.[activeChain.id]?.account.address ?? null}
+          />
+        </section>
+      )}
+
+      {/* Recent activity */}
+      <section className="px-5 mt-7">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold">Recent Activity</h2>
+          {activeChain && (
+            <button onClick={() => setHistoryOpen(activeChain)} className="text-xs text-muted-foreground font-medium">
+              See all
+            </button>
+          )}
+        </div>
+        <RecentActivity
+          chain={activeChain}
+          address={accountQuery.data?.[activeChain?.id ?? ""]?.account.address}
+          onSeeAll={() => activeChain && setHistoryOpen(activeChain)}
+        />
+      </section>
+
+      {/* Wallet-aware action panel (moved lower — primary Send/Receive live on cards) */}
+      {activeChain && (
+        <section className="px-5 mt-8">
+          <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em] mb-2">
+            Wallet actions
+          </div>
+          <ActionPanel chain={activeChain} actions={actions} />
+        </section>
+      )}
+
       {/* Activity / status strip */}
-      <section className="px-5 mt-5 grid grid-cols-2 gap-3">
+      <section className="px-5 mt-5 mb-6 grid grid-cols-2 gap-3">
         <div className="glass-card rounded-2xl p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Pickaxe className="w-3.5 h-3.5" /> Active Chain
@@ -384,22 +418,6 @@ export function Wallet({ onLocked }: { onLocked: () => void }) {
         </div>
       </section>
 
-      {/* Recent activity */}
-      <section className="px-5 mt-7">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold">Recent Activity</h2>
-          {activeChain && (
-            <button onClick={() => setHistoryOpen(activeChain)} className="text-xs text-muted-foreground font-medium">
-              See all
-            </button>
-          )}
-        </div>
-        <RecentActivity
-          chain={activeChain}
-          address={accountQuery.data?.[activeChain?.id ?? ""]?.account.address}
-          onSeeAll={() => activeChain && setHistoryOpen(activeChain)}
-        />
-      </section>
 
 
       {sendOpen && activeAccount && (

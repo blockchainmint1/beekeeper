@@ -1,32 +1,32 @@
-// Server-only helper to call the TEXITcoin (Omni-enabled) JSON-RPC.
+// Server-only helper to call the Iskander (ISK) coin JSON-RPC.
 // Reads credentials from environment at call time so they never ship to the client.
 import process from "node:process";
 
-export interface RpcError {
+export interface IskRpcErrorShape {
   code: number;
   message: string;
 }
 
-export class TxcRpcError extends Error {
+export class IskRpcError extends Error {
   code: number;
-  constructor(err: RpcError) {
+  constructor(err: IskRpcErrorShape) {
     super(err.message);
     this.code = err.code;
-    this.name = "TxcRpcError";
+    this.name = "IskRpcError";
   }
 }
 
 function getRpcConfig() {
-  const url = process.env.TXC_RPC_ADDRESS;
-  const user = process.env.TXC_RPC_USER;
-  const pass = process.env.TXC_RPC_PASSWORD;
+  const url = process.env.ISK_RPC_URL;
+  const user = process.env.ISK_RPC_USER;
+  const pass = process.env.ISK_RPC_PASS;
   if (!url || !user || !pass) {
-    throw new Error("TXC RPC is not configured");
+    throw new Error("ISK RPC is not configured");
   }
   return { url, user, pass };
 }
 
-export async function rpcCall<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
+export async function iskRpc<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
   const { url, user, pass } = getRpcConfig();
   const auth = `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`;
   const res = await fetch(url, {
@@ -36,9 +36,9 @@ export async function rpcCall<T = unknown>(method: string, params: unknown[] = [
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`TXC RPC HTTP ${res.status}: ${text.slice(0, 200)}`);
+    throw new Error(`ISK RPC HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
-  const json = (await res.json()) as { result?: T; error?: RpcError | null };
-  if (json.error) throw new TxcRpcError(json.error);
+  const json = (await res.json()) as { result?: T; error?: IskRpcErrorShape | null };
+  if (json.error) throw new IskRpcError(json.error);
   return json.result as T;
 }

@@ -60,12 +60,12 @@ export function MetalWalletCard({
 
       <div className="relative mt-7">
         <div className="text-white/70 text-[11px] tabular tracking-wide">
-          {usdValue == null ? "—" : "≈ " + usdValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+          {usdValue == null ? (loading ? "—" : "≈ $0.00") : "≈ " + usdValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}
         </div>
         <div className="mt-1 text-white text-[40px] leading-none font-semibold tabular tracking-tight drop-shadow-[0_2px_8px_oklch(0_0_0/0.35)]">
-          {loading || nativeAmount == null
+          {loading
             ? "—"
-            : nativeAmount.toLocaleString("en-US", { maximumFractionDigits: 4 })}{" "}
+            : (nativeAmount ?? 0).toLocaleString("en-US", { maximumFractionDigits: 4 })}{" "}
           <span className="text-white/75 text-2xl font-medium">{chain.ticker}</span>
         </div>
       </div>

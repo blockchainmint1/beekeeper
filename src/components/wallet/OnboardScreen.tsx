@@ -33,8 +33,8 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     setScanOpen(false);
     const m = text.trim().toLowerCase().replace(/\s+/g, " ");
     const wordCount = m.split(" ").filter(Boolean).length;
-    if (wordCount !== 24) {
-      toast.error("Copper Coin must be 24 words");
+    if (wordCount !== 12 && wordCount !== 24) {
+      toast.error("Recovery phrase must be 12 or 24 words");
       return;
     }
     if (!isValidMnemonic(m)) {
@@ -79,12 +79,17 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         <div className="mb-8 text-center">
           <HoneycombMark />
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.32em] text-amber-400/90">
-            Nectar · Pollinated Payments
+            POLLINATED WALLET
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Activate your Beekeeper Wallet</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight whitespace-pre-line">
+            Activate your{"\n"}
+            Beekeeper Wallet
+          </h1>
           <p className="mt-2 text-muted-foreground whitespace-pre-line">
-            Scan your Cold Storage Coin and the hive comes to life —{"\n"}
-            Bitcoin, TEXITcoin, and EVM wallets, all from one queen seed.
+            Scan your Cold Storage Coin{"\n"}
+            and the hive comes to life —{"\n"}
+            Bitcoin, TEXITcoin, and EVM wallets,{"\n"}
+            all from one queen seed.
           </p>
         </div>
 
@@ -207,7 +212,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         onOpenChange={setScanOpen}
         onResult={handleScan}
         title="Scan your copper Cold Storage Coin"
-        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 24-word recovery phrase stays on this device."
+        description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 12- or 24-word recovery phrase stays on this device."
       />
       <NectarLinkDialog
         open={linkOpen}
