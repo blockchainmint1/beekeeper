@@ -79,12 +79,17 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         <div className="mb-8 text-center">
           <HoneycombMark />
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.32em] text-amber-400/90">
-            Nectar · Pollinated Payments
+            POLLINATED WALLET
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Activate your Beekeeper Wallet</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight whitespace-pre-line">
+            Activate your{"\n"}
+            Beekeeper Wallet
+          </h1>
           <p className="mt-2 text-muted-foreground whitespace-pre-line">
-            Scan your Cold Storage Coin and the hive comes to life —{"\n"}
-            Bitcoin, TEXITcoin, and EVM wallets, all from one queen seed.
+            Scan your Cold Storage Coin{"\n"}
+            and the hive comes to life —{"\n"}
+            Bitcoin, TEXITcoin, and EVM wallets,{"\n"}
+            all from one queen seed.
           </p>
         </div>
 
