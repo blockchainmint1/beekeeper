@@ -67,11 +67,20 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     setBusy(true);
     try {
       await createVault(mnemonic, pass1);
+      if (bioAvailable && bioOptIn) {
+        try {
+          await enableBiometric(pass1);
+          toast.success("Biometric unlock enabled");
+        } catch {
+          toast.info("Wallet created — you can turn on biometric unlock in Settings");
+        }
+      }
       // Wipe the in-component copy now that the vault is encrypted and cached.
       setMnemonic("");
       setPass1("");
       setPass2("");
       toast.success("Wallet ready");
+
       onReady();
     } catch (err) {
       toast.error((err as Error).message);
