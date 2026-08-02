@@ -504,36 +504,6 @@ function BiometricRow() {
   );
 }
 
-function BackupPanel() {
-  const download = () => {
-    const text = exportVaultJson();
-    if (!text) { toast.error("No vault to back up"); return; }
-    const file = new Blob([text], { type: "application/json" });
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `wallet-backup-${new Date().toISOString().slice(0, 19).replace(/[:]/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast.success("Encrypted backup saved");
-  };
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your password.
-      </p>
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-        <strong>Reminder:</strong> A backup is only as strong as your password. Use a long, unique one and keep the file somewhere you trust.
-      </div>
-      <Button className="w-full" onClick={download}>
-        <Download className="mr-2 h-4 w-4" /> Download encrypted backup
-      </Button>
-    </div>
-  );
-}
-
 function PasswordPanel() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
