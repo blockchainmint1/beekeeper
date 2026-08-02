@@ -8,7 +8,7 @@ import {
   postLinkPayload,
   type NectarLinkRequest,
 } from "./nectar-link";
-import { getCachedMnemonic } from "./seed";
+import { getCachedMnemonic, getVaultFingerprint } from "./seed";
 
 const LINK_KEY = "lovable-multi-wallet-nectar-link-v1";
 
