@@ -60,7 +60,7 @@ import { deriveUtxoAccount } from "./utxo";
 import { utxoSignMessage } from "./signing";
 
 // Stable order — used by canonicalJson and by Nectar's verifier.
-export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE"] as const;
+export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE", "DASH"] as const;
 export type NectarChainKey = (typeof NECTAR_CHAINS)[number];
 
 /** Maps a Nectar chain key to the wallet's local ChainConfig id, or null when
@@ -73,6 +73,7 @@ export const NECTAR_TO_LOCAL: Record<NectarChainKey, ChainId | null> = {
   BCH: "bch",
   TRX: "trx",
   DOGE: "doge",
+  DASH: "dash",
 };
 
 export interface NectarLinkRequest {
