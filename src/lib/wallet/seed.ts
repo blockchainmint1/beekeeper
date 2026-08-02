@@ -101,6 +101,7 @@ export async function createVault(mnemonic: string, password: string): Promise<v
     password,
   );
   saveVault(blob);
+  rememberVaultFingerprint(mnemonic);
   cacheMnemonic(mnemonic);
 }
 
@@ -108,8 +109,10 @@ export async function unlockVault(password: string): Promise<string> {
   const blob = loadVault();
   if (!blob) throw new Error("No wallet found");
   const payload = await decryptJson<VaultPayload>(blob, password);
+  rememberVaultFingerprint(payload.mnemonic);
   cacheMnemonic(payload.mnemonic);
   return payload.mnemonic;
+
 }
 
 /** Re-encrypts the existing vault under a new password. */
