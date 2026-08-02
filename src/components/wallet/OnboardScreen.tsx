@@ -97,7 +97,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         <div className="mb-8 text-center">
           <HoneycombMark />
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.32em] text-amber-400/90">
-            POLLINATED WALLET
+            POLLINATED MONEY
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight whitespace-pre-line">
             Activate your{"\n"}
