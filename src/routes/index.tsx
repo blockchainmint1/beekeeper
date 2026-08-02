@@ -61,6 +61,7 @@ function Index() {
           }}
         />
       )}
+      {stage !== "loading" && <Footer />}
     </>
   );
 }

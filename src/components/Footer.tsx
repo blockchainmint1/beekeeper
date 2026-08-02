@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { versionLabel } from "@/lib/version";
 
 /**
  * Shared site footer. Required on every public surface — the app stores need a
