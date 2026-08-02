@@ -2,14 +2,42 @@
 // persisted in localStorage. Powers TXC, ISK, and EVM derivation.
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
 
 const VAULT_KEY = "lovable-multi-wallet-vault-v1";
 const SESSION_KEY = "lovable-multi-wallet-session-v1";
+const FP_KEY = "lovable-multi-wallet-vault-fp-v1";
+// Kept in sync with LINK_KEY in ./nectar (imported literally to avoid a cycle).
+const NECTAR_LINK_KEY = "lovable-multi-wallet-nectar-link-v1";
 
 export interface VaultPayload {
   mnemonic: string;
   createdAt: number;
+}
+
+/* ─── Vault fingerprint ───
+   A non-reversible id for "which seed is this?", so per-wallet state (e.g. the
+   Nectar Pay merchant link) can't leak across a wipe + fresh seed import. */
+
+export function vaultFingerprint(mnemonic: string): string {
+  const bytes = sha256(new TextEncoder().encode(mnemonic.trim().toLowerCase()));
+  return Array.from(bytes.slice(0, 8))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export function getVaultFingerprint(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(FP_KEY);
+}
+
+export function rememberVaultFingerprint(mnemonic: string): void {
+  try {
+    localStorage.setItem(FP_KEY, vaultFingerprint(mnemonic));
+  } catch {
+    /* ignore */
+  }
 }
 
 export function loadVault(): EncryptedBlob | null {
@@ -29,12 +57,16 @@ export function saveVault(blob: EncryptedBlob): void {
 
 export function wipeVault(): void {
   localStorage.removeItem(VAULT_KEY);
+  localStorage.removeItem(FP_KEY);
+  // Merchant links belong to the seed that made them.
+  localStorage.removeItem(NECTAR_LINK_KEY);
   sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function hasVault(): boolean {
   return loadVault() !== null;
 }
+
 
 // In-memory unlocked mnemonic (persisted to sessionStorage so a reload while
 // the tab is open keeps the wallet unlocked).
