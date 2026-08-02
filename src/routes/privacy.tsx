@@ -75,7 +75,8 @@ function Privacy() {
       </p>
 
       <h2>Children</h2>
-      <p>The app is not directed to children under 13, and we knowingly collect no data from them.</h2>
+      <p>
+        The app is not directed to children under 13, and we knowingly collect no data from them.
       </p>
 
       <h2>Your rights</h2>
