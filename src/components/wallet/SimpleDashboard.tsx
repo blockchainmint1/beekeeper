@@ -30,7 +30,7 @@ import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
 import { NectarLinkDialog } from "./NectarLinkDialog";
 import { hasNectarLink } from "@/lib/wallet/nectar";
-import { Link2, CheckCircle2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 type PriceMap = Record<string, number>;
@@ -342,17 +342,9 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </div>
       </section>
 
-      <section className="px-5 mt-4">
-        {nectarLinked ? (
-          <div className="glass-card flex items-center gap-2 rounded-2xl px-4 py-3 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
-            <span className="flex-1">Nectar Pay linked. Re-sync to share newly supported chains.</span>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setLinkOpen(true)}>
-              Re-sync keys
-            </Button>
-
-          </div>
-        ) : (
+      {/* Once linked, Nectar Pay management lives in Wallet → Settings → Nectar Pay. */}
+      {!nectarLinked && (
+        <section className="px-5 mt-4">
           <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
             <Link2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
             <div className="flex-1 text-xs text-foreground/85">
@@ -362,8 +354,8 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
               Link
             </Button>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <NectarLinkDialog
         open={linkOpen}
