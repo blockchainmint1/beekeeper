@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ScanLine, Eye, EyeOff, Plus, Settings as Cog, Sun, Moon, LogOut,
-  Download, KeyRound, ShieldCheck, BookUser,
+  Download, KeyRound, ShieldCheck, BookUser, ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -84,6 +84,15 @@ export function WalletHeader({ mnemonic, onLock }: { mnemonic: string; onLock?: 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50">
       <div className="mx-auto max-w-3xl px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 flex items-center gap-1">
+        <Link
+          to="/"
+          aria-label="Back to My Funds summary"
+          title="Back to My Funds"
+          className="w-9 h-9 -ml-1 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 active:scale-95 transition"
+        >
+          <ChevronLeft className="w-[20px] h-[20px]" strokeWidth={2.1} />
+        </Link>
+
         <button
           onClick={() => setShowPortfolio((v) => !v)}
           className="flex-1 min-w-0 text-left"
