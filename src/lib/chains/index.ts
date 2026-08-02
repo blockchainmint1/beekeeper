@@ -1,7 +1,7 @@
 import type { Network } from "bitcoinjs-lib";
 
 export type ChainId =
-  | "btc" | "ltc" | "bch" | "doge" | "txc" | "isk"
+  | "btc" | "ltc" | "bch" | "doge" | "dash" | "txc" | "isk"
   | "eth" | "bsc" | "base" | "polygon" | "zchl"
   | "trx" | "sol";
 
@@ -476,6 +476,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   ltc: LTC,
   bch: BCH,
   doge: DOGE,
+  dash: DASH,
   txc: TXC,
   isk: ISK,
   eth: ETH,
@@ -487,7 +488,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
   sol: SOL,
 };
 
-export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, DOGE, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
+export const CHAIN_LIST: ChainConfig[] = [BTC, LTC, BCH, DOGE, DASH, TXC, ISK, ETH, BSC, BASE, POLYGON, ZCHL, TRX, SOL];
 
 export function getChain(id: ChainId): ChainConfig {
   const c = CHAINS[id];
