@@ -18,7 +18,8 @@
     "android:patch": "bun scripts/patch-android-manifest.mjs",
     "android:setup": "bun install && bun run build && (test -d android || bunx cap add android) && bun run cap:assets && bunx cap sync android && bun run android:patch && bunx cap open android",
     "android:reset": "rm -rf android && bun run build && bunx cap add android && bun run cap:assets && bunx cap sync android && bun run android:patch && bunx cap open android",
-    "android:apk": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew assembleDebug"
+    "android:apk": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew assembleDebug",
+    "android:aab": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

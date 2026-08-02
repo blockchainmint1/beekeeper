@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { OnboardScreen } from "@/components/wallet/OnboardScreen";
 import { UnlockScreen } from "@/components/wallet/UnlockScreen";
 import { SimpleDashboard } from "@/components/wallet/SimpleDashboard";
+import { Footer } from "@/components/Footer";
 import { getCachedMnemonic, hasVault } from "@/lib/wallet/seed";
 
 export const Route = createFileRoute("/")({
@@ -60,6 +61,7 @@ function Index() {
           }}
         />
       )}
+      {stage !== "loading" && <Footer />}
     </>
   );
 }
