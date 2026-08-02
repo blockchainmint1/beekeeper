@@ -28,6 +28,15 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioOptIn, setBioOptIn] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    void isBiometricAvailable().then((ok) => { if (alive) setBioAvailable(ok); });
+    return () => { alive = false; };
+  }, []);
+
 
   function handleScan(text: string) {
     setScanOpen(false);
