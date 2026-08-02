@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
@@ -20,6 +23,21 @@ import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.publi
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestoRoute = ManifestoRouteImport.update({
+  id: '/manifesto',
+  path: '/manifesto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExtensionRoute = ExtensionRouteImport.update({
@@ -57,6 +75,9 @@ const ApiPublicRpcAlchemyChainRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/extension': typeof ExtensionRouteWithChildren
+  '/manifesto': typeof ManifestoRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -65,6 +86,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/manifesto': typeof ManifestoRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -75,6 +99,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/extension': typeof ExtensionRouteWithChildren
+  '/manifesto': typeof ManifestoRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -86,6 +113,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/extension'
+    | '/manifesto'
+    | '/privacy'
+    | '/terms'
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
@@ -94,6 +124,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/manifesto'
+    | '/privacy'
+    | '/terms'
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
@@ -103,6 +136,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/extension'
+    | '/manifesto'
+    | '/privacy'
+    | '/terms'
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
@@ -113,6 +149,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExtensionRoute: typeof ExtensionRouteWithChildren
+  ManifestoRoute: typeof ManifestoRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -124,6 +163,27 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifesto': {
+      id: '/manifesto'
+      path: '/manifesto'
+      fullPath: '/manifesto'
+      preLoaderRoute: typeof ManifestoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/extension': {
@@ -190,6 +250,9 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtensionRoute: ExtensionRouteWithChildren,
+  ManifestoRoute: ManifestoRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   WalletRoute: WalletRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
