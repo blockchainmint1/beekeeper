@@ -1,0 +1,54 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+const chainEnum = z.enum(["btc", "ltc", "bch", "doge", "dash"]);
+
+const addrInput = z.object({ chain: chainEnum, address: z.string().min(20).max(120) });
+const txInput = z.object({ chain: chainEnum, txid: z.string().min(32).max(80) });
+const txsInput = z.object({
+  chain: chainEnum,
+  address: z.string().min(20).max(120),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+const broadcastInput = z.object({ chain: chainEnum, rawHex: z.string().min(20) });
+
+/** Is NowNodes usable for this chain (key present + Blockbook host known)? */
+export const nownodesStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const { nownodesEnabled, NOWNODES_BOOKS } = await import("./nownodes.server");
+  return { enabled: nownodesEnabled(), chains: Object.keys(NOWNODES_BOOKS) };
+});
+
+export const nownodesAddressInfo = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => addrInput.parse(d))
+  .handler(async ({ data }) => {
+    const { nnAddressInfoShaped } = await import("./nownodes.server");
+    return nnAddressInfoShaped(data.chain, data.address);
+  });
+
+export const nownodesAddressUtxos = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => addrInput.parse(d))
+  .handler(async ({ data }) => {
+    const { nnUtxosShaped } = await import("./nownodes.server");
+    return nnUtxosShaped(data.chain, data.address);
+  });
+
+export const nownodesAddressTxs = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => txsInput.parse(d))
+  .handler(async ({ data }) => {
+    const { nnTxs } = await import("./nownodes.server");
+    return nnTxs(data.chain, data.address, data.limit ?? 25);
+  });
+
+export const nownodesTxHex = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => txInput.parse(d))
+  .handler(async ({ data }) => {
+    const { nnTxHex } = await import("./nownodes.server");
+    return nnTxHex(data.chain, data.txid);
+  });
+
+export const nownodesBroadcast = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => broadcastInput.parse(d))
+  .handler(async ({ data }) => {
+    const { nnBroadcast } = await import("./nownodes.server");
+    return nnBroadcast(data.chain, data.rawHex);
+  });
