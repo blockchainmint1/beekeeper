@@ -98,7 +98,9 @@ export function NectarLinkConsentDialog({
         setDerived({
           supported: built.payload.chains,
           unsupported: built.unsupported,
+          extra: built.extra,
         });
+
         setError(null);
 
         const addr = await deriveTxcIdentityAddress(mnemonic);
