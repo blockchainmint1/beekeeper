@@ -112,16 +112,25 @@ export function MetalWalletCardConnected({
   const nativeAmount = balQuery.data ?? null;
   const usdValue = usdPrice != null && nativeAmount != null ? nativeAmount * usdPrice : null;
 
+  const actions: CardAction[] = [];
+  if (onSend) actions.push({ label: "Send", icon: Send, onClick: onSend });
+  if (onReceive) actions.push({ label: "Receive", icon: ArrowDownToLine, onClick: onReceive });
+  if (onHistory) actions.push({ label: "History", icon: HistoryIcon, onClick: onHistory });
+
   return (
     <MetalWalletCard
       chain={chain}
+      label={label}
       nativeAmount={nativeAmount}
       usdValue={usdValue}
       usdPrice={usdPrice}
       change24h={null}
       walletCount={1}
       onClick={onClick}
+      onLongPress={onLongPress}
       loading={balQuery.isLoading}
+      actions={actions.length ? actions : undefined}
     />
   );
+
 }
