@@ -25,8 +25,6 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [busy, setBusy] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linked, setLinked] = useState<boolean>(() => hasNectarLink());
 
   function handleScan(text: string) {
     setScanOpen(false);
