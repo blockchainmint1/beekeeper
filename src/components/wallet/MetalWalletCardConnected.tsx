@@ -8,17 +8,31 @@ import { deriveSolanaAccount, solanaBalance } from "@/lib/wallet/solana";
 import { fetchAllPrices, priceForChain } from "@/lib/wallet/price";
 import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
-import { MetalWalletCard } from "./MetalWalletCard";
+import { MetalWalletCard, type CardAction } from "./MetalWalletCard";
+import { getChainLabel, useChainLabelVersion } from "@/lib/wallet/chain-labels";
+import { Send, ArrowDownToLine, History as HistoryIcon } from "lucide-react";
 
 export function MetalWalletCardConnected({
   chain,
   mnemonic,
   onClick,
+  onSend,
+  onReceive,
+  onHistory,
+  onLongPress,
 }: {
   chain: ChainConfig;
   mnemonic: string;
   onClick?: () => void;
+  onSend?: () => void;
+  onReceive?: () => void;
+  onHistory?: () => void;
+  onLongPress?: () => void;
 }) {
+  const labelVersion = useChainLabelVersion();
+  const label = getChainLabel(chain.id, chain.name);
+  void labelVersion;
+
   const gap = useScanGap();
 
   const accountQuery = useQuery({
