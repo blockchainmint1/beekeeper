@@ -265,9 +265,16 @@ export const esplora = {
       return txcAddressInfo({ data: { address: a } });
     }
     if (chain.id === "btc") {
-      const { btcAddressInfo } = await import("./blockcypher.functions");
-      return btcAddressInfo({ data: { address: a } });
+      // mempool.space (keyless, generous limits) is primary; BlockCypher's
+      // 100 req/hr free tier is only a fallback so HD scans don't 429.
+      try {
+        return await esploraGet<AddressInfo>(chain, `/address/${a}`);
+      } catch {
+        const { btcAddressInfo } = await import("./blockcypher.functions");
+        return btcAddressInfo({ data: { address: a } });
+      }
     }
+
     if (chain.api === "blockchair") {
       const { blockchairAddressInfo } = await import("./blockchair");
       return blockchairAddressInfo(chain, a);
