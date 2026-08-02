@@ -89,7 +89,7 @@ function SecurityPage() {
   const passing = checks.filter((c) => c.ok).length;
 
   return (
-    <WalletPage title="Security checkup" subtitle="Four things worth getting right">
+    <WalletPage title="Security checkup" subtitle="Three things worth getting right">
       <div className="glass-card rounded-2xl p-4">
         <div className="text-[10.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Score
