@@ -1,6 +1,6 @@
 // CoinMarketCap fallback price feed. Called from the client only when
 // CoinGecko + Coinbase can't fill in a required coin.
-import { env } from "../env.server";
+import { env } from "../server-env";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 

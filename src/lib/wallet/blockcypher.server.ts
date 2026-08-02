@@ -1,6 +1,6 @@
 // BlockCypher-backed BTC reads. Server-only — uses BLOCKCYPHER_API token.
 // Endpoints: https://www.blockcypher.com/dev/bitcoin/
-import { env } from "../env.server";
+import { env } from "../server-env";
 
 const BASE = "https://api.blockcypher.com/v1/btc/main";
 

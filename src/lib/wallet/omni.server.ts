@@ -1,6 +1,6 @@
 // Server-only helper to call the TEXITcoin (Omni-enabled) JSON-RPC.
 // Reads credentials from environment at call time so they never ship to the client.
-import { env } from "../env.server";
+import { env } from "../server-env";
 
 export interface RpcError {
   code: number;

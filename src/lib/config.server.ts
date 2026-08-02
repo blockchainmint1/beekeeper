@@ -1,4 +1,4 @@
-import { env } from "./env.server";
+import { env } from "./server-env";
 
 // Server-only config. The .server.ts suffix prevents Vite from bundling
 // this file into the client — values here never reach the browser.
