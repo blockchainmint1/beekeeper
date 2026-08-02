@@ -23,7 +23,7 @@ import { NectarLinkDialog } from "./NectarLinkDialog";
 
 type SectionId =
   | "security" | "wallets" | "alerts" | "nectar"
-  | "backup" | "password" | "reveal" | "xpub" | "danger";
+  | "password" | "reveal" | "xpub" | "danger";
 
 interface SectionDef {
   id: SectionId;
@@ -38,7 +38,6 @@ const SECTIONS: SectionDef[] = [
   { id: "wallets",  label: "Wallets",      hint: "Show, hide, and reorder chains",          icon: Layers },
   { id: "alerts",   label: "Alerts",       hint: "In-app, email, and Telegram alerts",      icon: Bell },
   { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
-  { id: "backup",   label: "Backup",       hint: "Download the encrypted vault file",       icon: HardDriveDownload },
   { id: "password", label: "Password",     hint: "Re-encrypt with a new password",          icon: Lock },
   { id: "reveal",   label: "Private key",  hint: "Export a per-chain private key or WIF",   icon: Key },
   { id: "xpub",     label: "xpub",         hint: "Share your EVM account xpub",             icon: Share2 },
