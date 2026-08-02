@@ -39,7 +39,10 @@ export default defineConfig({
       // production bundle ships a real Buffer instead of Vite's stub.
       nodePolyfills({
         include: ["buffer", "stream", "util", "events", "string_decoder", "crypto"],
-        globals: { Buffer: true, global: true, process: true },
+        // Do not inject the browser `process` shim. TanStack Start replaces
+        // process.env.TSS_SERVER_FN_BASE at build time; the shim intercepted
+        // that expression and produced `undefined<functionId>` request URLs.
+        globals: { Buffer: true, global: true, process: false },
         protocolImports: true,
       }),
     ],
