@@ -192,6 +192,19 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
                   value={pass2}
                   onChange={(e) => setPass2(e.target.value)}
                 />
+                {bioAvailable && (
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                    <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">Enable biometric unlock</p>
+                      <p className="text-xs text-muted-foreground">
+                        Open the app with Face ID / fingerprint. Your password is kept in the OS Keychain / Keystore and is still required for sensitive actions.
+                      </p>
+                    </div>
+                    <Switch checked={bioOptIn} onCheckedChange={setBioOptIn} aria-label="Enable biometric unlock" />
+                  </div>
+                )}
+
                 <Button onClick={handleCreate} disabled={busy} className="w-full">
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                   {busy ? "Creating wallet…" : "Create wallet"}
