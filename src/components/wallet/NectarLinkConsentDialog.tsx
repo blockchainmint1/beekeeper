@@ -47,7 +47,9 @@ export function NectarLinkConsentDialog({
   const [derived, setDerived] = useState<{
     supported: NectarChainKey[];
     unsupported: NectarChainKey[];
+    extra: NectarChainKey[];
   } | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [myAddress, setMyAddress] = useState<string | null>(null);
   const [signerStatus, setSignerStatus] = useState<SignerStatus>({ kind: "loading" });
