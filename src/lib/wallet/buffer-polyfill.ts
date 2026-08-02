@@ -11,11 +11,27 @@ if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).B
   (globalThis as unknown as { Buffer: unknown }).Buffer = BufferPolyfill;
 }
 
-// Legacy hashing/stream packages read the global directly. Install it here,
-// after TanStack's compile-time env expressions have already been replaced;
-// injecting it through Vite would corrupt TSS_SERVER_FN_BASE request URLs.
-if (typeof globalThis !== "undefined" && !(globalThis as { process?: unknown }).process) {
-  (globalThis as unknown as { process: unknown }).process = processPolyfill;
+// Legacy hashing/stream packages (readable-stream, md5.js, cipher-base) read
+// `process.version`, `process.browser` and `process.nextTick` directly.
+// A partial `process` may already exist (dev server / SSR), so patch missing
+// fields instead of only assigning when absent. Injecting the shim through
+// Vite is not an option — it corrupts TSS_SERVER_FN_BASE request URLs.
+{
+  const g = globalThis as unknown as { process?: Record<string, unknown> };
+  if (!g.process) {
+    g.process = processPolyfill as unknown as Record<string, unknown>;
+  }
+  const p = g.process!;
+  if (typeof p["version"] !== "string") p["version"] = "v20.0.0";
+  if (!Array.isArray(p["versions"])) p["versions"] = p["versions"] ?? { node: "20.0.0" };
+  if (typeof p["nextTick"] !== "function") {
+    p["nextTick"] = (fn: (...args: unknown[]) => void, ...args: unknown[]) => {
+      queueMicrotask(() => fn(...args));
+    };
+  }
+  if (!p["env"]) p["env"] = {};
+  if (p["browser"] === undefined && typeof window !== "undefined") p["browser"] = true;
 }
+
 
 export const Buffer = BufferPolyfill;
