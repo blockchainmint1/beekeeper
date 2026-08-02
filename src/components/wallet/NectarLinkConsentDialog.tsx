@@ -244,6 +244,7 @@ export function NectarLinkConsentDialog({
                     <span className="font-medium">{c}</span>
                     <span className="text-muted-foreground">
                       — extended public key (watch-only)
+                      {derived.extra.includes(c) ? " · offered, not requested" : ""}
                     </span>
                   </li>
                 ))}
@@ -255,6 +256,11 @@ export function NectarLinkConsentDialog({
                   </li>
                 ))}
               </ul>
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                We share every chain this wallet supports. Nectar keeps the ones it
+                understands and ignores the rest — re-sync any time to add new chains.
+              </p>
+
             </div>
           )}
 
