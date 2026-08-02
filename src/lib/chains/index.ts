@@ -217,7 +217,9 @@ export const BCH: UtxoChain = {
   decimals: 8,
   dustSats: 546,
   defaultFeeRate: 1,
-  apiBase: "https://bchplorer.com/api",
+  apiBase: "https://api.blockchair.com/bitcoin-cash",
+  api: "blockchair",
+  blockchairChain: "bitcoin-cash",
   explorerTx: (h) => `https://blockchair.com/bitcoin-cash/transaction/${h}`,
   explorerAddr: (a) => `https://blockchair.com/bitcoin-cash/address/${a}`,
   supportsOmni: false,
@@ -251,10 +253,45 @@ export const DOGE: UtxoChain = {
   dustSats: 1_000_000, // Doge dust is ~0.01 DOGE
   defaultFeeRate: 1000, // sat/vB — Doge fees are tiny in DOGE terms but high in sats
   apiBase: "https://api.blockchair.com/dogecoin",
+  api: "blockchair",
+  blockchairChain: "dogecoin",
   explorerTx: (h) => `https://blockchair.com/dogecoin/transaction/${h}`,
   explorerAddr: (a) => `https://blockchair.com/dogecoin/address/${a}`,
   supportsOmni: false,
   color: "oklch(0.82 0.14 85)",
+};
+
+// DASH network — Dash mainnet (legacy P2PKH only, no segwit)
+const DASH_NETWORK: Network = {
+  messagePrefix: "\x19DarkCoin Signed Message:\n",
+  bech32: "dash", // unused — Dash has no native segwit
+  bip32: { public: 0x0488b21e, private: 0x0488ade4 },
+  pubKeyHash: 0x4c,
+  scriptHash: 0x10,
+  wif: 0xcc,
+};
+
+export const DASH: UtxoChain = {
+  kind: "utxo",
+  id: "dash",
+  name: "Dash",
+  ticker: "DASH",
+  network: DASH_NETWORK,
+  coinType: 5,
+  bip44Base: "m/44'/5'/0'/0",
+  // No segwit on Dash; bip84Base unused but kept for type compatibility.
+  bip84Base: "m/44'/5'/0'/0",
+  defaultAddressType: "legacy",
+  decimals: 8,
+  dustSats: 5_460,
+  defaultFeeRate: 2,
+  apiBase: "https://api.blockchair.com/dash",
+  api: "blockchair",
+  blockchairChain: "dash",
+  explorerTx: (h) => `https://blockchair.com/dash/transaction/${h}`,
+  explorerAddr: (a) => `https://blockchair.com/dash/address/${a}`,
+  supportsOmni: false,
+  color: "oklch(0.66 0.15 245)",
 };
 
 export const ISK: UtxoChain = {
