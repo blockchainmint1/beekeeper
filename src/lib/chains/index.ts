@@ -28,6 +28,10 @@ export interface UtxoChain {
   /** CashAddr-style prefix for display (e.g. "bitcoincash"). When set, the wallet
    *  normalizes incoming addresses and displays addresses in CashAddr form. */
   cashAddrPrefix?: string;
+  /** Backend flavour for balances/UTXOs/history. Defaults to "esplora". */
+  api?: "esplora" | "blockchair";
+  /** Blockchair chain slug (required when api === "blockchair"). */
+  blockchairChain?: string;
 }
 
 export interface EvmChain {
