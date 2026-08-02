@@ -161,7 +161,7 @@ function ConsolidatePage() {
                   </div>
                   {s.txid && chain.explorerTx && (
                     <a
-                      href={chain.explorerTx.replace("{txid}", s.txid)}
+                      href={chain.explorerTx(s.txid)}
                       target="_blank"
                       rel="noreferrer"
                       className="shrink-0 text-muted-foreground hover:text-foreground"
