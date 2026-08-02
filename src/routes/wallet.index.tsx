@@ -31,10 +31,8 @@ function WalletHome() {
   );
 
   const [reorderOpen, setReorderOpen] = useState(false);
-  const [backedUp, setBackedUp] = useState(true);
   const [nectarLinked, setNectarLinked] = useState(true);
   useEffect(() => {
-    setBackedUp(isVaultBackedUp());
     setNectarLinked(hasNectarLink());
   }, []);
 
