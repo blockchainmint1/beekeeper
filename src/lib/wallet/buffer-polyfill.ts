@@ -16,22 +16,28 @@ if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: unknown }).B
 // A partial `process` may already exist (dev server / SSR), so patch missing
 // fields instead of only assigning when absent. Injecting the shim through
 // Vite is not an option — it corrupts TSS_SERVER_FN_BASE request URLs.
-{
+// Browser only — on the server the real (read-only) `process` must be left alone.
+if (typeof window !== "undefined") {
   const g = globalThis as unknown as { process?: Record<string, unknown> };
   if (!g.process) {
     g.process = processPolyfill as unknown as Record<string, unknown>;
   }
   const p = g.process!;
-  if (typeof p["version"] !== "string") p["version"] = "v20.0.0";
-  if (!Array.isArray(p["versions"])) p["versions"] = p["versions"] ?? { node: "20.0.0" };
-  if (typeof p["nextTick"] !== "function") {
-    p["nextTick"] = (fn: (...args: unknown[]) => void, ...args: unknown[]) => {
-      queueMicrotask(() => fn(...args));
-    };
+  try {
+    if (typeof p["version"] !== "string") p["version"] = "v20.0.0";
+    if (!p["versions"]) p["versions"] = { node: "20.0.0" };
+    if (typeof p["nextTick"] !== "function") {
+      p["nextTick"] = (fn: (...args: unknown[]) => void, ...args: unknown[]) => {
+        queueMicrotask(() => fn(...args));
+      };
+    }
+    if (!p["env"]) p["env"] = {};
+    if (p["browser"] === undefined) p["browser"] = true;
+  } catch {
+    // frozen process object — nothing to patch
   }
-  if (!p["env"]) p["env"] = {};
-  if (p["browser"] === undefined && typeof window !== "undefined") p["browser"] = true;
 }
+
 
 
 export const Buffer = BufferPolyfill;
