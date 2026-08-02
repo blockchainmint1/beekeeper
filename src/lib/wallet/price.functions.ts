@@ -1,6 +1,6 @@
 // CoinMarketCap fallback price feed. Called from the client only when
 // CoinGecko + Coinbase can't fill in a required coin.
-import process from "node:process";
+import { env } from "../server-env";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -38,7 +38,7 @@ interface CmcResponse {
 export const fetchCmcPrices = createServerFn({ method: "POST" })
   .inputValidator(z.object({ keys: z.array(z.string()).max(50) }))
   .handler(async ({ data }): Promise<Record<string, number>> => {
-    const key = process.env.CMC_API;
+    const key = env("CMC_API");
     if (!key) return {};
     const symbols = Array.from(
       new Set(data.keys.map((k) => KEY_TO_SYMBOL[k]).filter((s): s is string => !!s)),
