@@ -180,9 +180,14 @@ function NectarPanel() {
           Not linked yet. Scan the QR code from your Nectar Pay merchant dashboard to connect.
         </div>
       )}
+      {link && (
+        <p className="text-[11px] text-muted-foreground">
+          Added support for a new chain since you linked? Re-sync to share the newly derived extended public keys.
+        </p>
+      )}
       <div className="flex gap-2">
         <Button className="flex-1" onClick={() => setLinkOpen(true)}>
-          <Link2 className="mr-2 h-4 w-4" /> {link ? "Re-link" : "Scan Nectar Pay QR"}
+          <Link2 className="mr-2 h-4 w-4" /> {link ? "Re-sync keys" : "Scan Nectar Pay QR"}
         </Button>
         {link && (
           <Button
