@@ -20,6 +20,10 @@ interface UtxoEsploraTx {
 }
 
 export async function fetchUtxoHistory(chain: UtxoChain, address: string): Promise<HistoryItem[]> {
+  if (chain.api === "blockchair") {
+    const { blockchairHistory } = await import("./blockchair");
+    return blockchairHistory(chain, address);
+  }
   const res = await fetch(`${chain.apiBase}/address/${address}/txs`);
   if (!res.ok) throw new Error(`${chain.ticker} history ${res.status}`);
   const txs = (await res.json()) as UtxoEsploraTx[];

@@ -43,6 +43,7 @@ export async function fetchAllPrices(): Promise<PriceMap> {
   ids.add("litecoin");
   ids.add("bitcoin-cash");
   ids.add("dogecoin");
+  ids.add("dash");
   // TXC + ISK have no CoinGecko listing; CMC fallback fills them by ticker.
   ids.add("txc");
   ids.add("isk");
@@ -131,6 +132,7 @@ export function priceForChain(prices: PriceMap, chain: ChainConfig): number | nu
     if (chain.id === "ltc") return prices["litecoin"] ?? null;
     if (chain.id === "bch") return prices["bitcoin-cash"] ?? null;
     if (chain.id === "doge") return prices["dogecoin"] ?? null;
+    if (chain.id === "dash") return prices["dash"] ?? null;
     return null;
   }
   if (chain.kind === "evm") {

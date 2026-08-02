@@ -268,6 +268,10 @@ export const esplora = {
       const { btcAddressInfo } = await import("./blockcypher.functions");
       return btcAddressInfo({ data: { address: a } });
     }
+    if (chain.api === "blockchair") {
+      const { blockchairAddressInfo } = await import("./blockchair");
+      return blockchairAddressInfo(chain, a);
+    }
     return esploraGet<AddressInfo>(chain, `/address/${a}`);
   },
   addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
@@ -278,6 +282,10 @@ export const esplora = {
     if (chain.id === "txc") {
       const { txcAddressUtxos } = await import("./txc.functions");
       return txcAddressUtxos({ data: { address: a } });
+    }
+    if (chain.api === "blockchair") {
+      const { blockchairAddressUtxos } = await import("./blockchair");
+      return blockchairAddressUtxos(chain, a);
     }
     return esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`);
   },
@@ -290,6 +298,10 @@ export const esplora = {
       const { txcAddressTxs } = await import("./txc.functions");
       return txcAddressTxs({ data: { address: a } });
     }
+    if (chain.api === "blockchair") {
+      const { blockchairHistory } = await import("./blockchair");
+      return blockchairHistory(chain, a);
+    }
     return esploraGet<unknown[]>(chain, `/address/${a}/txs`);
   },
   txHex: async (chain: UtxoChain, txid: string): Promise<string> => {
@@ -301,6 +313,10 @@ export const esplora = {
       const { txcTxHex } = await import("./txc.functions");
       return txcTxHex({ data: { txid } });
     }
+    if (chain.api === "blockchair") {
+      const { blockchairTxHex } = await import("./blockchair");
+      return blockchairTxHex(chain, txid);
+    }
     return esploraGet<string>(chain, `/tx/${txid}/hex`);
   },
   async broadcast(chain: UtxoChain, rawHex: string): Promise<string> {
@@ -311,6 +327,10 @@ export const esplora = {
     if (chain.id === "txc") {
       const { txcBroadcast } = await import("./txc.functions");
       return txcBroadcast({ data: { rawHex } });
+    }
+    if (chain.api === "blockchair") {
+      const { blockchairBroadcast } = await import("./blockchair");
+      return blockchairBroadcast(chain, rawHex);
     }
     const res = await fetch(`${chain.apiBase}/tx`, {
       method: "POST",
