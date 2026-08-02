@@ -30,7 +30,7 @@ import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
 import { NectarLinkDialog } from "./NectarLinkDialog";
 import { hasNectarLink } from "@/lib/wallet/nectar";
-import { Link2, CheckCircle2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 type PriceMap = Record<string, number>;
