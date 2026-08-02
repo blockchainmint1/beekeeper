@@ -2,15 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ShieldCheck, ShieldAlert, Download, Clock, RefreshCw, Fingerprint, Radar, CheckCircle2,
+  ShieldCheck, ShieldAlert, Clock, RefreshCw, Fingerprint, Radar, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { WalletPage } from "@/components/wallet/WalletPage";
-import {
-  downloadVaultBackup, getLastBackupAt, isVaultBackedUp,
-} from "@/lib/wallet/seed";
 import { hasNectarLink } from "@/lib/wallet/nectar";
 import {
   getScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX,
