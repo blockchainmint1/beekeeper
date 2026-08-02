@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScanLine, ShieldCheck, Loader2 } from "lucide-react";
+import { ScanLine, ShieldCheck, Loader2, Fingerprint } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
+import { isBiometricAvailable, enableBiometric } from "@/lib/native/biometric";
 import { QrScanDialog } from "./QrScanDialog";
 
 type Step = 1 | 2 | 3;
+
 
 
 const DISCLAIMERS = [
@@ -25,6 +28,15 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioOptIn, setBioOptIn] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    void isBiometricAvailable().then((ok) => { if (alive) setBioAvailable(ok); });
+    return () => { alive = false; };
+  }, []);
+
 
   function handleScan(text: string) {
     setScanOpen(false);
@@ -55,11 +67,20 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
     setBusy(true);
     try {
       await createVault(mnemonic, pass1);
+      if (bioAvailable && bioOptIn) {
+        try {
+          await enableBiometric(pass1);
+          toast.success("Biometric unlock enabled");
+        } catch {
+          toast.info("Wallet created — you can turn on biometric unlock in Settings");
+        }
+      }
       // Wipe the in-component copy now that the vault is encrypted and cached.
       setMnemonic("");
       setPass1("");
       setPass2("");
       toast.success("Wallet ready");
+
       onReady();
     } catch (err) {
       toast.error((err as Error).message);
@@ -171,6 +192,19 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
                   value={pass2}
                   onChange={(e) => setPass2(e.target.value)}
                 />
+                {bioAvailable && (
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                    <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">Enable biometric unlock</p>
+                      <p className="text-xs text-muted-foreground">
+                        Open the app with Face ID / fingerprint. Your password is kept in the OS Keychain / Keystore and is still required for sensitive actions.
+                      </p>
+                    </div>
+                    <Switch checked={bioOptIn} onCheckedChange={setBioOptIn} aria-label="Enable biometric unlock" />
+                  </div>
+                )}
+
                 <Button onClick={handleCreate} disabled={busy} className="w-full">
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                   {busy ? "Creating wallet…" : "Create wallet"}
