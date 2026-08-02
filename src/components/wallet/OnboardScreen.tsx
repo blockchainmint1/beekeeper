@@ -3,13 +3,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScanLine, ShieldCheck, Link2, CheckCircle2, Loader2 } from "lucide-react";
+import { ScanLine, ShieldCheck, Loader2 } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
 import { QrScanDialog } from "./QrScanDialog";
-import { NectarLinkDialog } from "./NectarLinkDialog";
-import { hasNectarLink } from "@/lib/wallet/nectar";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3;
+
 
 const DISCLAIMERS = [
   "I understand my copper coin is my only backup. If I lose it, my account is gone forever.",
@@ -26,8 +25,6 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [busy, setBusy] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linked, setLinked] = useState<boolean>(() => hasNectarLink());
 
   function handleScan(text: string) {
     setScanOpen(false);
@@ -62,8 +59,8 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
       setMnemonic("");
       setPass1("");
       setPass2("");
-      toast.success("Wallet ready — last step: link Nectar Pay");
-      setStep(4);
+      toast.success("Wallet ready");
+      onReady();
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -181,28 +178,6 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
               </div>
             )}
 
-            {step === 4 && (
-              <div className="space-y-3">
-                <div className="rounded-md border bg-muted/40 p-3 text-sm">
-                  <p className="font-medium">Link your Nectar Pay merchant account</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Open Nectar Pay on your merchant account, choose "Link wallet", and scan the QR code it shows. We'll share your BTC, TEXITcoin and EVM xpubs so Nectar Pay can watch for incoming payments — your seed and private keys stay here.
-                  </p>
-                </div>
-                {linked ? (
-                  <div className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-                    <CheckCircle2 className="h-4 w-4" /> Nectar Pay linked
-                  </div>
-                ) : (
-                  <Button className="w-full" onClick={() => setLinkOpen(true)}>
-                    <Link2 className="mr-2 h-4 w-4" /> Scan Nectar Pay QR
-                  </Button>
-                )}
-                <Button variant={linked ? "default" : "outline"} className="w-full" onClick={onReady}>
-                  {linked ? "Open my wallet →" : "Skip for now — link later in Settings"}
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -214,11 +189,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         title="Scan your copper Cold Storage Coin"
         description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 12- or 24-word recovery phrase stays on this device."
       />
-      <NectarLinkDialog
-        open={linkOpen}
-        onOpenChange={setLinkOpen}
-        onLinked={() => setLinked(true)}
-      />
+
     </div>
   );
 }
@@ -228,22 +199,19 @@ function titleFor(step: Step): string {
     ? "Scan your copper Cold Storage Coin"
     : step === 2
       ? "Acknowledge the rules"
-      : step === 3
-        ? "Set a device password"
-        : "Link Nectar Pay";
+      : "Set a device password";
 }
 function descFor(step: Step): string {
   return step === 1
     ? "Your Cold Storage Coin is the only way to activate this wallet. No phrase, no wallet."
     : step === 2
       ? "These four rules keep your funds yours. Please read each one."
-      : step === 3
-        ? "This password encrypts your wallet on this device. It can't recover your funds — only your Copper Coin can do that."
-        : "Connect this wallet to your merchant account so Nectar Pay can track payments.";
+      : "This password encrypts your wallet on this device. It can't recover your funds — only your Copper Coin can do that.";
 }
 
 function StepIndicator({ step }: { step: Step }) {
-  const labels = ["Scan", "Rules", "Password", "Link"];
+  const labels = ["Scan", "Rules", "Password"];
+
   return (
     <div className="flex items-center gap-1.5 text-[10px]">
       {labels.map((l, i) => {

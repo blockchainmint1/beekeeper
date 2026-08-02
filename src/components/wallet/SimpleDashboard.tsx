@@ -28,6 +28,9 @@ import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
+import { NectarLinkDialog } from "./NectarLinkDialog";
+import { hasNectarLink } from "@/lib/wallet/nectar";
+import { Link2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 type PriceMap = Record<string, number>;
@@ -303,6 +306,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     }
   }, [historyQuery.data, historyQuery.dataUpdatedAt]);
 
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [nectarLinked, setNectarLinked] = useState(false);
+  useEffect(() => { setNectarLinked(hasNectarLink()); }, []);
+
   function handleLock() {
     clearCachedMnemonic();
     onLocked();
@@ -334,6 +341,36 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           )}
         </div>
       </section>
+
+      <section className="px-5 mt-4">
+        {nectarLinked ? (
+          <div className="glass-card flex items-center gap-2 rounded-2xl px-4 py-3 text-xs text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
+            <span className="flex-1">Nectar Pay merchant account linked.</span>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setLinkOpen(true)}>
+              Re-link
+            </Button>
+          </div>
+        ) : (
+          <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
+            <Link2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
+            <div className="flex-1 text-xs text-foreground/85">
+              <strong className="font-semibold">Link Nectar Pay.</strong> Share your xpubs so your merchant account can watch for payments.
+            </div>
+            <Button size="sm" className="h-7 shrink-0 text-xs" onClick={() => setLinkOpen(true)}>
+              Link
+            </Button>
+          </div>
+        )}
+      </section>
+
+      <NectarLinkDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinked={() => setNectarLinked(true)}
+      />
+
+
 
       <section className="px-5 mt-5">
         {loadedCount === 0 && anyLoading ? (
