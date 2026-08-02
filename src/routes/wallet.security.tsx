@@ -34,32 +34,10 @@ function SecurityPage() {
   const [rescanning, setRescanning] = useState(false);
 
   function refresh() {
-    const backedUp = isVaultBackedUp();
-    const last = getLastBackupAt();
     const bio = isBiometricEnabledSync();
     const linked = hasNectarLink();
 
     setChecks([
-      {
-        id: "backup",
-        label: "Encrypted backup",
-        detail: backedUp
-          ? `Last saved ${last ? new Date(last).toLocaleDateString() : "recently"}`
-          : "No backup saved on this device yet",
-        ok: backedUp,
-        icon: backedUp ? ShieldCheck : ShieldAlert,
-        action: {
-          label: "Download",
-          run: () => {
-            if (downloadVaultBackup()) {
-              toast.success("Encrypted backup saved");
-              refresh();
-            } else {
-              toast.error("No vault to back up");
-            }
-          },
-        },
-      },
       {
         id: "biometric",
         label: "Biometric unlock",
