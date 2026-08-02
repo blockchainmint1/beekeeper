@@ -13,7 +13,7 @@ import { QrScanDialog } from "./QrScanDialog";
 import { parsePaymentUri } from "@/lib/wallet/payment-uri";
 import { usePortfolioTotal, usePrices } from "@/lib/wallet/portfolio";
 import { priceForChain, formatUsd } from "@/lib/wallet/price";
-import { CHAIN_MAP } from "@/lib/chains";
+import { TXC } from "@/lib/chains";
 import { getHideBalances, toggleHideBalances, useHideBalances, maskAmount } from "@/lib/wallet/hide-balances";
 
 const THEME_KEY = "quad-wallet-theme";
@@ -56,7 +56,7 @@ export function WalletHeader({ mnemonic, onLock }: { mnemonic: string; onLock?: 
 
   const prices = usePrices();
   const total = usePortfolioTotal(mnemonic);
-  const txcPrice = prices.data ? priceForChain(prices.data, CHAIN_MAP.txc) : null;
+  const txcPrice = prices.data ? priceForChain(prices.data, TXC) : null;
 
   function handleScan(raw: string) {
     setScanOpen(false);
