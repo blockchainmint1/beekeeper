@@ -202,22 +202,19 @@ function titleFor(step: Step): string {
     ? "Scan your copper Cold Storage Coin"
     : step === 2
       ? "Acknowledge the rules"
-      : step === 3
-        ? "Set a device password"
-        : "Link Nectar Pay";
+      : "Set a device password";
 }
 function descFor(step: Step): string {
   return step === 1
     ? "Your Cold Storage Coin is the only way to activate this wallet. No phrase, no wallet."
     : step === 2
       ? "These four rules keep your funds yours. Please read each one."
-      : step === 3
-        ? "This password encrypts your wallet on this device. It can't recover your funds — only your Copper Coin can do that."
-        : "Connect this wallet to your merchant account so Nectar Pay can track payments.";
+      : "This password encrypts your wallet on this device. It can't recover your funds — only your Copper Coin can do that.";
 }
 
 function StepIndicator({ step }: { step: Step }) {
-  const labels = ["Scan", "Rules", "Password", "Link"];
+  const labels = ["Scan", "Rules", "Password"];
+
   return (
     <div className="flex items-center gap-1.5 text-[10px]">
       {labels.map((l, i) => {
