@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, HardDriveDownload, Lock, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
-import { changePassword, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
+import { changePassword, unlockVault } from "@/lib/wallet/seed";
 import { getBiometricStatus, enableBiometric, disableBiometric } from "@/lib/native/biometric";
 import { Fingerprint } from "lucide-react";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
@@ -90,7 +90,6 @@ export function SettingsDialog({
               {section.id === "wallets"  && <WalletsPanel />}
               {section.id === "alerts"   && <AlertsPanel />}
               {section.id === "nectar"   && <NectarPanel />}
-              {section.id === "backup"   && <BackupPanel />}
               {section.id === "password" && <PasswordPanel />}
               {section.id === "reveal"   && <RevealPanel />}
               {section.id === "xpub"     && <XpubPanel />}
