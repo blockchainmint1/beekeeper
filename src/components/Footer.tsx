@@ -50,6 +50,8 @@ export function Footer() {
           Beekeeper is a self-custody wallet. You hold your own keys — no one, including us, can
           move, freeze, or recover your funds.
         </p>
+
+        <p className="font-mono text-[10px] text-muted-foreground/60">{versionLabel()}</p>
       </div>
     </footer>
   );
