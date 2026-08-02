@@ -265,15 +265,12 @@ export const esplora = {
       return txcAddressInfo({ data: { address: a } });
     }
     if (chain.id === "btc") {
-      // mempool.space (keyless, generous limits) is primary; BlockCypher's
-      // 100 req/hr free tier is only a fallback so HD scans don't 429.
-      try {
-        return await esploraGet<AddressInfo>(chain, `/address/${a}`);
-      } catch {
-        const { btcAddressInfo } = await import("./blockcypher.functions");
-        return btcAddressInfo({ data: { address: a } });
-      }
+      // Proxied server-side: avoids browser CORS and keeps a rate-limited
+      // fallback provider from throwing during HD scans.
+      const { btcEsploraAddressInfo } = await import("./btc-esplora.functions");
+      return btcEsploraAddressInfo({ data: { address: a } });
     }
+
 
     if (chain.api === "blockchair") {
       const { blockchairAddressInfo } = await import("./blockchair");
