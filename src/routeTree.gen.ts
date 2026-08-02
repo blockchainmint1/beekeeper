@@ -15,9 +15,20 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WalletIndexRouteImport } from './routes/wallet.index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
+import { Route as WalletSignRouteImport } from './routes/wallet.sign'
+import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
+import { Route as WalletMultisendRouteImport } from './routes/wallet.multisend'
+import { Route as WalletContactsRouteImport } from './routes/wallet.contacts'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
+import { Route as WalletChainXpubRouteImport } from './routes/wallet.$chain.xpub'
+import { Route as WalletChainSweepRouteImport } from './routes/wallet.$chain.sweep'
+import { Route as WalletChainSendRouteImport } from './routes/wallet.$chain.send'
+import { Route as WalletChainReceiveRouteImport } from './routes/wallet.$chain.receive'
+import { Route as WalletChainQrLoginRouteImport } from './routes/wallet.$chain.qr-login'
+import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.history'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
@@ -50,10 +61,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WalletIndexRoute = WalletIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WalletRoute,
+} as any)
 const ExtensionIndexRoute = ExtensionIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ExtensionRoute,
+} as any)
+const WalletSignRoute = WalletSignRouteImport.update({
+  id: '/sign',
+  path: '/sign',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletSettingsRoute = WalletSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletMultisendRoute = WalletMultisendRouteImport.update({
+  id: '/multisend',
+  path: '/multisend',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletContactsRoute = WalletContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => WalletRoute,
 } as any)
 const ExtensionSignRoute = ExtensionSignRouteImport.update({
   id: '/sign',
@@ -64,6 +100,36 @@ const ExtensionPairRoute = ExtensionPairRouteImport.update({
   id: '/pair',
   path: '/pair',
   getParentRoute: () => ExtensionRoute,
+} as any)
+const WalletChainXpubRoute = WalletChainXpubRouteImport.update({
+  id: '/$chain/xpub',
+  path: '/$chain/xpub',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletChainSweepRoute = WalletChainSweepRouteImport.update({
+  id: '/$chain/sweep',
+  path: '/$chain/sweep',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletChainSendRoute = WalletChainSendRouteImport.update({
+  id: '/$chain/send',
+  path: '/$chain/send',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletChainReceiveRoute = WalletChainReceiveRouteImport.update({
+  id: '/$chain/receive',
+  path: '/$chain/receive',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletChainQrLoginRoute = WalletChainQrLoginRouteImport.update({
+  id: '/$chain/qr-login',
+  path: '/$chain/qr-login',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletChainHistoryRoute = WalletChainHistoryRouteImport.update({
+  id: '/$chain/history',
+  path: '/$chain/history',
+  getParentRoute: () => WalletRoute,
 } as any)
 const ApiPublicRpcAlchemyChainRoute =
   ApiPublicRpcAlchemyChainRouteImport.update({
@@ -78,10 +144,21 @@ export interface FileRoutesByFullPath {
   '/manifesto': typeof ManifestoRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/wallet': typeof WalletRoute
+  '/wallet': typeof WalletRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/settings': typeof WalletSettingsRoute
+  '/wallet/sign': typeof WalletSignRoute
   '/extension/': typeof ExtensionIndexRoute
+  '/wallet/': typeof WalletIndexRoute
+  '/wallet/$chain/history': typeof WalletChainHistoryRoute
+  '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
+  '/wallet/$chain/receive': typeof WalletChainReceiveRoute
+  '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/sweep': typeof WalletChainSweepRoute
+  '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRoutesByTo {
@@ -89,10 +166,20 @@ export interface FileRoutesByTo {
   '/manifesto': typeof ManifestoRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/wallet': typeof WalletRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/settings': typeof WalletSettingsRoute
+  '/wallet/sign': typeof WalletSignRoute
   '/extension': typeof ExtensionIndexRoute
+  '/wallet': typeof WalletIndexRoute
+  '/wallet/$chain/history': typeof WalletChainHistoryRoute
+  '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
+  '/wallet/$chain/receive': typeof WalletChainReceiveRoute
+  '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/sweep': typeof WalletChainSweepRoute
+  '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRoutesById {
@@ -102,10 +189,21 @@ export interface FileRoutesById {
   '/manifesto': typeof ManifestoRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/wallet': typeof WalletRoute
+  '/wallet': typeof WalletRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/settings': typeof WalletSettingsRoute
+  '/wallet/sign': typeof WalletSignRoute
   '/extension/': typeof ExtensionIndexRoute
+  '/wallet/': typeof WalletIndexRoute
+  '/wallet/$chain/history': typeof WalletChainHistoryRoute
+  '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
+  '/wallet/$chain/receive': typeof WalletChainReceiveRoute
+  '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/sweep': typeof WalletChainSweepRoute
+  '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
 export interface FileRouteTypes {
@@ -119,7 +217,18 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/contacts'
+    | '/wallet/multisend'
+    | '/wallet/settings'
+    | '/wallet/sign'
     | '/extension/'
+    | '/wallet/'
+    | '/wallet/$chain/history'
+    | '/wallet/$chain/qr-login'
+    | '/wallet/$chain/receive'
+    | '/wallet/$chain/send'
+    | '/wallet/$chain/sweep'
+    | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,10 +236,20 @@ export interface FileRouteTypes {
     | '/manifesto'
     | '/privacy'
     | '/terms'
-    | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/contacts'
+    | '/wallet/multisend'
+    | '/wallet/settings'
+    | '/wallet/sign'
     | '/extension'
+    | '/wallet'
+    | '/wallet/$chain/history'
+    | '/wallet/$chain/qr-login'
+    | '/wallet/$chain/receive'
+    | '/wallet/$chain/send'
+    | '/wallet/$chain/sweep'
+    | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
   id:
     | '__root__'
@@ -142,7 +261,18 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/contacts'
+    | '/wallet/multisend'
+    | '/wallet/settings'
+    | '/wallet/sign'
     | '/extension/'
+    | '/wallet/'
+    | '/wallet/$chain/history'
+    | '/wallet/$chain/qr-login'
+    | '/wallet/$chain/receive'
+    | '/wallet/$chain/send'
+    | '/wallet/$chain/sweep'
+    | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesById: FileRoutesById
 }
@@ -152,7 +282,7 @@ export interface RootRouteChildren {
   ManifestoRoute: typeof ManifestoRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
-  WalletRoute: typeof WalletRoute
+  WalletRoute: typeof WalletRouteWithChildren
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
 
@@ -200,12 +330,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wallet/': {
+      id: '/wallet/'
+      path: '/'
+      fullPath: '/wallet/'
+      preLoaderRoute: typeof WalletIndexRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/extension/': {
       id: '/extension/'
       path: '/'
       fullPath: '/extension/'
       preLoaderRoute: typeof ExtensionIndexRouteImport
       parentRoute: typeof ExtensionRoute
+    }
+    '/wallet/sign': {
+      id: '/wallet/sign'
+      path: '/sign'
+      fullPath: '/wallet/sign'
+      preLoaderRoute: typeof WalletSignRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/settings': {
+      id: '/wallet/settings'
+      path: '/settings'
+      fullPath: '/wallet/settings'
+      preLoaderRoute: typeof WalletSettingsRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/multisend': {
+      id: '/wallet/multisend'
+      path: '/multisend'
+      fullPath: '/wallet/multisend'
+      preLoaderRoute: typeof WalletMultisendRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/contacts': {
+      id: '/wallet/contacts'
+      path: '/contacts'
+      fullPath: '/wallet/contacts'
+      preLoaderRoute: typeof WalletContactsRouteImport
+      parentRoute: typeof WalletRoute
     }
     '/extension/sign': {
       id: '/extension/sign'
@@ -220,6 +385,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/extension/pair'
       preLoaderRoute: typeof ExtensionPairRouteImport
       parentRoute: typeof ExtensionRoute
+    }
+    '/wallet/$chain/xpub': {
+      id: '/wallet/$chain/xpub'
+      path: '/$chain/xpub'
+      fullPath: '/wallet/$chain/xpub'
+      preLoaderRoute: typeof WalletChainXpubRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/$chain/sweep': {
+      id: '/wallet/$chain/sweep'
+      path: '/$chain/sweep'
+      fullPath: '/wallet/$chain/sweep'
+      preLoaderRoute: typeof WalletChainSweepRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/$chain/send': {
+      id: '/wallet/$chain/send'
+      path: '/$chain/send'
+      fullPath: '/wallet/$chain/send'
+      preLoaderRoute: typeof WalletChainSendRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/$chain/receive': {
+      id: '/wallet/$chain/receive'
+      path: '/$chain/receive'
+      fullPath: '/wallet/$chain/receive'
+      preLoaderRoute: typeof WalletChainReceiveRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/$chain/qr-login': {
+      id: '/wallet/$chain/qr-login'
+      path: '/$chain/qr-login'
+      fullPath: '/wallet/$chain/qr-login'
+      preLoaderRoute: typeof WalletChainQrLoginRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/$chain/history': {
+      id: '/wallet/$chain/history'
+      path: '/$chain/history'
+      fullPath: '/wallet/$chain/history'
+      preLoaderRoute: typeof WalletChainHistoryRouteImport
+      parentRoute: typeof WalletRoute
     }
     '/api/public/rpc/alchemy/$chain': {
       id: '/api/public/rpc/alchemy/$chain'
@@ -247,13 +454,44 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
   ExtensionRouteChildren,
 )
 
+interface WalletRouteChildren {
+  WalletContactsRoute: typeof WalletContactsRoute
+  WalletMultisendRoute: typeof WalletMultisendRoute
+  WalletSettingsRoute: typeof WalletSettingsRoute
+  WalletSignRoute: typeof WalletSignRoute
+  WalletIndexRoute: typeof WalletIndexRoute
+  WalletChainHistoryRoute: typeof WalletChainHistoryRoute
+  WalletChainQrLoginRoute: typeof WalletChainQrLoginRoute
+  WalletChainReceiveRoute: typeof WalletChainReceiveRoute
+  WalletChainSendRoute: typeof WalletChainSendRoute
+  WalletChainSweepRoute: typeof WalletChainSweepRoute
+  WalletChainXpubRoute: typeof WalletChainXpubRoute
+}
+
+const WalletRouteChildren: WalletRouteChildren = {
+  WalletContactsRoute: WalletContactsRoute,
+  WalletMultisendRoute: WalletMultisendRoute,
+  WalletSettingsRoute: WalletSettingsRoute,
+  WalletSignRoute: WalletSignRoute,
+  WalletIndexRoute: WalletIndexRoute,
+  WalletChainHistoryRoute: WalletChainHistoryRoute,
+  WalletChainQrLoginRoute: WalletChainQrLoginRoute,
+  WalletChainReceiveRoute: WalletChainReceiveRoute,
+  WalletChainSendRoute: WalletChainSendRoute,
+  WalletChainSweepRoute: WalletChainSweepRoute,
+  WalletChainXpubRoute: WalletChainXpubRoute,
+}
+
+const WalletRouteWithChildren =
+  WalletRoute._addFileChildren(WalletRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtensionRoute: ExtensionRouteWithChildren,
   ManifestoRoute: ManifestoRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
-  WalletRoute: WalletRoute,
+  WalletRoute: WalletRouteWithChildren,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
 export const routeTree = rootRouteImport
