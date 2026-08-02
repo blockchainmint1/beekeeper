@@ -88,14 +88,6 @@ function WalletHome() {
     el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: "smooth" });
   }
 
-  function handleBackup() {
-    if (downloadVaultBackup()) {
-      setBackedUp(true);
-      toast.success("Encrypted backup saved");
-    } else {
-      toast.error("No vault to back up");
-    }
-  }
 
   return (
     <div className="mx-auto max-w-3xl pb-32">
@@ -118,20 +110,6 @@ function WalletHome() {
         </div>
       </section>
 
-      {!backedUp && (
-        <section className="mt-4 px-5">
-          <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
-            <ShieldAlert className="h-4 w-4 shrink-0" style={{ color: "var(--isk)" }} />
-            <div className="flex-1 text-xs text-foreground/85">
-              <strong className="font-semibold">Back up your wallet.</strong> Without it, losing this
-              browser means losing funds.
-            </div>
-            <Button size="sm" onClick={handleBackup} className="h-7 shrink-0 text-xs">
-              <Download className="mr-1 h-3 w-3" /> Backup
-            </Button>
-          </div>
-        </section>
-      )}
 
       {!nectarLinked && (
         <section className="mt-3 px-5">
