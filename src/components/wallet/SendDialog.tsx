@@ -59,6 +59,7 @@ export function SendDialog({
   account,
   onSent,
   initialTo,
+  initialAmount,
   initialTokenSymbol,
 }: {
   open: boolean;
@@ -67,10 +68,13 @@ export function SendDialog({
   account: Account;
   onSent?: () => void;
   initialTo?: string;
+  /** Pre-filled amount in native units (e.g. from a scanned BIP21 QR). */
+  initialAmount?: string;
   initialTokenSymbol?: string;
 }) {
   const [to, setTo] = useState(initialTo ?? "");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(initialAmount ?? "");
+
   const [busy, setBusy] = useState(false);
   const [txid, setTxid] = useState<string | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
