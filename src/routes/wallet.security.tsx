@@ -2,15 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ShieldCheck, ShieldAlert, Download, Clock, RefreshCw, Fingerprint, Radar, CheckCircle2,
+  ShieldCheck, ShieldAlert, Clock, RefreshCw, Fingerprint, Radar, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { WalletPage } from "@/components/wallet/WalletPage";
-import {
-  downloadVaultBackup, getLastBackupAt, isVaultBackedUp,
-} from "@/lib/wallet/seed";
 import { hasNectarLink } from "@/lib/wallet/nectar";
 import {
   getScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX,
@@ -37,32 +34,10 @@ function SecurityPage() {
   const [rescanning, setRescanning] = useState(false);
 
   function refresh() {
-    const backedUp = isVaultBackedUp();
-    const last = getLastBackupAt();
     const bio = isBiometricEnabledSync();
     const linked = hasNectarLink();
 
     setChecks([
-      {
-        id: "backup",
-        label: "Encrypted backup",
-        detail: backedUp
-          ? `Last saved ${last ? new Date(last).toLocaleDateString() : "recently"}`
-          : "No backup saved on this device yet",
-        ok: backedUp,
-        icon: backedUp ? ShieldCheck : ShieldAlert,
-        action: {
-          label: "Download",
-          run: () => {
-            if (downloadVaultBackup()) {
-              toast.success("Encrypted backup saved");
-              refresh();
-            } else {
-              toast.error("No vault to back up");
-            }
-          },
-        },
-      },
       {
         id: "biometric",
         label: "Biometric unlock",
@@ -114,7 +89,7 @@ function SecurityPage() {
   const passing = checks.filter((c) => c.ok).length;
 
   return (
-    <WalletPage title="Security checkup" subtitle="Four things worth getting right">
+    <WalletPage title="Security checkup" subtitle="Three things worth getting right">
       <div className="glass-card rounded-2xl p-4">
         <div className="text-[10.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Score
@@ -140,7 +115,7 @@ function SecurityPage() {
             ) : (
               c.action && (
                 <Button size="sm" variant="secondary" className="h-7 shrink-0 text-xs" onClick={c.action.run}>
-                  <Download className="mr-1 h-3 w-3" /> {c.action.label}
+                  {c.action.label}
                 </Button>
               )
             )}

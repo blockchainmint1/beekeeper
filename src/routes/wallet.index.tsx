@@ -1,10 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, ShieldAlert, Download, Link2, Settings2 } from "lucide-react";
-import { toast } from "sonner";
+import { TrendingUp, Link2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CHAIN_LIST } from "@/lib/chains";
-import { downloadVaultBackup, isVaultBackedUp } from "@/lib/wallet/seed";
 import { hasNectarLink } from "@/lib/wallet/nectar";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { usePortfolioTotal } from "@/lib/wallet/portfolio";
@@ -32,10 +30,8 @@ function WalletHome() {
   );
 
   const [reorderOpen, setReorderOpen] = useState(false);
-  const [backedUp, setBackedUp] = useState(true);
   const [nectarLinked, setNectarLinked] = useState(true);
   useEffect(() => {
-    setBackedUp(isVaultBackedUp());
     setNectarLinked(hasNectarLink());
   }, []);
 
@@ -91,14 +87,6 @@ function WalletHome() {
     el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: "smooth" });
   }
 
-  function handleBackup() {
-    if (downloadVaultBackup()) {
-      setBackedUp(true);
-      toast.success("Encrypted backup saved");
-    } else {
-      toast.error("No vault to back up");
-    }
-  }
 
   return (
     <div className="mx-auto max-w-3xl pb-32">
@@ -121,20 +109,6 @@ function WalletHome() {
         </div>
       </section>
 
-      {!backedUp && (
-        <section className="mt-4 px-5">
-          <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
-            <ShieldAlert className="h-4 w-4 shrink-0" style={{ color: "var(--isk)" }} />
-            <div className="flex-1 text-xs text-foreground/85">
-              <strong className="font-semibold">Back up your wallet.</strong> Without it, losing this
-              browser means losing funds.
-            </div>
-            <Button size="sm" onClick={handleBackup} className="h-7 shrink-0 text-xs">
-              <Download className="mr-1 h-3 w-3" /> Backup
-            </Button>
-          </div>
-        </section>
-      )}
 
       {!nectarLinked && (
         <section className="mt-3 px-5">
