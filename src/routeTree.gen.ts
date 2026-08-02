@@ -19,6 +19,7 @@ import { Route as WalletIndexRouteImport } from './routes/wallet.index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
 import { Route as WalletSignRouteImport } from './routes/wallet.sign'
 import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
+import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
 import { Route as WalletMultisendRouteImport } from './routes/wallet.multisend'
 import { Route as WalletContactsRouteImport } from './routes/wallet.contacts'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
@@ -29,6 +30,7 @@ import { Route as WalletChainSendRouteImport } from './routes/wallet.$chain.send
 import { Route as WalletChainReceiveRouteImport } from './routes/wallet.$chain.receive'
 import { Route as WalletChainQrLoginRouteImport } from './routes/wallet.$chain.qr-login'
 import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.history'
+import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$chain.consolidate'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
@@ -81,6 +83,11 @@ const WalletSettingsRoute = WalletSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => WalletRoute,
 } as any)
+const WalletSecurityRoute = WalletSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => WalletRoute,
+} as any)
 const WalletMultisendRoute = WalletMultisendRouteImport.update({
   id: '/multisend',
   path: '/multisend',
@@ -131,6 +138,11 @@ const WalletChainHistoryRoute = WalletChainHistoryRouteImport.update({
   path: '/$chain/history',
   getParentRoute: () => WalletRoute,
 } as any)
+const WalletChainConsolidateRoute = WalletChainConsolidateRouteImport.update({
+  id: '/$chain/consolidate',
+  path: '/$chain/consolidate',
+  getParentRoute: () => WalletRoute,
+} as any)
 const ApiPublicRpcAlchemyChainRoute =
   ApiPublicRpcAlchemyChainRouteImport.update({
     id: '/api/public/rpc/alchemy/$chain',
@@ -149,10 +161,12 @@ export interface FileRoutesByFullPath {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
@@ -170,10 +184,12 @@ export interface FileRoutesByTo {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
   '/extension': typeof ExtensionIndexRoute
   '/wallet': typeof WalletIndexRoute
+  '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
@@ -194,10 +210,12 @@ export interface FileRoutesById {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
+  '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
@@ -219,10 +237,12 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/contacts'
     | '/wallet/multisend'
+    | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
     | '/extension/'
     | '/wallet/'
+    | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
@@ -240,10 +260,12 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/contacts'
     | '/wallet/multisend'
+    | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
     | '/extension'
     | '/wallet'
+    | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
@@ -263,10 +285,12 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/contacts'
     | '/wallet/multisend'
+    | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
     | '/extension/'
     | '/wallet/'
+    | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
@@ -358,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletSettingsRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/wallet/security': {
+      id: '/wallet/security'
+      path: '/security'
+      fullPath: '/wallet/security'
+      preLoaderRoute: typeof WalletSecurityRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/wallet/multisend': {
       id: '/wallet/multisend'
       path: '/multisend'
@@ -428,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletChainHistoryRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/wallet/$chain/consolidate': {
+      id: '/wallet/$chain/consolidate'
+      path: '/$chain/consolidate'
+      fullPath: '/wallet/$chain/consolidate'
+      preLoaderRoute: typeof WalletChainConsolidateRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/api/public/rpc/alchemy/$chain': {
       id: '/api/public/rpc/alchemy/$chain'
       path: '/api/public/rpc/alchemy/$chain'
@@ -457,9 +495,11 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 interface WalletRouteChildren {
   WalletContactsRoute: typeof WalletContactsRoute
   WalletMultisendRoute: typeof WalletMultisendRoute
+  WalletSecurityRoute: typeof WalletSecurityRoute
   WalletSettingsRoute: typeof WalletSettingsRoute
   WalletSignRoute: typeof WalletSignRoute
   WalletIndexRoute: typeof WalletIndexRoute
+  WalletChainConsolidateRoute: typeof WalletChainConsolidateRoute
   WalletChainHistoryRoute: typeof WalletChainHistoryRoute
   WalletChainQrLoginRoute: typeof WalletChainQrLoginRoute
   WalletChainReceiveRoute: typeof WalletChainReceiveRoute
@@ -471,9 +511,11 @@ interface WalletRouteChildren {
 const WalletRouteChildren: WalletRouteChildren = {
   WalletContactsRoute: WalletContactsRoute,
   WalletMultisendRoute: WalletMultisendRoute,
+  WalletSecurityRoute: WalletSecurityRoute,
   WalletSettingsRoute: WalletSettingsRoute,
   WalletSignRoute: WalletSignRoute,
   WalletIndexRoute: WalletIndexRoute,
+  WalletChainConsolidateRoute: WalletChainConsolidateRoute,
   WalletChainHistoryRoute: WalletChainHistoryRoute,
   WalletChainQrLoginRoute: WalletChainQrLoginRoute,
   WalletChainReceiveRoute: WalletChainReceiveRoute,

@@ -15,7 +15,7 @@ import { hasNectarLink } from "@/lib/wallet/nectar";
 import {
   getScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX,
 } from "@/lib/wallet/scan-prefs";
-import { isBiometricEnabled } from "@/lib/native/biometric";
+import { isBiometricEnabledSync } from "@/lib/native/biometric";
 
 export const Route = createFileRoute("/wallet/security")({
   component: SecurityPage,
@@ -39,7 +39,7 @@ function SecurityPage() {
   function refresh() {
     const backedUp = isVaultBackedUp();
     const last = getLastBackupAt();
-    const bio = isBiometricEnabled();
+    const bio = isBiometricEnabledSync();
     const linked = hasNectarLink();
 
     setChecks([
