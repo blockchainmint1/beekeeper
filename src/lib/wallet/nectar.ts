@@ -24,7 +24,10 @@ export interface NectarLinkRecord {
   merchantName?: string;
   url: string;
   linkedAt: number;
+  /** Fingerprint of the seed that made this link (see seed.ts). */
+  walletId?: string;
 }
+
 
 export interface NectarQrTarget {
   url: string;
