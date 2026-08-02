@@ -346,10 +346,11 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         {nectarLinked ? (
           <div className="glass-card flex items-center gap-2 rounded-2xl px-4 py-3 text-xs text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
-            <span className="flex-1">Nectar Pay merchant account linked.</span>
+            <span className="flex-1">Nectar Pay linked. Re-sync to share newly supported chains.</span>
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setLinkOpen(true)}>
-              Re-link
+              Re-sync keys
             </Button>
+
           </div>
         ) : (
           <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
