@@ -306,6 +306,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     }
   }, [historyQuery.data, historyQuery.dataUpdatedAt]);
 
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [nectarLinked, setNectarLinked] = useState(false);
+  useEffect(() => { setNectarLinked(hasNectarLink()); }, []);
+
   function handleLock() {
     clearCachedMnemonic();
     onLocked();
