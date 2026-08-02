@@ -178,6 +178,9 @@ export function importVaultBlob(json: string): void {
     throw new Error("Backup file is missing required fields");
   }
   saveVault(blob as EncryptedBlob);
+  // Unknown seed until it's unlocked — drop any seed-scoped state.
+  localStorage.removeItem(FP_KEY);
+
 }
 
 export function mnemonicToSeed(mnemonic: string, passphrase = ""): Uint8Array {
