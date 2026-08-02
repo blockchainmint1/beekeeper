@@ -264,13 +264,19 @@ export const esplora = {
       const { txcAddressInfo } = await import("./txc.functions");
       return txcAddressInfo({ data: { address: a } });
     }
+
+    // NowNodes Blockbook first for the chains it covers (one key, no CORS,
+    // far higher limits than the keyless fallbacks).
+    const { nownodesAddressInfoOrNull } = await import("./nownodes");
+    const nn = await nownodesAddressInfoOrNull(chain, a);
+    if (nn) return nn;
+
     if (chain.id === "btc") {
       // Proxied server-side: avoids browser CORS and keeps a rate-limited
       // fallback provider from throwing during HD scans.
       const { btcEsploraAddressInfo } = await import("./btc-esplora.functions");
       return btcEsploraAddressInfo({ data: { address: a } });
     }
-
 
     if (chain.api === "blockchair") {
       const { blockchairAddressInfo } = await import("./blockchair");
@@ -287,6 +293,9 @@ export const esplora = {
       const { txcAddressUtxos } = await import("./txc.functions");
       return txcAddressUtxos({ data: { address: a } });
     }
+    const { nownodesUtxosOrNull } = await import("./nownodes");
+    const nn = await nownodesUtxosOrNull(chain, a);
+    if (nn) return nn;
     if (chain.api === "blockchair") {
       const { blockchairAddressUtxos } = await import("./blockchair");
       return blockchairAddressUtxos(chain, a);
@@ -302,6 +311,9 @@ export const esplora = {
       const { txcAddressTxs } = await import("./txc.functions");
       return txcAddressTxs({ data: { address: a } });
     }
+    const { nownodesHistoryOrNull } = await import("./nownodes");
+    const nn = await nownodesHistoryOrNull(chain, a);
+    if (nn) return nn;
     if (chain.api === "blockchair") {
       const { blockchairHistory } = await import("./blockchair");
       return blockchairHistory(chain, a);
@@ -317,6 +329,9 @@ export const esplora = {
       const { txcTxHex } = await import("./txc.functions");
       return txcTxHex({ data: { txid } });
     }
+    const { nownodesTxHexOrNull } = await import("./nownodes");
+    const nn = await nownodesTxHexOrNull(chain, txid);
+    if (nn) return nn;
     if (chain.api === "blockchair") {
       const { blockchairTxHex } = await import("./blockchair");
       return blockchairTxHex(chain, txid);
@@ -332,6 +347,9 @@ export const esplora = {
       const { txcBroadcast } = await import("./txc.functions");
       return txcBroadcast({ data: { rawHex } });
     }
+    const { nownodesBroadcastOrNull } = await import("./nownodes");
+    const nn = await nownodesBroadcastOrNull(chain, rawHex);
+    if (nn) return nn;
     if (chain.api === "blockchair") {
       const { blockchairBroadcast } = await import("./blockchair");
       return blockchairBroadcast(chain, rawHex);
@@ -346,6 +364,7 @@ export const esplora = {
     return text.trim();
   },
 };
+
 
 export function addressBalanceSats(info: AddressInfo) {
   const confirmed = info.chain_stats.funded_txo_sum - info.chain_stats.spent_txo_sum;
