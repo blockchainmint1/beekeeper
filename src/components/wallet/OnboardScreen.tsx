@@ -3,13 +3,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScanLine, ShieldCheck, Link2, CheckCircle2, Loader2 } from "lucide-react";
+import { ScanLine, ShieldCheck, Loader2 } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
 import { QrScanDialog } from "./QrScanDialog";
-import { NectarLinkDialog } from "./NectarLinkDialog";
-import { hasNectarLink } from "@/lib/wallet/nectar";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3;
+
 
 const DISCLAIMERS = [
   "I understand my copper coin is my only backup. If I lose it, my account is gone forever.",
