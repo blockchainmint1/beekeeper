@@ -59,8 +59,8 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
       setMnemonic("");
       setPass1("");
       setPass2("");
-      toast.success("Wallet ready — last step: link Nectar Pay");
-      setStep(4);
+      toast.success("Wallet ready");
+      onReady();
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
