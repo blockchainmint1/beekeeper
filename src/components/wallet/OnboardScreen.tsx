@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScanLine, ShieldCheck, Loader2 } from "lucide-react";
+import { ScanLine, ShieldCheck, Loader2, Fingerprint } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
+import { isBiometricAvailable, enableBiometric } from "@/lib/native/biometric";
 import { QrScanDialog } from "./QrScanDialog";
 
 type Step = 1 | 2 | 3;
+
 
 
 const DISCLAIMERS = [
