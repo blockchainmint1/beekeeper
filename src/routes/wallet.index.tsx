@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, ShieldAlert, Download, Link2, Settings2 } from "lucide-react";
+import { TrendingUp, Link2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CHAIN_LIST } from "@/lib/chains";
-import { downloadVaultBackup, isVaultBackedUp } from "@/lib/wallet/seed";
 import { hasNectarLink } from "@/lib/wallet/nectar";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { usePortfolioTotal } from "@/lib/wallet/portfolio";
