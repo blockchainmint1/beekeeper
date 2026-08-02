@@ -115,7 +115,7 @@ function SecurityPage() {
             ) : (
               c.action && (
                 <Button size="sm" variant="secondary" className="h-7 shrink-0 text-xs" onClick={c.action.run}>
-                  <Download className="mr-1 h-3 w-3" /> {c.action.label}
+                  {c.action.label}
                 </Button>
               )
             )}
