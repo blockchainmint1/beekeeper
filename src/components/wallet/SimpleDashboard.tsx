@@ -328,13 +328,13 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </Link>
       </div>
 
-      <section className="px-5 pt-6">
+      <section className="px-5 pt-6 text-center">
         <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em]">
           Total Balance{!primaryAllLoaded && primaryLoadedCount > 0 ? ` · ${primaryLoadedCount}/${visiblePrimaryCount}` : ""}
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
+        <div className="mt-2 flex items-baseline justify-center gap-2">
           <h1 className="text-[56px] leading-none font-semibold tracking-tight tabular">
-            {primaryLoadedCount === 0 ? "—" : formatUsd(total)}
+            {primaryLoadedCount === 0 ? "—" : `$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </h1>
           {!primaryAllLoaded && anyLoading && primaryLoadedCount > 0 && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
