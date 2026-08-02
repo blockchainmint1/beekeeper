@@ -3,7 +3,7 @@
 // other public EVM RPC. Only allows a safe read/broadcast method allowlist
 // so the endpoint can't be turned into a general-purpose oracle.
 
-import process from "node:process";
+import { env } from "@/lib/env.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 const ALCHEMY_NETWORK: Record<string, string> = {
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/rpc/alchemy/$chain")({
       POST: async ({ request, params }) => {
         const network = ALCHEMY_NETWORK[params.chain];
         if (!network) return new Response("Unknown chain", { status: 404 });
-        const key = process.env.ALCHEMY_API;
+        const key = env("ALCHEMY_API");
         if (!key) return new Response("Alchemy not configured", { status: 503 });
 
         let body: JsonRpcCall | JsonRpcCall[];

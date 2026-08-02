@@ -1,6 +1,6 @@
 // Server-only helper to call the Iskander (ISK) coin JSON-RPC.
 // Reads credentials from environment at call time so they never ship to the client.
-import process from "node:process";
+import { env } from "../env.server";
 
 export interface IskRpcErrorShape {
   code: number;
@@ -17,9 +17,9 @@ export class IskRpcError extends Error {
 }
 
 function getRpcConfig() {
-  const url = process.env.ISK_RPC_URL;
-  const user = process.env.ISK_RPC_USER;
-  const pass = process.env.ISK_RPC_PASS;
+  const url = env("ISK_RPC_URL");
+  const user = env("ISK_RPC_USER");
+  const pass = env("ISK_RPC_PASS");
   if (!url || !user || !pass) {
     throw new Error("ISK RPC is not configured");
   }
