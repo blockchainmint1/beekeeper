@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, TrendingUp, ShieldAlert, Download, Link2, Settings2 } from "lucide-react";
+import { TrendingUp, ShieldAlert, Download, Link2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CHAIN_LIST } from "@/lib/chains";
@@ -285,7 +285,6 @@ function QuickLink({
       params={{ chain }}
       className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition hover:bg-muted"
     >
-      <Plus className="h-3 w-3 opacity-60" />
       {children}
     </Link>
   );
