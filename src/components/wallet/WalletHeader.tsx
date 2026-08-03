@@ -83,7 +83,7 @@ export function WalletHeader({ mnemonic, onLock }: { mnemonic: string; onLock?: 
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50">
-      <div className="mx-auto max-w-3xl px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 flex items-center gap-1">
+      <div className="mx-auto max-w-3xl px-4 pt-2 pb-2 flex items-center gap-1">
         <Link
           to="/"
           aria-label="Back to My Funds summary"

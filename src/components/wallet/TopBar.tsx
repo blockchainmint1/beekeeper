@@ -42,7 +42,7 @@ export function TopBar({
   }
 
   return (
-    <div className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
+    <div className="flex items-center justify-between px-5 pt-4 pb-3">
       <div className="flex items-center gap-3">
         <div
           className="relative w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold tracking-tight overflow-hidden"
