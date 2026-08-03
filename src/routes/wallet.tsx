@@ -72,7 +72,7 @@ function WalletLayout() {
       <Toaster position="top-center" richColors />
 
       {stage !== "wallet" && (
-        <div className="mx-auto max-w-[480px] px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="mx-auto max-w-[480px] px-5 pt-3">
           <Link
             to="/"
             className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition hover:text-foreground"
