@@ -38,8 +38,14 @@ export default defineConfig({
       // Buffer / stream / crypto in the browser. Polyfill them so the
       // production bundle ships a real Buffer instead of Vite's stub.
       nodePolyfills({
-        include: ["buffer", "stream", "util", "events", "string_decoder", "crypto"],
-        globals: { Buffer: true, global: true, process: true },
+        include: ["buffer", "stream", "util", "events", "string_decoder", "crypto", "process"],
+        // Production chunks can execute before the document shell/router has
+        // installed a runtime global (notably on mobile Chrome). Inject the
+        // process import into every production chunk that references it, so
+        // crypto dependencies never depend on script evaluation order. Keep
+        // dev injection disabled: TanStack's dev server-function URL transform
+        // must see process.env.TSS_SERVER_FN_BASE unchanged.
+        globals: { Buffer: true, global: true, process: "build" },
         protocolImports: true,
       }),
     ],

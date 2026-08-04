@@ -28,6 +28,9 @@ import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
+import { NectarLinkDialog } from "./NectarLinkDialog";
+import { hasNectarLink } from "@/lib/wallet/nectar";
+import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 type PriceMap = Record<string, number>;
@@ -303,6 +306,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     }
   }, [historyQuery.data, historyQuery.dataUpdatedAt]);
 
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [nectarLinked, setNectarLinked] = useState(false);
+  useEffect(() => { setNectarLinked(hasNectarLink()); }, []);
+
   function handleLock() {
     clearCachedMnemonic();
     onLocked();
@@ -321,19 +328,42 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
         </Link>
       </div>
 
-      <section className="px-5 pt-6">
+      <section className="px-5 pt-6 text-center">
         <div className="text-[10.5px] font-medium text-muted-foreground uppercase tracking-[0.22em]">
           Total Balance{!primaryAllLoaded && primaryLoadedCount > 0 ? ` · ${primaryLoadedCount}/${visiblePrimaryCount}` : ""}
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
+        <div className="mt-2 flex items-baseline justify-center gap-2">
           <h1 className="text-[56px] leading-none font-semibold tracking-tight tabular">
-            {primaryLoadedCount === 0 ? "—" : formatUsd(total)}
+            {primaryLoadedCount === 0 ? "—" : `$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </h1>
           {!primaryAllLoaded && anyLoading && primaryLoadedCount > 0 && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
       </section>
+
+      {/* Once linked, Nectar Pay management lives in Wallet → Settings → Nectar Pay. */}
+      {!nectarLinked && (
+        <section className="px-5 mt-4">
+          <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
+            <Link2 className="h-4 w-4 shrink-0" style={{ color: "var(--success)" }} />
+            <div className="flex-1 text-xs text-foreground/85">
+              <strong className="font-semibold">Link Nectar Pay.</strong> Share your xpubs so your merchant account can watch for payments.
+            </div>
+            <Button size="sm" className="h-7 shrink-0 text-xs" onClick={() => setLinkOpen(true)}>
+              Link
+            </Button>
+          </div>
+        </section>
+      )}
+
+      <NectarLinkDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinked={() => setNectarLinked(true)}
+      />
+
+
 
       <section className="px-5 mt-5">
         {loadedCount === 0 && anyLoading ? (

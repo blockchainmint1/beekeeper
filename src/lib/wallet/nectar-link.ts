@@ -60,7 +60,7 @@ import { deriveUtxoAccount } from "./utxo";
 import { utxoSignMessage } from "./signing";
 
 // Stable order — used by canonicalJson and by Nectar's verifier.
-export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE"] as const;
+export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE", "DASH"] as const;
 export type NectarChainKey = (typeof NECTAR_CHAINS)[number];
 
 /** Maps a Nectar chain key to the wallet's local ChainConfig id, or null when
@@ -73,6 +73,7 @@ export const NECTAR_TO_LOCAL: Record<NectarChainKey, ChainId | null> = {
   BCH: "bch",
   TRX: "trx",
   DOGE: "doge",
+  DASH: "dash",
 };
 
 export interface NectarLinkRequest {
@@ -349,24 +350,48 @@ function deriveXpubFor(mnemonic: string, key: NectarChainKey): string {
   return chainAccountXpub(mnemonic, chain as ChainConfig).xpub;
 }
 
+/** Every Nectar chain key this wallet build can actually derive an xpub for.
+ *  Used to offer the full set on link/re-sync, not just what Nectar asked for —
+ *  Nectar stores what it understands and ignores the rest. Safe because xpubs
+ *  are watch-only and adding a key never invalidates an existing one. */
+export function walletNectarChains(): NectarChainKey[] {
+  return NECTAR_CHAINS.filter((k) => {
+    const localId = NECTAR_TO_LOCAL[k];
+    if (!localId) return false;
+    try {
+      return Boolean(getChain(localId));
+    } catch {
+      return false;
+    }
+  });
+}
+
 export interface BuiltPayload {
   payload: NectarLinkSignedPayload;
-  /** Chains the wallet could not derive — surfaced to user in the consent UI
-   *  and reported back via the response. */
+  /** Chains Nectar requested that the wallet could not derive — surfaced to the
+   *  user in the consent UI. */
   unsupported: NectarChainKey[];
+  /** Chains we offer beyond what Nectar asked for. */
+  extra: NectarChainKey[];
 }
 
 export function buildLinkPayload(mnemonic: string, req: NectarLinkRequest): BuiltPayload {
+  // Offer everything we support, in the canonical NECTAR_CHAINS order, with the
+  // requested chains guaranteed present.
+  const requested = new Set(req.chains);
+  const offered = Array.from(new Set([...req.chains, ...walletNectarChains()]));
+  const ordered = NECTAR_CHAINS.filter((c) => offered.includes(c));
+
   const xpubs: Partial<Record<NectarChainKey, string>> = {};
-  const unsupported: NectarChainKey[] = [];
-  for (const key of req.chains) {
+  const failed: NectarChainKey[] = [];
+  for (const key of ordered) {
     try {
       xpubs[key] = deriveXpubFor(mnemonic, key);
     } catch {
-      unsupported.push(key);
+      failed.push(key);
     }
   }
-  const supported = req.chains.filter((c) => !unsupported.includes(c));
+  const supported = ordered.filter((c) => !failed.includes(c));
   if (supported.length === 0) {
     throw new Error("No requested chains are supported by this wallet");
   }
@@ -383,9 +408,11 @@ export function buildLinkPayload(mnemonic: string, req: NectarLinkRequest): Buil
       exp,
       issued_at: new Date().toISOString(),
     },
-    unsupported,
+    unsupported: failed.filter((c) => requested.has(c)),
+    extra: supported.filter((c) => !requested.has(c)),
   };
 }
+
 
 /** Signs the canonical JSON of `payload` with the TXC primary key. Returns the
  *  TXC P2PKH address (base58) and a base64 BIP-137 signature. */

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Download, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, HardDriveDownload, Lock, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CHAIN_LIST, type ChainId } from "@/lib/chains";
-import { changePassword, exportVaultJson, unlockVault } from "@/lib/wallet/seed";
+import { changePassword, unlockVault } from "@/lib/wallet/seed";
 import { getBiometricStatus, enableBiometric, disableBiometric } from "@/lib/native/biometric";
 import { Fingerprint } from "lucide-react";
 import { deriveUtxoAccount, utxoWif } from "@/lib/wallet/utxo";
@@ -23,7 +23,7 @@ import { NectarLinkDialog } from "./NectarLinkDialog";
 
 type SectionId =
   | "security" | "wallets" | "alerts" | "nectar"
-  | "backup" | "password" | "reveal" | "xpub" | "danger";
+  | "password" | "reveal" | "xpub" | "danger";
 
 interface SectionDef {
   id: SectionId;
@@ -38,7 +38,6 @@ const SECTIONS: SectionDef[] = [
   { id: "wallets",  label: "Wallets",      hint: "Show, hide, and reorder chains",          icon: Layers },
   { id: "alerts",   label: "Alerts",       hint: "In-app, email, and Telegram alerts",      icon: Bell },
   { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
-  { id: "backup",   label: "Backup",       hint: "Download the encrypted vault file",       icon: HardDriveDownload },
   { id: "password", label: "Password",     hint: "Re-encrypt with a new password",          icon: Lock },
   { id: "reveal",   label: "Private key",  hint: "Export a per-chain private key or WIF",   icon: Key },
   { id: "xpub",     label: "xpub",         hint: "Share your EVM account xpub",             icon: Share2 },
@@ -91,7 +90,6 @@ export function SettingsDialog({
               {section.id === "wallets"  && <WalletsPanel />}
               {section.id === "alerts"   && <AlertsPanel />}
               {section.id === "nectar"   && <NectarPanel />}
-              {section.id === "backup"   && <BackupPanel />}
               {section.id === "password" && <PasswordPanel />}
               {section.id === "reveal"   && <RevealPanel />}
               {section.id === "xpub"     && <XpubPanel />}
@@ -180,9 +178,14 @@ function NectarPanel() {
           Not linked yet. Scan the QR code from your Nectar Pay merchant dashboard to connect.
         </div>
       )}
+      {link && (
+        <p className="text-[11px] text-muted-foreground">
+          Added support for a new chain since you linked? Re-sync to share the newly derived extended public keys.
+        </p>
+      )}
       <div className="flex gap-2">
         <Button className="flex-1" onClick={() => setLinkOpen(true)}>
-          <Link2 className="mr-2 h-4 w-4" /> {link ? "Re-link" : "Scan Nectar Pay QR"}
+          <Link2 className="mr-2 h-4 w-4" /> {link ? "Re-sync keys" : "Scan Nectar Pay QR"}
         </Button>
         {link && (
           <Button
@@ -497,36 +500,6 @@ function BiometricRow() {
           Enable biometric unlock
         </Button>
       )}
-    </div>
-  );
-}
-
-function BackupPanel() {
-  const download = () => {
-    const text = exportVaultJson();
-    if (!text) { toast.error("No vault to back up"); return; }
-    const file = new Blob([text], { type: "application/json" });
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `wallet-backup-${new Date().toISOString().slice(0, 19).replace(/[:]/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast.success("Encrypted backup saved");
-  };
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Download the encrypted vault as a JSON file. It contains your seed for every chain, encrypted with your password.
-      </p>
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-        <strong>Reminder:</strong> A backup is only as strong as your password. Use a long, unique one and keep the file somewhere you trust.
-      </div>
-      <Button className="w-full" onClick={download}>
-        <Download className="mr-2 h-4 w-4" /> Download encrypted backup
-      </Button>
     </div>
   );
 }

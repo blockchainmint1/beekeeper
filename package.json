@@ -18,7 +18,8 @@
     "android:patch": "bun scripts/patch-android-manifest.mjs",
     "android:setup": "bun install && bun run build && (test -d android || bunx cap add android) && bun run cap:assets && bunx cap sync android && bun run android:patch && bunx cap open android",
     "android:reset": "rm -rf android && bun run build && bunx cap add android && bun run cap:assets && bunx cap sync android && bun run android:patch && bunx cap open android",
-    "android:apk": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew assembleDebug"
+    "android:apk": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew assembleDebug",
+    "android:aab": "bun run build && (test -d android || bunx cap add android) && bunx cap sync android && bun run android:patch && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
@@ -39,6 +40,7 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "^5.2.2",
+    "@noble/hashes": "^2.2.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -73,6 +75,7 @@
     "@tanstack/react-router": "^1.168.25",
     "@tanstack/react-start": "^1.167.50",
     "@tanstack/router-plugin": "^1.167.28",
+    "@tanstack/zod-adapter": "^1.167.0",
     "@yudiel/react-qr-scanner": "^2.6.0",
     "bchaddrjs": "^0.5.2",
     "bip32": "^5.0.1",
@@ -111,7 +114,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.7.1",
+    "@lovable.dev/vite-tanstack-config": "2.8.5",
     "@types/node": "^22.16.5",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.0",

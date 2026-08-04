@@ -8,7 +8,7 @@ import {
   postLinkPayload,
   type NectarLinkRequest,
 } from "./nectar-link";
-import { getCachedMnemonic } from "./seed";
+import { getCachedMnemonic, getVaultFingerprint } from "./seed";
 
 const LINK_KEY = "lovable-multi-wallet-nectar-link-v1";
 
@@ -24,7 +24,10 @@ export interface NectarLinkRecord {
   merchantName?: string;
   url: string;
   linkedAt: number;
+  /** Fingerprint of the seed that made this link (see seed.ts). */
+  walletId?: string;
 }
+
 
 export interface NectarQrTarget {
   url: string;
@@ -101,19 +104,33 @@ export async function linkNectarMerchant(
 }
 
 
+/**
+ * Returns the merchant link only when it belongs to the seed currently loaded
+ * in this browser. A link recorded by a previous wallet (wiped + fresh seed
+ * import, or a record written before links were seed-scoped) is discarded, so
+ * the UI never claims "linked" for a wallet Nectar has never seen.
+ */
 export function loadNectarLink(): NectarLinkRecord | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(LINK_KEY);
   if (!raw) return null;
+  let rec: NectarLinkRecord;
   try {
-    return JSON.parse(raw) as NectarLinkRecord;
+    rec = JSON.parse(raw) as NectarLinkRecord;
   } catch {
     return null;
   }
+  const fp = getVaultFingerprint();
+  if (!rec.walletId || !fp || rec.walletId !== fp) {
+    localStorage.removeItem(LINK_KEY);
+    return null;
+  }
+  return rec;
 }
 
 export function saveNectarLink(r: NectarLinkRecord): void {
-  localStorage.setItem(LINK_KEY, JSON.stringify(r));
+  const walletId = getVaultFingerprint() ?? undefined;
+  localStorage.setItem(LINK_KEY, JSON.stringify({ ...r, walletId }));
 }
 
 export function clearNectarLink(): void {
@@ -123,3 +140,4 @@ export function clearNectarLink(): void {
 export function hasNectarLink(): boolean {
   return loadNectarLink() !== null;
 }
+

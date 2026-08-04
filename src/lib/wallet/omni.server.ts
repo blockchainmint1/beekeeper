@@ -1,6 +1,6 @@
 // Server-only helper to call the TEXITcoin (Omni-enabled) JSON-RPC.
 // Reads credentials from environment at call time so they never ship to the client.
-import process from "node:process";
+import { env } from "../server-env";
 
 export interface RpcError {
   code: number;
@@ -17,9 +17,9 @@ export class TxcRpcError extends Error {
 }
 
 function getRpcConfig() {
-  const url = process.env.TXC_RPC_ADDRESS;
-  const user = process.env.TXC_RPC_USER;
-  const pass = process.env.TXC_RPC_PASSWORD;
+  const url = env("TXC_RPC_ADDRESS");
+  const user = env("TXC_RPC_USER");
+  const pass = env("TXC_RPC_PASSWORD");
   if (!url || !user || !pass) {
     throw new Error("TXC RPC is not configured");
   }

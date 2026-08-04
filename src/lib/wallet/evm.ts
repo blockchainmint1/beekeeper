@@ -10,6 +10,7 @@ import {
 } from "viem";
 import { mainnet } from "viem/chains";
 import { mnemonicToAccount, type HDAccount } from "viem/accounts";
+import type { Account } from "viem";
 import { getAddress } from "viem";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
@@ -75,6 +76,49 @@ async function withFallback<T>(
   throw lastErr instanceof Error ? lastErr : new Error("All RPC endpoints failed");
 }
 
+/**
+ * Pick an RPC endpoint that is actually reachable right now.
+ *
+ * Write paths (native send, ERC-20 transfer, sweeps) used `rpcUrls[0]` with no
+ * fallback, so a blocked/unreachable public endpoint — e.g. eth.llamarpc.com
+ * failing CORS inside the iOS webview, surfacing as viem "Load failed" —
+ * killed the transaction even though other endpoints were fine. We probe
+ * first and broadcast once, rather than retrying a send across clients
+ * (a retry can double-broadcast a tx that actually landed).
+ */
+const rpcHealth = new Map<string, { url: string; at: number }>();
+const RPC_HEALTH_TTL = 60_000;
+
+export async function pickHealthyRpc(chain: EvmChain): Promise<string> {
+  const urls = chainRpcUrls(chain);
+  const cached = rpcHealth.get(chain.id);
+  if (cached && Date.now() - cached.at < RPC_HEALTH_TTL && urls.includes(cached.url)) {
+    return cached.url;
+  }
+  for (const url of urls) {
+    try {
+      const client = createPublicClient({
+        chain: chainDef(chain),
+        transport: http(url, { timeout: 8_000, retryCount: 0 }),
+      });
+      await client.getChainId();
+      rpcHealth.set(chain.id, { url, at: Date.now() });
+      return url;
+    } catch {
+      // try the next endpoint
+    }
+  }
+  return urls[0]!;
+}
+
+export async function evmWalletClient<A extends Account>(chain: EvmChain, account: A) {
+  return createWalletClient({
+    account,
+    chain: chainDef(chain),
+    transport: http(await pickHealthyRpc(chain)),
+  });
+}
+
 export function deriveEvmAccount(
   mnemonic: string,
   chain: EvmChain,
@@ -120,11 +164,7 @@ export async function sendEvm(args: {
   amountWei: bigint;
 }): Promise<`0x${string}`> {
   const { account, to, amountWei } = args;
-  const wallet = createWalletClient({
-    account: account.signer,
-    chain: chainDef(account.chain),
-    transport: http(chainRpcUrls(account.chain)[0]),
-  });
+  const wallet = await evmWalletClient(account.chain, account.signer);
   return wallet.sendTransaction({ to, value: amountWei });
 }
 

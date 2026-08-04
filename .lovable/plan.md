@@ -1,116 +1,81 @@
-# Package Beekeeper as native iOS / Android app
+## Goal
 
-Port HME Mobile's proven Capacitor setup — already through a security audit and shipping to TestFlight — into this project, adapted for the Beekeeper wallet (multi-chain, `lovable-multi-wallet-vault-v1` keystore).
+Replace Beekeeper's single-screen, dialog-stacked wallet with HME Mobile's native-feeling architecture: real pages, full-width cards that carry their own actions, a compact header, plus a privacy toggle, swap/consolidate tools, and self-audit cards.
 
-## What ships
+## 1. Navigation: dialogs become pages
 
-**Native shell**
-- Capacitor 8 wrapping the current TanStack Start web app
-- iOS project → `.ipa` for TestFlight / App Store
-- Android project → signed `.apk` (sideload) and `.aab` (Play Store)
-- Same web bundle runs unchanged in browser, PWA, and native
+`src/routes/wallet.tsx` becomes a **layout** route (compact header + `<Outlet />`), and the current wallet body moves to `src/routes/wallet.index.tsx`.
 
-**Security posture (adopted verbatim from HME's audit)**
-- Bundled web assets (no `server.url` in release) — store binary never runs remote code
-- Stable WebView origin so the existing encrypted vault (`lovable-multi-wallet-vault-v1`) keeps unlocking after install
-- Biometric unlock (Face ID / Touch ID / Android fingerprint) via Keychain / Keystore
-- CSP already in place stays in place
+New route files, each rendering the existing dialog body as a full page:
 
-**Native niceties**
-- Face ID / Touch ID unlock on the UnlockScreen
-- Haptics on send success / failure
-- Native share sheet on Receive
-- Native QR scanner (way faster than webcam) for the Scan dialog
-- Safe-area padding, status bar theming, keyboard resize
-- Deep-link handler stub (ready for future `beekeeper://` or Nectar tap-to-pay)
-
-## Identity
-
-| | Proposed |
-|---|---|
-| Bundle ID | `money.honest.beekeeper` |
-| Display name | `Beekeeper` |
-| WebView hostname | `beekeeper.honest.money` (stable origin — critical for vault continuity) |
-| Theme color | `#0b0f14` (matches current dark theme) |
-
-**Confirm before I generate:** bundle ID and display name. Everything else follows.
-
-## Files to add
-
-**Config / scripts**
 ```text
-capacitor.config.ts                       # bundled, stable hostname, allowNavigation locked
-scripts/generate-capacitor-index.mjs      # renders TanStack SPA shell → dist/client/index.html
-scripts/patch-android-manifest.mjs        # perms (CAMERA, USE_BIOMETRIC), deep-link filters
-scripts/patch-android-icons.mjs           # adaptive icons from brand mark
-scripts/harden-ios-native.mjs             # Info.plist (NSFaceID/Camera usage), deployment target
-.github/workflows/android-apk.yml         # CI builds signed APK
-.github/workflows/generate-keystore.yml   # one-shot helper to generate release keystore
-package.json                              # add: build, cap:sync, cap:assets, ios:setup, ios:reset,
-                                          #      android:setup, android:apk, android:reset, ios:harden
-assets/icon.png (1024×1024)               # I'll generate from Beekeeper brand
-assets/splash.png (2732×2732)             # I'll generate
+wallet.tsx                  layout: header + Outlet
+wallet.index.tsx            card carousel + activity
+wallet.$chain.send.tsx      ?to=&amount=&asset=
+wallet.$chain.receive.tsx
+wallet.$chain.history.tsx
+wallet.$chain.xpub.tsx
+wallet.$chain.swap.tsx      new
+wallet.$chain.consolidate.tsx  new (UTXO chains only)
+wallet.$chain.sweep.tsx     EVM only (existing EvmSweepDialog)
+wallet.contacts.tsx
+wallet.settings.tsx
+wallet.sign.tsx
+wallet.multisend.tsx
+wallet.qr-login.tsx
+wallet.security.tsx         new: checkup + deep rescan
 ```
 
-**Web-layer glue (`src/lib/native/*`)**
-```text
-platform.ts      # isNative() / nativePlatform() guards
-biometric.ts     # Face ID / Touch ID enable / disable / unlockWithBiometric()
-ui.ts            # hapticSuccess/Error/Tap, shareText, initNativeChrome, hideSplash
-deeplink.ts      # App URL listener stub (no-op until we wire a scheme)
-```
+Each `Send*/Receive*/...` dialog gets its inner form extracted into a plain component so the page and (where still useful) a sheet can share it. Every page gets a back chevron to `/wallet` and its own `head()` title. Send/receive pages read `to`, `amount`, `asset` from search params so scanned QR codes deep-link straight in.
 
-**Component wiring**
-```text
-src/routes/__root.tsx           # call initNativeChrome() + hideSplash() on mount
-src/components/wallet/UnlockScreen.tsx    # "Unlock with Face ID" button when enabled
-src/components/wallet/SettingsDialog.tsx  # toggle to enable/disable biometrics
-src/components/wallet/QrScanDialog.tsx    # use BarcodeScanner on native, webcam on web
-src/components/wallet/ReceiveDialog.tsx   # use shareText() instead of copy-only
-src/components/wallet/SendDialog.tsx      # hapticSuccess/hapticError on result
-src/styles.css                            # safe-area-inset padding on root shell
-```
+Two dialogs stay modal because they're interruptions, not destinations: the QR scanner and the Nectar link-consent prompt.
 
-**Docs**
-```text
-CAPACITOR.md   # how to build iOS/Android locally
-ANDROID.md     # CI workflow + keystore instructions
-```
+## 2. Compact header (replaces the big total block)
 
-## Deps to add
-```text
-@capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
-@capacitor/app @capacitor/haptics @capacitor/share @capacitor/status-bar
-@capacitor/keyboard @capacitor/splash-screen @capacitor/clipboard
-@capacitor/browser @capacitor/network
-@capacitor-community/barcode-scanner
-@aparajita/capacitor-biometric-auth
-@aparajita/capacitor-secure-storage
-@capacitor/assets (dev)
-```
+Sticky bar in the layout route, `max-w-3xl`:
 
-## Critical invariants
+- **Left, tappable**: cycles `TXC price → Total portfolio → hidden`. Wrapping the hide-balances state into this tap target means the privacy toggle costs no extra chrome.
+- **Right**: QR scan · eye (hide balances) · `+` add-wallet menu · settings gear.
 
-1. **Do not change `server.hostname` after first release.** localStorage is keyed by origin. Changing the WebView origin orphans every user's encrypted vault. Fixed at `beekeeper.honest.money` from day one.
-2. **No `server.url` in release builds.** Loading remote JS = store rejection + supply-chain risk. Dev-only via `BEEKEEPER_REMOTE_URL` env var.
-3. **Biometric stores the password, not the seed.** Same design as HME — the vault stays encrypted with the user's password; biometrics gates a Keychain read that hands the password back to the existing unlock flow. Password remains the recovery path.
-4. **Sandbox can't run `cap add ios/android`.** I add config + scripts + CI. You (on a Mac / Linux box) run `bun run ios:setup` and `bun run android:setup` once to generate the native projects, then commit them.
+The 52px "Total Ecosystem Value" hero is removed; the number lives in the header. The `wallets · live` line moves under the carousel dots.
 
-## What you'll need on your end (I can't do these)
+## 3. Card carousel
 
-- **iOS build:** a Mac with Xcode + Apple Developer account ($99/yr) to archive and upload to TestFlight
-- **Android release:** run the "Generate Android Keystore" GitHub Action once, save the `.jks` in 1Password, paste the four `ANDROID_*` secrets into repo settings — then every push to the `android` branch produces a signed APK artifact
-- **Play Store:** $25 one-time developer account (only if you want Play Store distribution — APK sideload works without it)
+`MetalWalletCardConnected` goes full-bleed: `snap-center shrink-0 w-full px-4`, no peeking neighbour, active index derived from `scrollLeft / clientWidth`.
 
-## Rollout order (single turn)
+Each card face gains its own action row — **Send · Receive · Swap · ⟳ refresh** — routing with `<Link to="/wallet/$chain/send" params>`. The 12-item action grid below shrinks to secondary-only items (Sign, Multi, Contacts, Xpub, QR Login, Extension, Backup, Security, Settings).
 
-1. Add deps → 2. Config + scripts → 3. `src/lib/native/*` → 4. Wire biometric into UnlockScreen + settings → 5. Wire haptics/share/scan → 6. Generate icon + splash → 7. Root layout: safe-area + initNativeChrome + hideSplash → 8. CI workflows → 9. Docs.
+**Long-press (550ms + `navigator.vibrate(15)`)** on a card opens a new `ReorderTilesSheet`: drag to reorder, toggle visibility, rename a chain. Writes through `visible-chains.ts` (extended to persist order) and a new `chain-labels.ts` for custom names. Pointer-move/up cancels the timer so scroll-swipes never trigger it.
 
-I won't touch business logic, chain code, or the vault format. Vault stays where it is; native shell just wraps it.
+## 4. Ported features
 
----
+**Hide balances** — `src/lib/hide-balances.ts`: localStorage flag + event, `maskAmount()` renders `••••`. Applied to header total, card balances, token panels, activity rows.
 
-**Confirm to proceed:**
-- Bundle ID `money.honest.beekeeper`?
-- Display name `Beekeeper`?
-- OK to generate a new brand icon + splash from the current Beekeeper visual identity (I'll match the honeycomb / amber theme), or do you have existing 1024×1024 PNGs you want me to use?
+**Swap** — `src/routes/wallet.$chain.swap.tsx` with a `UtxoSwap`-style form, ported from HME's `UtxoSwap.tsx` + `utxo-swap-config.ts`. Available on UTXO chains that have a configured swap counterparty.
+
+**Consolidate** — `src/routes/wallet.$chain.consolidate.tsx`: lists UTXOs across derived addresses, previews fee, sweeps everything into one fresh receive address. Reuses the existing `scanUtxoHd` + signing path.
+
+**Security checkup** — `SecurityCheckupCard`: pass/warn rows for vault backed up, password strength, biometrics enabled, Nectar linked, auto-lock configured — each row deep-links to its fix.
+
+**Deep rescan** — `DeepRescanCard`: manual scan past the watermark (choose gap 20/50/200), shows progress and bumps `hd-watermark`. Both live on `/wallet/security`.
+
+## Not changing
+
+Nectar Pay linking, xpub sharing, extension pairing, onboarding/copper-coin flow, the `/` My Funds homepage, and all chain/crypto logic. This is a presentation and navigation refactor — no derivation, signing, or scanning maths is touched.
+
+## Technical notes
+
+- `$chain` params validate against `CHAIN_LIST`; unknown ids throw `notFound()`.
+- All wallet routes inherit `ssr: false` — derivation is browser-only.
+- Send/receive search params validated with a `validateSearch` schema so `?amount=abc` can't reach the fee maths.
+- `routeTree.gen.ts` is regenerated by the Vite plugin; not hand-edited.
+- Reorder persistence extends the existing `visible-chains` array (order is already meaningful there), so no migration is needed.
+
+## Suggested order
+
+1. Header + hide-balances (visible immediately, low risk)
+2. Layout split + card carousel + on-card actions
+3. Send/Receive/History/Xpub/Settings/Contacts pages
+4. Long-press reorder sheet + chain rename
+5. Security checkup + deep rescan
+6. Swap + consolidate

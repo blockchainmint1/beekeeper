@@ -107,10 +107,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Blocking inline shim: production chunking can evaluate a crypto vendor chunk
+// (sha3 / readable-stream / cipher-base) before the router module, so the
+// module-level polyfill is too late. This runs in <head> before any bundle.
+const PROCESS_SHIM = `(function(){var g=globalThis;var p=g.process;if(!p){p=g.process={};}
+try{if(!p.env)p.env={};if(typeof p.version!=="string")p.version="v20.0.0";
+if(!p.versions)p.versions={node:"20.0.0"};if(p.browser===undefined)p.browser=true;
+if(typeof p.nextTick!=="function")p.nextTick=function(f){var a=[].slice.call(arguments,1);queueMicrotask(function(){f.apply(null,a)});};
+if(typeof p.cwd!=="function")p.cwd=function(){return "/"};
+if(!p.argv)p.argv=[];if(!p.platform)p.platform="browser";}catch(e){}})();`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: PROCESS_SHIM }} />
         <HeadContent />
       </head>
       <body>
