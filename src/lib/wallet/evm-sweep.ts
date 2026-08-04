@@ -3,7 +3,7 @@
 // Beekeeper's single-mnemonic model.
 import {
   createPublicClient,
-  createWalletClient,
+
   http,
   erc20Abi,
   parseUnits,
