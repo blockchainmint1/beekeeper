@@ -12,11 +12,13 @@ function fmt(n: string) {
 
 export function OmniTokensPanel({ chain, address }: { chain: UtxoChain; address: string | null }) {
   const fetchBalances = useServerFn(getOmniBalancesForAddress);
+  const defaultIds = chain.defaultOmniPropertyIds;
   const q = useQuery<OmniBalanceEntry[]>({
-    queryKey: ["omni-balances", chain.id, address],
+    queryKey: ["omni-balances", chain.id, address, defaultIds?.join(",") ?? ""],
     enabled: !!address && chain.supportsOmni,
     refetchInterval: 60_000,
-    queryFn: () => fetchBalances({ data: { address: address! } }),
+    queryFn: () =>
+      fetchBalances({ data: { address: address!, includePropertyIds: defaultIds } }),
     retry: 1,
   });
 
