@@ -10,6 +10,7 @@ import {
 } from "viem";
 import { mainnet } from "viem/chains";
 import { mnemonicToAccount, type HDAccount } from "viem/accounts";
+import type { Account } from "viem";
 import { getAddress } from "viem";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
@@ -110,10 +111,7 @@ export async function pickHealthyRpc(chain: EvmChain): Promise<string> {
   return urls[0]!;
 }
 
-export async function evmWalletClient(
-  chain: EvmChain,
-  account: Parameters<typeof createWalletClient>[0]["account"],
-) {
+export async function evmWalletClient<A extends Account>(chain: EvmChain, account: A) {
   return createWalletClient({
     account,
     chain: chainDef(chain),
