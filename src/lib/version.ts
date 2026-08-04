@@ -9,7 +9,7 @@
  * even when APP_VERSION is unchanged.
  */
 export const APP_VERSION = "1.0.0";
-export const APP_BUILD = 1;
+export const APP_BUILD = 2;
 export const APP_NAME = "Beekeeper";
 
 export function versionLabel(): string {
