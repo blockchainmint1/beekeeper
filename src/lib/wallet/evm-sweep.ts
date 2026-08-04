@@ -14,7 +14,7 @@ import {
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { EvmChain, Erc20Token } from "@/lib/chains";
-import { chainRpcUrls, deriveEvmAccount, evmPrivateKey } from "./evm";
+import { chainRpcUrls, deriveEvmAccount, evmPrivateKey, evmWalletClient } from "./evm";
 
 function chainDef(chain: EvmChain) {
   return {
@@ -305,11 +305,7 @@ export async function sweepEvmNative(args: {
   }
   const pk = evmPrivateKey(mnemonic, chain, fromIndex);
   const signer = privateKeyToAccount(pk);
-  const wallet = createWalletClient({
-    account: signer,
-    chain: chainDef(chain),
-    transport: http(chainRpcUrls(chain)[0]),
-  });
+  const wallet = await evmWalletClient(chain, signer);
   return wallet.sendTransaction({ to, value: est.sendable });
 }
 
@@ -334,11 +330,7 @@ export async function sweepEvmToken(args: {
   if (raw <= 0n) throw new Error("Token balance is zero");
   const pk = evmPrivateKey(mnemonic, chain, fromIndex);
   const signer = privateKeyToAccount(pk);
-  const wallet = createWalletClient({
-    account: signer,
-    chain: chainDef(chain),
-    transport: http(chainRpcUrls(chain)[0]),
-  });
+  const wallet = await evmWalletClient(chain, signer);
   return wallet.writeContract({
     address: token.address,
     abi: erc20Abi,
@@ -366,13 +358,9 @@ export function formatEth(wei: bigint, maxDecimals = 6): string {
 /** Gas units assumed for a single ERC-20 transfer, with headroom. */
 const TOKEN_TRANSFER_GAS = 90_000n;
 
-function walletFor(mnemonic: string, chain: EvmChain, index: number) {
+async function walletFor(mnemonic: string, chain: EvmChain, index: number) {
   const pk = evmPrivateKey(mnemonic, chain, index);
-  return createWalletClient({
-    account: privateKeyToAccount(pk),
-    chain: chainDef(chain),
-    transport: http(chainRpcUrls(chain)[0]),
-  });
+  return evmWalletClient(chain, privateKeyToAccount(pk));
 }
 
 /** Native wei needed at a derived address to push `tokenCount` ERC-20 transfers + one native sweep. */
@@ -412,7 +400,7 @@ export async function topUpGas(args: {
     );
   }
 
-  const hash = await walletFor(mnemonic, chain, fromIndex).sendTransaction({ to, value: wei });
+  const hash = await (await walletFor(mnemonic, chain, fromIndex)).sendTransaction({ to, value: wei });
   if (waitForReceipt) {
     await withFallback(chain, (c) => c.waitForTransactionReceipt({ hash, timeout: 120_000 }));
   }
