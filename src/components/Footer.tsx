@@ -84,6 +84,8 @@ export function Footer() {
           move, freeze, or recover your funds.
         </p>
 
+        <ApkDownload />
+
         <p className="font-mono text-[10px] text-muted-foreground/60">{versionLabel()}</p>
       </div>
     </footer>
