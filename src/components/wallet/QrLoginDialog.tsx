@@ -114,7 +114,7 @@ export function QrLoginDialog({
         }
       } else {
         setSiteLabel(req.origin);
-        const requested = req.chain && CHAINS.some((c) => c.id === req.chain)
+        const requested = req.chain && req.chain in CHAINS
           ? getChain(req.chain as ChainId)
           : chain;
         setSignChain(requested);

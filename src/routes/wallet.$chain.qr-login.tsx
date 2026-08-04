@@ -4,11 +4,15 @@ import { WalletPage } from "@/components/wallet/WalletPage";
 import { QrLoginDialog } from "@/components/wallet/QrLoginDialog";
 
 export const Route = createFileRoute("/wallet/$chain/qr-login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   component: QrLoginPage,
 });
 
 function QrLoginPage() {
   const { chain: chainId } = Route.useParams();
+  const { q } = Route.useSearch();
   const navigate = useNavigate();
   const chain = getChain(chainId as ChainId);
 
@@ -18,6 +22,7 @@ function QrLoginPage() {
         open
         onOpenChange={(v) => !v && navigate({ to: "/wallet" })}
         chain={chain}
+        initialRaw={q}
       />
     </WalletPage>
   );
