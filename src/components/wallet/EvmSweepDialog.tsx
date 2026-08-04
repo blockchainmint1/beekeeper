@@ -44,8 +44,13 @@ export function EvmSweepDialog({
   const [rows, setRows] = useState<EvmHdAddress[]>([]);
   const [scanned, setScanned] = useState<number | null>(null);
   const [hideNative, setHideNative] = useState(false);
+  // Gas top-up: derived addresses holding tokens usually have no native balance,
+  // so their transfers must be funded from the main address (#0) first.
+  const [autoTopUp, setAutoTopUp] = useState(true);
+  const funderIndex = 0;
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+
 
   useEffect(() => {
     if (open) {
