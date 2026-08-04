@@ -66,12 +66,11 @@ const homeHtml = await renderShell(serverEntryPath, "/");
  */
 async function routeFallbackPaths() {
   const routesDir = resolve(root, "src/routes");
-  const chainIds = [
-    ...(await readFile(resolve(root, "src/lib/chains/index.ts"), "utf8"))
-      .matchAll(/^\s{2}(\w+):\s*\{/gm),
-  ]
-    .map((m) => m[1])
-    .filter(Boolean);
+  const chainsSrc = await readFile(resolve(root, "src/lib/chains/index.ts"), "utf8");
+  const unionMatch = chainsSrc.match(/export type ChainId =([\s\S]*?);/);
+  const chainIds = [...(unionMatch?.[1] ?? "").matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
+  if (chainIds.length === 0) throw new Error("Could not read ChainId union for SPA fallbacks");
+
   const files = (await readdir(routesDir)).filter(
     (f) => f.endsWith(".tsx") && !f.startsWith("__") && !f.startsWith("api."),
   );
