@@ -165,7 +165,7 @@ export function EvmSweepDialog({
         funderIndex,
         includeNative: !hideNative,
         autoTopUp,
-        onEvent: (e) => {
+        onEvent: (e: RoundUpEvent) => {
           const label =
             e.step.kind === "topup"
               ? `Funding gas for #${e.step.index}`
