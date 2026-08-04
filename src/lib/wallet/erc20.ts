@@ -1,7 +1,7 @@
 // Minimal ERC-20 helpers (balance, decimals reads, and a transfer call) via viem.
 import {
   createPublicClient,
-  createWalletClient,
+
   http,
   erc20Abi,
   parseUnits,
@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { mainnet } from "viem/chains";
 import type { EvmChain, Erc20Token } from "@/lib/chains";
-import type { EvmAccount } from "./evm";
+import { evmWalletClient, type EvmAccount } from "./evm";
 
 function chainDef(chain: EvmChain) {
   return {
@@ -59,11 +59,7 @@ export async function erc20Transfer(args: {
   amount: string; // human-readable
 }): Promise<`0x${string}`> {
   const { account, token, to, amount } = args;
-  const wallet = createWalletClient({
-    account: account.signer,
-    chain: chainDef(account.chain),
-    transport: http(account.chain.rpcUrls[0]),
-  });
+  const wallet = await evmWalletClient(account.chain, account.signer);
   const value = parseUnits(amount as `${number}`, token.decimals);
   return wallet.writeContract({
     address: token.address,
