@@ -257,6 +257,14 @@ export function EvmSweepDialog({
               />
               Hide {chain.nativeSymbol} (don't sweep)
             </label>
+            <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={autoTopUp}
+                onChange={(e) => setAutoTopUp(e.target.checked)}
+              />
+              Auto top-up gas from #{funderIndex} for token-only addresses
+            </label>
           </div>
 
           {/* Results */}
@@ -271,10 +279,11 @@ export function EvmSweepDialog({
             <div className="space-y-3">
               <div className="flex justify-end">
                 <Button size="sm" onClick={sweepAll} disabled={busyKey !== null}>
-                  {busyKey !== null ? status || "Sweeping…" : "Sweep All"}
+                  {busyKey !== null ? status || "Rounding up…" : "Round up all"}
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
               </div>
+
 
               {visibleRows.map((row) => (
                 <div key={row.index} className="rounded-lg border p-3">
