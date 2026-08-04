@@ -34,9 +34,16 @@ async function renderShell(serverEntryPath, route = "/") {
     { waitUntil() {} },
   );
   if (!response.ok) throw new Error(`SPA shell render failed: HTTP ${response.status}`);
-  const html = await response.text();
+  // TanStack's serialized route match IDs can contain literal NUL bytes. While
+  // Chromium tolerates them in an inline script, WKWebView may reject the
+  // script before hydration starts and leave the native app completely blank.
+  // Preserve the JavaScript string value using an escape sequence instead.
+  const html = (await response.text()).replaceAll("\0", "\\u0000");
   if (!html.includes("$_TSR") || !html.includes("/assets/")) {
     throw new Error("Generated SPA shell is missing TanStack hydration data or asset links.");
+  }
+  if (html.includes("\0")) {
+    throw new Error("Generated SPA shell contains a literal NUL byte.");
   }
   return html;
 }
