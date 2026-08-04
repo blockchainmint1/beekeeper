@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ShieldCheck, ScanLine, Loader2, CheckCircle2 } from "lucide-react";
-import type { ChainConfig } from "@/lib/chains";
+import { getChain, type ChainConfig, type ChainId, CHAINS } from "@/lib/chains";
 import { getCachedMnemonic } from "@/lib/wallet/seed";
 import {
   parseQrLogin,
@@ -13,6 +13,7 @@ import {
   postQrLogin,
   buildLoginMessage,
   fetchDeepLinkMessage,
+  fetchEnvelopeMessage,
   type ParsedQrLogin,
 } from "@/lib/wallet/qr-login";
 
@@ -22,10 +23,13 @@ export function QrLoginDialog({
   open,
   onOpenChange,
   chain,
+  initialRaw,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   chain: ChainConfig;
+  /** Payload already captured by another scanner (e.g. the header QR button). */
+  initialRaw?: string;
 }) {
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -36,6 +40,9 @@ export function QrLoginDialog({
   const [siteLabel, setSiteLabel] = useState<string>("");
   const [manual, setManual] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // A login envelope may name the chain it wants (Nectar Pay asks for "txc").
+  // Honor it so we sign with the key the site will actually verify.
+  const [signChain, setSignChain] = useState<ChainConfig>(chain);
 
   useEffect(() => {
     if (!open) {
@@ -48,9 +55,19 @@ export function QrLoginDialog({
       setSiteLabel("");
       setManual("");
       setError(null);
+      setSignChain(chain);
       return;
     }
   }, [open]);
+
+  // A payload handed in from another scanner skips the camera entirely.
+  const consumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !initialRaw || consumedRef.current === initialRaw) return;
+    consumedRef.current = initialRaw;
+    void handleRaw(initialRaw);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialRaw]);
 
   // NOTE: Do NOT auto-start the camera in an effect. Browsers require
   // getUserMedia to be invoked synchronously inside a user gesture handler,
@@ -97,8 +114,13 @@ export function QrLoginDialog({
         }
       } else {
         setSiteLabel(req.origin);
-        const acctAddr = "<your address>";
-        setMessage(buildLoginMessage(req, acctAddr, chain));
+        const requested = req.chain && CHAINS.some((c) => c.id === req.chain)
+          ? getChain(req.chain as ChainId)
+          : chain;
+        setSignChain(requested);
+        setPhase("loading");
+        const serverMsg = await fetchEnvelopeMessage(req);
+        setMessage(serverMsg ?? buildLoginMessage(req, "<your address>", requested));
         setPhase("confirm");
       }
     } catch (e) {
@@ -113,20 +135,21 @@ export function QrLoginDialog({
     try {
       // For envelope protocol, rebuild the message now that we know the real address.
       let finalMsg = message;
-      if (request.protocol === "envelope") {
+      const active = signChain;
+      if (request.protocol === "envelope" && message.includes("<your address>")) {
         let addr: string;
-        if (chain.kind === "evm") {
-          addr = (await import("@/lib/wallet/evm")).deriveEvmAccount(mnemonic, chain, 0).address;
-        } else if (chain.kind === "tron") {
-          addr = (await import("@/lib/wallet/tron")).deriveTronAccount(mnemonic, chain, 0).address;
-        } else if (chain.kind === "solana") {
-          addr = (await import("@/lib/wallet/solana")).deriveSolanaAccount(mnemonic, chain, 0).address;
+        if (active.kind === "evm") {
+          addr = (await import("@/lib/wallet/evm")).deriveEvmAccount(mnemonic, active, 0).address;
+        } else if (active.kind === "tron") {
+          addr = (await import("@/lib/wallet/tron")).deriveTronAccount(mnemonic, active, 0).address;
+        } else if (active.kind === "solana") {
+          addr = (await import("@/lib/wallet/solana")).deriveSolanaAccount(mnemonic, active, 0).address;
         } else {
-          addr = (await (await import("@/lib/wallet/utxo")).deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType)).address;
+          addr = (await (await import("@/lib/wallet/utxo")).deriveUtxoAccount(mnemonic, active, 0, active.defaultAddressType)).address;
         }
-        finalMsg = buildLoginMessage(request, addr, chain);
+        finalMsg = buildLoginMessage(request, addr, active);
       }
-      const result = await signQrLogin({ mnemonic, chain, request, message: finalMsg });
+      const result = await signQrLogin({ mnemonic, chain: active, request, message: finalMsg });
       await postQrLogin(request.callback, result);
       setPhase("done");
       toast.success(`Signed in to ${new URL(request.callback).hostname}`);
@@ -144,7 +167,7 @@ export function QrLoginDialog({
             <ScanLine className="h-5 w-5" /> Scan to sign in
           </DialogTitle>
           <DialogDescription>
-            Point the camera at a Nectar login QR. You'll authenticate with your active <strong>{chain.ticker}</strong> wallet.
+            Point the camera at a Nectar login QR. You'll authenticate with your <strong>{signChain.ticker}</strong> wallet.
           </DialogDescription>
         </DialogHeader>
 
@@ -228,7 +251,7 @@ export function QrLoginDialog({
               </div>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-xs uppercase tracking-wider text-muted-foreground">Wallet</span>
-                <span className="font-semibold">{chain.name}</span>
+                <span className="font-semibold">{signChain.name}</span>
               </div>
               {request.protocol === "envelope" && request.statement && (
                 <div className="pt-2 border-t text-xs italic">"{request.statement}"</div>
