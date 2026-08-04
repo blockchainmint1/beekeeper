@@ -29,7 +29,7 @@ const WEBVIEW_HOSTNAME = "beekeeper.honest.money";
 
 const config: CapacitorConfig = {
   appId: "money.honest.beekeeper",
-  appName: "Beekeeper",
+  appName: "Beekeeper Wallet",
   webDir: "dist/client",
   backgroundColor: "#0D1B33",
   server: {
