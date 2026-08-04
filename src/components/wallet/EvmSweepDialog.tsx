@@ -15,9 +15,12 @@ import {
   estimateNativeSweep,
   sweepEvmNative,
   sweepEvmToken,
+  roundUpEvm,
   formatEth,
   type EvmHdAddress,
+  type RoundUpEvent,
 } from "@/lib/wallet/evm-sweep";
+
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 
 export function EvmSweepDialog({
