@@ -22,6 +22,8 @@ export interface UtxoChain {
   explorerTx: (h: string) => string;
   explorerAddr: (a: string) => string;
   supportsOmni: boolean;
+  /** Omni property ids always shown (even at zero balance) when supportsOmni. */
+  defaultOmniPropertyIds?: number[];
   color: string;
   /** Bitcoin Cash & friends — adds SIGHASH_FORKID (0x40) per BIP143 (e.g. 0x00 for BCH). */
   forkId?: number;
@@ -160,6 +162,7 @@ export const TXC: UtxoChain = {
   explorerTx: (h) => `https://mempool.texitcoin.org/tx/${h}`,
   explorerAddr: (a) => `https://mempool.texitcoin.org/address/${a}`,
   supportsOmni: true,
+  defaultOmniPropertyIds: [37, 39],
   color: "oklch(0.7 0.18 35)",
 };
 
