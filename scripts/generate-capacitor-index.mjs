@@ -6,7 +6,7 @@
  *
  * Adapted from HME Mobile's script for Beekeeper.
  */
-import { cp, mkdir, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -57,6 +57,49 @@ const outputDirs = Array.from(new Set([capacitorWebDir, publicDir, ...(iosExists
 
 const homeHtml = await renderShell(serverEntryPath, "/");
 
+/**
+ * The native webview loads files off disk, so a hard load of a client route
+ * (after a reload, a background restore, or a deep link) asks for e.g.
+ * /wallet/index.html. Without that file iOS/Android render a blank error page
+ * and the app looks dead. Write the same SPA shell at every route path so any
+ * URL resolves, then let the router hydrate the real match.
+ */
+async function routeFallbackPaths() {
+  const routesDir = resolve(root, "src/routes");
+  const chainsSrc = await readFile(resolve(root, "src/lib/chains/index.ts"), "utf8");
+  const unionMatch = chainsSrc.match(/export type ChainId =([\s\S]*?);/);
+  const chainIds = [...(unionMatch?.[1] ?? "").matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
+  if (chainIds.length === 0) throw new Error("Could not read ChainId union for SPA fallbacks");
+
+  const files = (await readdir(routesDir)).filter(
+    (f) => f.endsWith(".tsx") && !f.startsWith("__") && !f.startsWith("api."),
+  );
+  const paths = new Set();
+  for (const file of files) {
+    const segments = file.replace(/\.tsx$/, "").split(".");
+    if (segments.some((s) => s.startsWith("_"))) continue;
+    const expand = (prefix, rest) => {
+      if (rest.length === 0) {
+        const p = prefix.filter((s) => s !== "index").join("/");
+        if (p) paths.add(p);
+        return;
+      }
+      const [head, ...tail] = rest;
+      if (head === "$chain") {
+        for (const id of chainIds) expand([...prefix, id], tail);
+      } else if (head.startsWith("$")) {
+        // Unknown dynamic segment — no safe value to prerender.
+      } else {
+        expand([...prefix, head], tail);
+      }
+    };
+    expand([], segments);
+  }
+  return [...paths];
+}
+
+const fallbackPaths = await routeFallbackPaths();
+
 for (const outputDir of outputDirs) {
   if (outputDir !== publicDir) {
     await mkdir(dirname(outputDir), { recursive: true });
@@ -64,6 +107,11 @@ for (const outputDir of outputDirs) {
   }
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, "index.html"), homeHtml);
+  for (const routePath of fallbackPaths) {
+    const dir = resolve(outputDir, routePath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(resolve(dir, "index.html"), homeHtml);
+  }
 }
 
 if (iosExists) {
@@ -77,4 +125,5 @@ if (iosExists) {
   }
 }
 
+console.log(`SPA fallback pages: ${fallbackPaths.length} route paths`);
 console.log(`Generated Capacitor SPA entry: ${outputDirs.map((d) => `${d}/index.html`).join(", ")}`);

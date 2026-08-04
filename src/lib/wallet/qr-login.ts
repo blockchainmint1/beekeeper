@@ -125,6 +125,29 @@ export async function fetchDeepLinkMessage(link: QrLoginDeepLink): Promise<strin
   return data.message;
 }
 
+/**
+ * Ask the site for the exact message it expects to verify.
+ *
+ * Nectar Pay's envelope QR embeds a callback URL that already carries the
+ * challenge id, and that endpoint answers GET with `{ message }` built from
+ * the server's own canonical template. Signing the server's bytes verbatim is
+ * the only way the signature verifies — a locally composed message differs
+ * byte-for-byte and gets rejected as "bad signature".
+ */
+export async function fetchEnvelopeMessage(req: QrLoginRequest): Promise<string | null> {
+  try {
+    const res = await fetch(req.callback, { method: "GET" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { message?: string; nonce?: string };
+    if (!data.message || typeof data.message !== "string") return null;
+    if (data.nonce && data.nonce !== req.nonce) return null;
+    return data.message;
+  } catch {
+    return null;
+  }
+}
+
+
 export interface SignedEnvelope {
   protocol: "envelope";
   chain: string;

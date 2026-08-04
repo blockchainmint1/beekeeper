@@ -11,6 +11,7 @@ import {
 import { NotificationBell } from "./NotificationBell";
 import { QrScanDialog } from "./QrScanDialog";
 import { parsePaymentUri } from "@/lib/wallet/payment-uri";
+import { parseQrLogin } from "@/lib/wallet/qr-login";
 import { usePortfolioTotal, usePrices } from "@/lib/wallet/portfolio";
 import { priceForChain, formatUsd } from "@/lib/wallet/price";
 import { TXC } from "@/lib/chains";
@@ -60,6 +61,23 @@ export function WalletHeader({ mnemonic, onLock }: { mnemonic: string; onLock?: 
 
   function handleScan(raw: string) {
     setScanOpen(false);
+
+    // Sign-in QRs (Nectar Pay's hm-login envelope or a payhme:// deep link)
+    // are not payment URIs — hand them to the login screen instead.
+    try {
+      const login = parseQrLogin(raw);
+      const loginChain =
+        login.protocol === "envelope" && login.chain ? login.chain : "txc";
+      navigate({
+        to: "/wallet/$chain/qr-login",
+        params: { chain: loginChain },
+        search: { q: raw },
+      });
+      return;
+    } catch {
+      /* not a login QR — treat it as a payment request below */
+    }
+
     try {
       const intent = parsePaymentUri(raw);
       if (!intent.address) {
