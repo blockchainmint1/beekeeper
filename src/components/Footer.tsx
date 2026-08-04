@@ -1,5 +1,38 @@
 import { Link } from "@tanstack/react-router";
+import { Download } from "lucide-react";
+import { useEffect, useState } from "react";
 import { versionLabel } from "@/lib/version";
+import { apkDownloadUrl, apkRelease, apkSizeLabel } from "@/lib/apk-release";
+import { nativePlatform } from "@/lib/native/platform";
+
+/**
+ * Android APK download. Web only — Apple forbids linking to alternative app
+ * distribution from inside an iOS app, and the Android build ships from the
+ * Play listing, so this renders exclusively in a browser.
+ */
+function ApkDownload() {
+  const [isWeb, setIsWeb] = useState(false);
+  useEffect(() => setIsWeb(nativePlatform() === "web"), []);
+  if (!isWeb) return null;
+
+  return (
+    <div className="space-y-1">
+      <a
+        href={apkDownloadUrl()}
+        className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
+      >
+        <Download className="h-3.5 w-3.5" aria-hidden />
+        Download Android APK ({apkSizeLabel()})
+      </a>
+      <p className="font-mono text-[10px] text-muted-foreground/60">
+        v{apkRelease.version} · IPFS {apkRelease.cid.slice(0, 10)}…{apkRelease.cid.slice(-6)}
+      </p>
+      <p className="break-all font-mono text-[10px] text-muted-foreground/50">
+        sha256 {apkRelease.sha256}
+      </p>
+    </div>
+  );
+}
 
 /**
  * Shared site footer. Required on every public surface — the app stores need a
