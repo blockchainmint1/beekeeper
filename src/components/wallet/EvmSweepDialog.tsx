@@ -15,9 +15,12 @@ import {
   estimateNativeSweep,
   sweepEvmNative,
   sweepEvmToken,
+  roundUpEvm,
   formatEth,
   type EvmHdAddress,
+  type RoundUpEvent,
 } from "@/lib/wallet/evm-sweep";
+
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 
 export function EvmSweepDialog({
@@ -41,8 +44,13 @@ export function EvmSweepDialog({
   const [rows, setRows] = useState<EvmHdAddress[]>([]);
   const [scanned, setScanned] = useState<number | null>(null);
   const [hideNative, setHideNative] = useState(false);
+  // Gas top-up: derived addresses holding tokens usually have no native balance,
+  // so their transfers must be funded from the main address (#0) first.
+  const [autoTopUp, setAutoTopUp] = useState(true);
+  const funderIndex = 0;
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+
 
   useEffect(() => {
     if (open) {
@@ -129,48 +137,63 @@ export function EvmSweepDialog({
 
   async function sweepAll() {
     if (!validDest()) return toast.error("Set a valid destination address first");
-    type Job = { row: EvmHdAddress; kind: "native" | "token"; token?: Erc20Token; formatted?: string };
-    const dest = destination.trim().toLowerCase();
-    const jobs: Job[] = [];
-    const visible = rows.filter((r) => r.tokens.length > 0 || !hideNative);
-    // Tokens first per row (they need native gas at source).
-    for (const row of visible) {
-      if (row.address.toLowerCase() === dest) continue;
-      for (const t of row.tokens) jobs.push({ row, kind: "token", token: t.token, formatted: t.formatted });
+    const dest = destination.trim() as Address;
+    const targets = rows.filter(
+      (r) =>
+        r.address.toLowerCase() !== dest.toLowerCase() &&
+        (r.tokens.length > 0 || (!hideNative && r.nativeWei > 0n)),
+    );
+    if (targets.length === 0) return toast.info("Nothing to round up");
+
+    const needGas = targets.filter((r) => r.tokens.length > 0 && r.nativeWei === 0n).length;
+    const summary = [
+      `Round up ${targets.length} address${targets.length === 1 ? "" : "es"} → ${dest}?`,
+      autoTopUp && needGas > 0
+        ? `\n${needGas} hold tokens with no gas — ${chain.nativeSymbol} will be sent from #${funderIndex} to cover their transfers.`
+        : "",
+      "\n\nFailures are skipped and reported at the end.",
+    ].join("");
+    if (!confirm(summary)) return;
+
+    setBusyKey("roundup");
+    try {
+      const res = await roundUpEvm({
+        mnemonic,
+        chain,
+        rows: targets,
+        destination: dest,
+        funderIndex,
+        includeNative: !hideNative,
+        autoTopUp,
+        onEvent: (e: RoundUpEvent) => {
+          const label =
+            e.step.kind === "topup"
+              ? `Funding gas for #${e.step.index}`
+              : e.step.kind === "token"
+                ? `Sweeping ${e.step.symbol} from #${e.step.index}`
+                : `Sweeping ${chain.nativeSymbol} from #${e.step.index}`;
+          setStatus(`${label} (${e.done}/${e.total})`);
+          if (e.status === "ok" && e.step.hash) {
+            toast.success(`${label}: ${e.step.hash.slice(0, 12)}…`);
+          } else if (e.status === "failed" && e.message) {
+            toast.error(e.message);
+          }
+        },
+      });
+      const parts = [`${res.swept} swept`];
+      if (res.toppedUp) parts.push(`${res.toppedUp} gas top-up${res.toppedUp === 1 ? "" : "s"}`);
+      if (res.skipped) parts.push(`${res.skipped} skipped (dust)`);
+      if (res.failed) parts.push(`${res.failed} failed`);
+      if (res.failed) toast.warning(`Round up: ${parts.join(" · ")}`);
+      else toast.success(`Round up complete — ${parts.join(" · ")}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusyKey(null);
+      setStatus("");
     }
-    if (!hideNative) {
-      for (const row of visible) {
-        if (row.address.toLowerCase() === dest) continue;
-        if (row.nativeWei > 0n) jobs.push({ row, kind: "native" });
-      }
-    }
-    if (jobs.length === 0) return toast.info("Nothing to sweep");
-    if (!confirm(`Sweep ALL ${jobs.length} balance${jobs.length === 1 ? "" : "s"} → ${destination}?\n\nFailures will be skipped and reported at the end.`))
-      return;
-    let ok = 0;
-    let failed = 0;
-    for (let i = 0; i < jobs.length; i++) {
-      const j = jobs[i];
-      const key = `${j.row.index}-${j.kind === "native" ? "native" : j.token!.address}`;
-      setBusyKey(key);
-      setStatus(`Sweeping ${i + 1}/${jobs.length}…`);
-      try {
-        const hash =
-          j.kind === "native"
-            ? await sweepEvmNative({ mnemonic, chain, fromIndex: j.row.index, to: destination.trim() as Address })
-            : await sweepEvmToken({ mnemonic, chain, fromIndex: j.row.index, token: j.token!, to: destination.trim() as Address });
-        ok++;
-        toast.success(`#${j.row.index} ${j.kind === "native" ? chain.nativeSymbol : j.token!.symbol}: ${hash.slice(0, 12)}…`);
-      } catch (e) {
-        failed++;
-        toast.error(`#${j.row.index} ${j.kind === "native" ? chain.nativeSymbol : j.token!.symbol}: ${(e as Error).message}`);
-      }
-    }
-    setBusyKey(null);
-    setStatus("");
-    if (failed === 0) toast.success(`Swept ${ok}/${jobs.length} balances`);
-    else toast.warning(`Swept ${ok}/${jobs.length} — ${failed} failed`);
   }
+
 
   const visibleRows = rows.filter((r) => r.tokens.length > 0 || !hideNative);
 
@@ -234,6 +257,14 @@ export function EvmSweepDialog({
               />
               Hide {chain.nativeSymbol} (don't sweep)
             </label>
+            <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={autoTopUp}
+                onChange={(e) => setAutoTopUp(e.target.checked)}
+              />
+              Auto top-up gas from #{funderIndex} for token-only addresses
+            </label>
           </div>
 
           {/* Results */}
@@ -248,10 +279,11 @@ export function EvmSweepDialog({
             <div className="space-y-3">
               <div className="flex justify-end">
                 <Button size="sm" onClick={sweepAll} disabled={busyKey !== null}>
-                  {busyKey !== null ? status || "Sweeping…" : "Sweep All"}
+                  {busyKey !== null ? status || "Rounding up…" : "Round up all"}
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
               </div>
+
 
               {visibleRows.map((row) => (
                 <div key={row.index} className="rounded-lg border p-3">

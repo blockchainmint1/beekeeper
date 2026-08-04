@@ -354,5 +354,223 @@ export function formatEth(wei: bigint, maxDecimals = 6): string {
   return ft ? `${BigInt(w).toLocaleString()}.${ft}` : BigInt(w).toLocaleString();
 }
 
+/* ------------------------------------------------------------------ *
+ * Gas top-up + round-up orchestration
+ *
+ * A derived address can hold USDC/USDT but zero native gas, so its token
+ * sweep would fail with "insufficient funds for gas". Round-up therefore
+ * runs: top up gas from the main address -> sweep tokens -> sweep native
+ * (native last, since it pays for the token transfers).
+ * ------------------------------------------------------------------ */
+
+/** Gas units assumed for a single ERC-20 transfer, with headroom. */
+const TOKEN_TRANSFER_GAS = 90_000n;
+
+function walletFor(mnemonic: string, chain: EvmChain, index: number) {
+  const pk = evmPrivateKey(mnemonic, chain, index);
+  return createWalletClient({
+    account: privateKeyToAccount(pk),
+    chain: chainDef(chain),
+    transport: http(chainRpcUrls(chain)[0]),
+  });
+}
+
+/** Native wei needed at a derived address to push `tokenCount` ERC-20 transfers + one native sweep. */
+export async function estimateGasNeeded(
+  chain: EvmChain,
+  tokenCount: number,
+): Promise<{ gasPrice: bigint; needed: bigint }> {
+  const gasPrice = await withFallback(chain, (c) => c.getGasPrice());
+  // +25% buffer so a small gas-price bump between top-up and sweep doesn't strand funds.
+  const units = TOKEN_TRANSFER_GAS * BigInt(Math.max(0, tokenCount)) + 21_000n;
+  const needed = (units * gasPrice * 125n) / 100n;
+  return { gasPrice, needed };
+}
+
+/** Send native gas from `fromIndex` (default the main address, #0) to a derived address. */
+export async function topUpGas(args: {
+  mnemonic: string;
+  chain: EvmChain;
+  to: Address;
+  wei: bigint;
+  fromIndex?: number;
+  waitForReceipt?: boolean;
+}): Promise<`0x${string}`> {
+  const { mnemonic, chain, to, wei, fromIndex = 0, waitForReceipt = true } = args;
+  if (wei <= 0n) throw new Error("Top-up amount must be greater than zero");
+
+  const funder = deriveEvmAccount(mnemonic, chain, fromIndex).address as Address;
+  const [balance, gasPrice] = await Promise.all([
+    withFallback(chain, (c) => c.getBalance({ address: funder })),
+    withFallback(chain, (c) => c.getGasPrice()),
+  ]);
+  if (balance < wei + 21_000n * gasPrice) {
+    throw new Error(
+      `Main address has ${formatEther(balance)} ${chain.nativeSymbol}; needs ~${formatEther(
+        wei + 21_000n * gasPrice,
+      )} to fund this top-up`,
+    );
+  }
+
+  const hash = await walletFor(mnemonic, chain, fromIndex).sendTransaction({ to, value: wei });
+  if (waitForReceipt) {
+    await withFallback(chain, (c) => c.waitForTransactionReceipt({ hash, timeout: 120_000 }));
+  }
+  return hash;
+}
+
+export type RoundUpStep =
+  | { kind: "topup"; index: number; wei: bigint; hash?: `0x${string}` }
+  | { kind: "token"; index: number; symbol: string; hash?: `0x${string}` }
+  | { kind: "native"; index: number; hash?: `0x${string}` };
+
+export interface RoundUpEvent {
+  step: RoundUpStep;
+  done: number;
+  total: number;
+  status: "running" | "ok" | "failed" | "skipped";
+  message?: string;
+}
+
+export interface RoundUpResult {
+  swept: number;
+  failed: number;
+  toppedUp: number;
+  skipped: number;
+  errors: string[];
+}
+
+/**
+ * Consolidate every scanned derived address into `destination`:
+ * tops up gas where a token-holding address can't pay for its own transfer,
+ * sweeps tokens, then sweeps native value.
+ */
+export async function roundUpEvm(args: {
+  mnemonic: string;
+  chain: EvmChain;
+  rows: EvmHdAddress[];
+  destination: Address;
+  /** Index that funds gas top-ups and normally receives everything. Default 0. */
+  funderIndex?: number;
+  includeNative?: boolean;
+  /** Skip gas top-ups entirely (token sweeps on empty addresses will then fail). */
+  autoTopUp?: boolean;
+  onEvent?: (e: RoundUpEvent) => void;
+}): Promise<RoundUpResult> {
+  const {
+    mnemonic,
+    chain,
+    rows,
+    destination,
+    funderIndex = 0,
+    includeNative = true,
+    autoTopUp = true,
+    onEvent,
+  } = args;
+
+  const dest = destination.toLowerCase();
+  const targets = rows.filter(
+    (r) => r.address.toLowerCase() !== dest && (r.tokens.length > 0 || (includeNative && r.nativeWei > 0n)),
+  );
+
+  const result: RoundUpResult = { swept: 0, failed: 0, toppedUp: 0, skipped: 0, errors: [] };
+  if (targets.length === 0) return result;
+
+  const { needed: perTokenBase } = await estimateGasNeeded(chain, 1);
+  const total = targets.reduce(
+    (n, r) => n + r.tokens.length + (includeNative && r.nativeWei > 0n ? 1 : 0),
+    0,
+  );
+  let done = 0;
+
+  const emit = (step: RoundUpStep, status: RoundUpEvent["status"], message?: string) =>
+    onEvent?.({ step, done, total, status, message });
+
+  for (const row of targets) {
+    // 1. Fund gas if this address holds tokens but can't pay for the transfers.
+    if (row.tokens.length > 0 && autoTopUp) {
+      const { needed } = await estimateGasNeeded(chain, row.tokens.length);
+      if (row.nativeWei < needed) {
+        const wei = needed - row.nativeWei;
+        emit({ kind: "topup", index: row.index, wei }, "running");
+        try {
+          const hash = await topUpGas({
+            mnemonic,
+            chain,
+            to: row.address,
+            wei: wei > perTokenBase ? wei : perTokenBase,
+            fromIndex: funderIndex,
+          });
+          result.toppedUp++;
+          emit({ kind: "topup", index: row.index, wei, hash }, "ok");
+        } catch (e) {
+          const msg = `#${row.index} gas top-up: ${(e as Error).message}`;
+          result.errors.push(msg);
+          result.skipped += row.tokens.length;
+          done += row.tokens.length;
+          emit({ kind: "topup", index: row.index, wei }, "failed", msg);
+          continue; // tokens can't move without gas
+        }
+      }
+    }
+
+    // 2. Sweep tokens (gas paid in native at the source).
+    for (const t of row.tokens) {
+      emit({ kind: "token", index: row.index, symbol: t.token.symbol }, "running");
+      try {
+        const hash = await sweepEvmToken({
+          mnemonic,
+          chain,
+          fromIndex: row.index,
+          token: t.token,
+          to: destination,
+        });
+        await withFallback(chain, (c) => c.waitForTransactionReceipt({ hash, timeout: 120_000 }));
+        result.swept++;
+        done++;
+        emit({ kind: "token", index: row.index, symbol: t.token.symbol, hash }, "ok");
+      } catch (e) {
+        const msg = `#${row.index} ${t.token.symbol}: ${(e as Error).message}`;
+        result.failed++;
+        done++;
+        result.errors.push(msg);
+        emit({ kind: "token", index: row.index, symbol: t.token.symbol }, "failed", msg);
+      }
+    }
+
+    // 3. Sweep leftover native last (includes any unused top-up).
+    if (includeNative && row.index !== funderIndex) {
+      emit({ kind: "native", index: row.index }, "running");
+      try {
+        const hash = await sweepEvmNative({
+          mnemonic,
+          chain,
+          fromIndex: row.index,
+          to: destination,
+        });
+        result.swept++;
+        done++;
+        emit({ kind: "native", index: row.index, hash }, "ok");
+      } catch (e) {
+        const msg = `#${row.index} ${chain.nativeSymbol}: ${(e as Error).message}`;
+        // Dust below gas cost is expected, not a real failure.
+        if (/too low to cover gas|insufficient funds/i.test(msg)) {
+          result.skipped++;
+          done++;
+          emit({ kind: "native", index: row.index }, "skipped", msg);
+        } else {
+          result.failed++;
+          done++;
+          result.errors.push(msg);
+          emit({ kind: "native", index: row.index }, "failed", msg);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 // Re-export parseUnits in case dialogs want it.
 export { parseUnits };
+
