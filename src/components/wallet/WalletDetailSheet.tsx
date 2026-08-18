@@ -173,7 +173,7 @@ export function WalletDetailSheet({
               </Button>
             )}
             <Button asChild variant="outline" onClick={onClose}>
-              <Link to="/wallet/$chain/qr-login" params={{ chain: chain.id }}>
+              <Link to="/wallet/$chain/qr-login" params={{ chain: chain.id }} search={{ q: undefined }}>
                 QR login
               </Link>
             </Button>
