@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ScanLine, ShieldCheck, Loader2, Fingerprint } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
 import { isBiometricAvailable, enableBiometric } from "@/lib/native/biometric";
+import { looksLikePublicAddressOrKey } from "@/lib/wallet/payment-uri";
 import { QrScanDialog } from "./QrScanDialog";
 
 type Step = 1 | 2 | 3;
