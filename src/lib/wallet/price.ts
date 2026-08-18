@@ -2,7 +2,7 @@
 // Caches results in-memory and in sessionStorage for snappy refreshes.
 import { CHAIN_LIST, type ChainConfig } from "@/lib/chains";
 
-type PriceMap = Record<string, number>; // key = ChainId | tokenSymbol@chainId | coingeckoId
+export type PriceMap = Record<string, number>; // key = ChainId | tokenSymbol@chainId | coingeckoId
 
 const CACHE_KEY = "lovable-wallet-prices-v1";
 const TTL_MS = 90_000;
