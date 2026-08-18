@@ -1,15 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Link2, Settings2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowDownToLine, Link2, Send as SendIcon, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CHAIN_LIST } from "@/lib/chains";
 import { hasNectarLink } from "@/lib/wallet/nectar";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { usePortfolioTotal } from "@/lib/wallet/portfolio";
-import { formatUsd } from "@/lib/wallet/price";
+import { formatUsd, priceForChain, type PriceMap } from "@/lib/wallet/price";
+import { useScanGap } from "@/lib/wallet/scan-prefs";
 import { useHideBalances, maskAmount } from "@/lib/wallet/hide-balances";
 import { useWalletSession, useChainAccount } from "@/components/wallet/session";
 import { MetalWalletCardConnected } from "@/components/wallet/MetalWalletCardConnected";
+import { WalletDetailSheet } from "@/components/wallet/WalletDetailSheet";
 import { ReorderTilesSheet } from "@/components/wallet/ReorderTilesSheet";
 import { RecentActivity } from "@/components/wallet/RecentActivity";
 import { OmniTokensPanel } from "@/components/wallet/OmniTokensPanel";
@@ -30,6 +33,7 @@ function WalletHome() {
   );
 
   const [reorderOpen, setReorderOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [nectarLinked, setNectarLinked] = useState(true);
   useEffect(() => {
     setNectarLinked(hasNectarLink());
@@ -48,6 +52,17 @@ function WalletHome() {
   const activeAddress = activeAccount.data?.account.address ?? null;
 
   const total = usePortfolioTotal(mnemonic);
+
+  // The card already fetched this chain's balance/price — reuse the cache so the
+  // detail sheet doesn't trigger a second HD scan.
+  const qc = useQueryClient();
+  const gap = useScanGap();
+  const activeNative =
+    (qc.getQueryData<number>(["balance", activeChain?.id, activeAddress, gap]) ?? null);
+  const activePrices = qc.getQueryData<PriceMap>(["prices"]) ?? null;
+  const activePrice =
+    activePrices && activeChain ? priceForChain(activePrices, activeChain) : null;
+  const activeUsd = activePrice != null && activeNative != null ? activeNative * activePrice : null;
 
   // Snap-carousel tracker: whichever card is closest to centre is "active".
   const scrollerRef = useRef<HTMLDivElement>(null);
