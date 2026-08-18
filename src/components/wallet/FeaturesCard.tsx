@@ -8,14 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useFeature } from "@/lib/wallet/feature-prefs";
 import { useHideBalances, setHideBalances } from "@/lib/wallet/hide-balances";
-import { nativePlatform } from "@/lib/native/platform";
+import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 
 export function FeaturesCard() {
   const [swap, setSwap] = useFeature("swap");
   const [confirmLast4, setConfirmLast4] = useFeature("confirmLast4");
   const hidden = useHideBalances();
-  // Off-ramp / exchange features are not shipped in the iOS build.
-  const exchangeAllowed = nativePlatform() !== "ios";
+  const exchangeAllowed = useExchangeFeaturesAllowed();
 
   return (
     <Card>

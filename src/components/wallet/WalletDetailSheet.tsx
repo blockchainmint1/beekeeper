@@ -21,6 +21,9 @@ import type { ChainConfig } from "@/lib/chains";
 import { getChainLabel, setChainLabel, useChainLabelVersion } from "@/lib/wallet/chain-labels";
 import { useHideBalances, toggleHideBalances, maskAmount } from "@/lib/wallet/hide-balances";
 import { formatUsd } from "@/lib/wallet/price";
+import { useFeature } from "@/lib/wallet/feature-prefs";
+import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
+import { getUtxoSwapConfig } from "./utxo-swap-config";
 
 function derivationPath(chain: ChainConfig): string {
   if (chain.kind === "utxo") {
@@ -58,6 +61,11 @@ export function WalletDetailSheet({
 }) {
   const labelVersion = useChainLabelVersion();
   const hidden = useHideBalances();
+  const [swapOptIn] = useFeature("swap");
+  const exchangeAllowed = useExchangeFeaturesAllowed();
+  // Swap only appears when the user opted in, the platform permits exchange
+  // features, and a counterparty is actually configured for this chain.
+  const swapEnabled = swapOptIn && exchangeAllowed && !!getUtxoSwapConfig(chain.id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   void labelVersion;
