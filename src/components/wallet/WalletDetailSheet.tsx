@@ -65,7 +65,7 @@ export function WalletDetailSheet({
   const exchangeAllowed = useExchangeFeaturesAllowed();
   // Swap only appears when the user opted in, the platform permits exchange
   // features, and a counterparty is actually configured for this chain.
-  const swapEnabled = swapOptIn && exchangeAllowed && !!getUtxoSwapConfig(chain.id);
+  const swapEnabled = swapOptIn && exchangeAllowed && !!(chain && getUtxoSwapConfig(chain.id));
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   void labelVersion;
