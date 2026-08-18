@@ -150,7 +150,7 @@ export function SettingsDialog({
 }
 
 
-function NectarPanel() {
+export function NectarPanel() {
   const [link, setLink] = useState<NectarLinkRecord | null>(() => loadNectarLink());
   const [linkOpen, setLinkOpen] = useState(false);
   return (
@@ -243,7 +243,7 @@ function ScanDepthRow() {
   );
 }
 
-function WalletsPanel() {
+export function WalletsPanel() {
   const visible = useVisibleChainIds();
   const visibleChains = visible
     .map((id) => CHAIN_LIST.find((c) => c.id === id))
@@ -340,7 +340,7 @@ function WalletsPanel() {
   );
 }
 
-function SecurityPanel() {
+export function SecurityPanel() {
   const prefs = useSecurityPrefs();
   return (
     <div className="space-y-4">
@@ -504,7 +504,7 @@ function BiometricRow() {
   );
 }
 
-function PasswordPanel() {
+export function PasswordPanel() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -542,7 +542,7 @@ function PasswordPanel() {
   );
 }
 
-function RevealPanel() {
+export function RevealPanel() {
   const [chainId, setChainId] = useState<ChainId>("txc");
   const [pass, setPass] = useState("");
   const [key, setKey] = useState<string | null>(null);
@@ -667,7 +667,7 @@ function RevealPanel() {
   );
 }
 
-function DangerPanel({ onWipe }: { onWipe: () => void }) {
+export function DangerPanel({ onWipe }: { onWipe: () => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
@@ -688,7 +688,7 @@ function DangerPanel({ onWipe }: { onWipe: () => void }) {
   );
 }
 
-function XpubPanel() {
+export function XpubPanel() {
   const [pass, setPass] = useState("");
   const [xpub, setXpub] = useState<string | null>(null);
   const [count, setCount] = useState(5);
@@ -773,7 +773,7 @@ function XpubPanel() {
     </div>
   );
 }
-function AlertsPanel() {
+export function AlertsPanel() {
   const prefs = useNotifPrefs();
   return (
     <div className="space-y-5">

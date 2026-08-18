@@ -26,6 +26,7 @@ import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 import { Route as WalletChainXpubRouteImport } from './routes/wallet.$chain.xpub'
 import { Route as WalletChainSweepRouteImport } from './routes/wallet.$chain.sweep'
+import { Route as WalletChainSwapRouteImport } from './routes/wallet.$chain.swap'
 import { Route as WalletChainSendRouteImport } from './routes/wallet.$chain.send'
 import { Route as WalletChainReceiveRouteImport } from './routes/wallet.$chain.receive'
 import { Route as WalletChainQrLoginRouteImport } from './routes/wallet.$chain.qr-login'
@@ -118,6 +119,11 @@ const WalletChainSweepRoute = WalletChainSweepRouteImport.update({
   path: '/$chain/sweep',
   getParentRoute: () => WalletRoute,
 } as any)
+const WalletChainSwapRoute = WalletChainSwapRouteImport.update({
+  id: '/$chain/swap',
+  path: '/$chain/swap',
+  getParentRoute: () => WalletRoute,
+} as any)
 const WalletChainSendRoute = WalletChainSendRouteImport.update({
   id: '/$chain/send',
   path: '/$chain/send',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
   '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
   '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
   '/wallet/$chain/receive': typeof WalletChainReceiveRoute
   '/wallet/$chain/send': typeof WalletChainSendRoute
+  '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
     | '/wallet/$chain/send'
+    | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
     | '/wallet/$chain/send'
+    | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/qr-login'
     | '/wallet/$chain/receive'
     | '/wallet/$chain/send'
+    | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/api/public/rpc/alchemy/$chain'
@@ -431,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletChainSweepRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/wallet/$chain/swap': {
+      id: '/wallet/$chain/swap'
+      path: '/$chain/swap'
+      fullPath: '/wallet/$chain/swap'
+      preLoaderRoute: typeof WalletChainSwapRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/wallet/$chain/send': {
       id: '/wallet/$chain/send'
       path: '/$chain/send'
@@ -504,6 +523,7 @@ interface WalletRouteChildren {
   WalletChainQrLoginRoute: typeof WalletChainQrLoginRoute
   WalletChainReceiveRoute: typeof WalletChainReceiveRoute
   WalletChainSendRoute: typeof WalletChainSendRoute
+  WalletChainSwapRoute: typeof WalletChainSwapRoute
   WalletChainSweepRoute: typeof WalletChainSweepRoute
   WalletChainXpubRoute: typeof WalletChainXpubRoute
 }
@@ -520,6 +540,7 @@ const WalletRouteChildren: WalletRouteChildren = {
   WalletChainQrLoginRoute: WalletChainQrLoginRoute,
   WalletChainReceiveRoute: WalletChainReceiveRoute,
   WalletChainSendRoute: WalletChainSendRoute,
+  WalletChainSwapRoute: WalletChainSwapRoute,
   WalletChainSweepRoute: WalletChainSweepRoute,
   WalletChainXpubRoute: WalletChainXpubRoute,
 }
