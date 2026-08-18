@@ -158,6 +158,11 @@ export function WalletDetailSheet({
                 Extended key
               </Link>
             </Button>
+            <Button asChild variant="outline" onClick={onClose}>
+              <Link to="/wallet/$chain/swap" params={{ chain: chain.id }}>
+                Swap
+              </Link>
+            </Button>
             {chain.kind === "utxo" && (
               <Button asChild variant="outline" onClick={onClose}>
                 <Link to="/wallet/$chain/consolidate" params={{ chain: chain.id }}>
