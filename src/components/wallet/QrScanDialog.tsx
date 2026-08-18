@@ -12,12 +12,14 @@ export function QrScanDialog({
   onResult,
   title = "Scan QR code",
   description = "Point your camera at a payment QR. Standard BIP21 URIs like bitcoin:… or texitcoin:…?amount= are supported.",
+  helpLink,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onResult: (text: string) => void;
   title?: string;
   description?: string;
+  helpLink?: { label: string; href: string };
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
