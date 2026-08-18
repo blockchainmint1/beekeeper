@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, ExternalLink, Loader2, RefreshCw, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ChainConfig } from "@/lib/chains";
-import { fetchHistory, explorerHistoryUrl, hasNativeHistory } from "@/lib/wallet/history";
+import { fetchHistory, explorerHistoryUrl, hasNativeHistory, type HistoryItem } from "@/lib/wallet/history";
+import { TxDetailSheet } from "@/components/wallet/TxDetailSheet";
 
 export function RecentActivity({
   chain,
@@ -14,6 +16,7 @@ export function RecentActivity({
   onSeeAll?: () => void;
 }) {
   const native = chain ? hasNativeHistory(chain) : false;
+  const [selected, setSelected] = useState<HistoryItem | null>(null);
   const query = useQuery({
     queryKey: ["history", chain?.id, address],
     enabled: native && !!address,
@@ -42,7 +45,7 @@ export function RecentActivity({
 
   if (query.isLoading) {
     return (
-      <div className="glass-card rounded-2xl px-4 py-6 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="glass-card flex items-center justify-center rounded-2xl px-4 py-6 text-sm text-muted-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading activity…
       </div>
     );
@@ -51,7 +54,7 @@ export function RecentActivity({
   if (query.error) {
     return (
       <div className="glass-card rounded-2xl px-4 py-5 text-center text-sm">
-        <p className="text-destructive mb-3">Couldn&apos;t load activity.</p>
+        <p className="mb-3 text-destructive">Couldn&apos;t load activity.</p>
         <Button size="sm" variant="outline" onClick={() => query.refetch()}>
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Retry
         </Button>
@@ -81,12 +84,11 @@ export function RecentActivity({
                 ? "text-amber-500"
                 : "text-muted-foreground";
           return (
-            <a
+            <button
               key={tx.txid}
-              href={tx.url}
-              target="_blank"
-              rel="noreferrer"
-              className="glass-card flex items-center gap-3 rounded-xl p-3 text-sm transition hover:bg-muted/40"
+              type="button"
+              onClick={() => setSelected(tx)}
+              className="glass-card flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm transition hover:bg-muted/40"
             >
               <Icon className={`h-4 w-4 shrink-0 ${dirColor}`} />
               <div className="min-w-0 flex-1">
@@ -104,7 +106,7 @@ export function RecentActivity({
                   </span>
                 </div>
               </div>
-            </a>
+            </button>
           );
         })}
       </div>
@@ -117,6 +119,8 @@ export function RecentActivity({
           See all {items.length} transactions
         </button>
       )}
+
+      <TxDetailSheet tx={selected} chain={chain} onClose={() => setSelected(null)} />
     </div>
   );
 }
