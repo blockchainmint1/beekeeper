@@ -89,27 +89,7 @@ function WalletHome() {
 
 
   return (
-    <div className="mx-auto max-w-3xl pb-32">
-      {/* Portfolio total */}
-      <section className="px-5 pt-5 text-center">
-        <div className="text-[10.5px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-          Total Ecosystem Value
-        </div>
-        <h1 className="tabular mt-2 text-[46px] font-semibold leading-none tracking-tight">
-          {maskAmount(total.data == null ? "—" : formatUsd(total.data), hidden)}
-        </h1>
-        <div
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium"
-          style={{ color: "var(--success)" }}
-        >
-          <TrendingUp className="h-3.5 w-3.5" />
-          <span className="tabular">
-            {visibleChains.length} {visibleChains.length === 1 ? "wallet" : "wallets"} · live
-          </span>
-        </div>
-      </section>
-
-
+    <div className="mx-auto max-w-3xl pb-40">
       {!nectarLinked && (
         <section className="mt-3 px-5">
           <div className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3">
@@ -125,8 +105,8 @@ function WalletHome() {
         </section>
       )}
 
-      {/* Full-bleed card carousel with on-card actions */}
-      <section className="mt-6">
+      {/* Full-bleed swipeable card carousel — tap a card for its details */}
+      <section className="mt-4">
         {visibleChains.length > 0 ? (
           <>
             <div
@@ -138,10 +118,10 @@ function WalletHome() {
                   key={c.id}
                   chain={c}
                   mnemonic={mnemonic}
-                  onClick={() => navigate({ to: "/wallet/$chain/history", params: { chain: c.id } })}
-                  onSend={() => navigate({ to: "/wallet/$chain/send", params: { chain: c.id }, search: {} })}
-                  onReceive={() => navigate({ to: "/wallet/$chain/receive", params: { chain: c.id } })}
-                  onHistory={() => navigate({ to: "/wallet/$chain/history", params: { chain: c.id } })}
+                  onClick={() => {
+                    setActiveChainId(c.id);
+                    setDetailOpen(true);
+                  }}
                   onLongPress={() => setReorderOpen(true)}
                 />
               ))}
@@ -171,6 +151,10 @@ function WalletHome() {
                 <Settings2 className="h-3 w-3" /> Arrange
               </button>
             </div>
+            <p className="tabular mt-1 text-center text-[10.5px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {visibleChains.length} {visibleChains.length === 1 ? "wallet" : "wallets"} · live ·{" "}
+              {maskAmount(total.data == null ? "—" : formatUsd(total.data), hidden)}
+            </p>
           </>
         ) : (
           <div className="mx-5 rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -182,26 +166,6 @@ function WalletHome() {
           </div>
         )}
       </section>
-
-      {/* Per-chain quick links */}
-      {activeChain && (
-        <section className="mt-5 flex flex-wrap gap-2 px-5">
-          <QuickLink to="/wallet/$chain/xpub" chain={activeChain.id}>Xpub</QuickLink>
-          <QuickLink to="/wallet/$chain/qr-login" chain={activeChain.id}>QR login</QuickLink>
-          {activeChain.kind === "evm" && (
-            <QuickLink to="/wallet/$chain/sweep" chain={activeChain.id}>Scan &amp; sweep</QuickLink>
-          )}
-          {activeChain.kind === "utxo" && (
-            <QuickLink to="/wallet/$chain/consolidate" chain={activeChain.id}>Consolidate</QuickLink>
-          )}
-          <Link
-            to="/wallet/security"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition hover:bg-muted"
-          >
-            Security
-          </Link>
-        </section>
-      )}
 
       {/* Tokens on the focused chain */}
       {activeChain?.kind === "utxo" && activeChain.supportsOmni && (
@@ -239,27 +203,38 @@ function WalletHome() {
         />
       </section>
 
+      {/* Fixed bottom actions for the focused wallet */}
+      {activeChain && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+          <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 flex-1 rounded-2xl text-sm font-semibold"
+            >
+              <Link to="/wallet/$chain/receive" params={{ chain: activeChain.id }}>
+                <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Receive
+              </Link>
+            </Button>
+            <Button asChild className="h-11 flex-1 rounded-2xl text-sm font-semibold">
+              <Link to="/wallet/$chain/send" params={{ chain: activeChain.id }} search={{}}>
+                <SendIcon className="mr-1.5 h-4 w-4" /> Send {activeChain.ticker}
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <WalletDetailSheet
+        chain={activeChain}
+        address={activeAddress}
+        nativeAmount={activeNative}
+        usdValue={activeUsd}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      />
+
       <ReorderTilesSheet open={reorderOpen} onOpenChange={setReorderOpen} />
     </div>
-  );
-}
-
-function QuickLink({
-  to,
-  chain,
-  children,
-}: {
-  to: "/wallet/$chain/xpub" | "/wallet/$chain/qr-login" | "/wallet/$chain/sweep" | "/wallet/$chain/consolidate";
-  chain: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      to={to}
-      params={{ chain }}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition hover:bg-muted"
-    >
-      {children}
-    </Link>
   );
 }
