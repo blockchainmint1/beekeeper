@@ -12,12 +12,14 @@ export function QrScanDialog({
   onResult,
   title = "Scan QR code",
   description = "Point your camera at a payment QR. Standard BIP21 URIs like bitcoin:… or texitcoin:…?amount= are supported.",
+  helpLink,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onResult: (text: string) => void;
   title?: string;
   description?: string;
+  helpLink?: { label: string; href: string };
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -84,6 +86,18 @@ export function QrScanDialog({
                 <ScanLine className="mr-1.5 h-4 w-4" /> Start camera
               </Button>
             </div>
+            {helpLink && (
+              <p className="text-center text-xs text-muted-foreground">
+                <a
+                  href={helpLink.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  {helpLink.label}
+                </a>
+              </p>
+            )}
             {error && <p className="text-xs text-destructive">{error}</p>}
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">Paste QR contents instead</summary>
