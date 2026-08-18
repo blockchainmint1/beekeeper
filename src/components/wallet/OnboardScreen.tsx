@@ -222,7 +222,7 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
         onResult={handleScan}
         title="Scan your copper Cold Storage Coin"
         description="Point your camera at the QR code on the back of your Cold Storage Coin. Your 12- or 24-word recovery phrase stays on this device."
-        helpLink={{ label: "How to clean / redeem your coin", href: "https://blockchainmint.com/redeem" }}
+        helpLink={{ label: "How to remove the security seal and clean your coin", href: "https://blockchainmint.com/redeem" }}
       />
 
     </div>
