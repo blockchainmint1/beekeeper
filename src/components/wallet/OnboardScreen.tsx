@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ScanLine, ShieldCheck, Loader2, Fingerprint } from "lucide-react";
 import { createVault, isValidMnemonic } from "@/lib/wallet/seed";
 import { isBiometricAvailable, enableBiometric } from "@/lib/native/biometric";
+import { looksLikePublicAddressOrKey } from "@/lib/wallet/payment-uri";
 import { QrScanDialog } from "./QrScanDialog";
 
 type Step = 1 | 2 | 3;
@@ -41,6 +42,15 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
   function handleScan(text: string) {
     setScanOpen(false);
     const m = text.trim().toLowerCase().replace(/\s+/g, " ");
+
+    if (looksLikePublicAddressOrKey(m)) {
+      toast.info("That looks like a public address or payment code from the sticker on the outside of the coin.", {
+        description: "Peel off the security seal/sticker and scan the laser-etched 12- or 24-word recovery phrase underneath.",
+        duration: 10_000,
+      });
+      return;
+    }
+
     const wordCount = m.split(" ").filter(Boolean).length;
     if (wordCount !== 12 && wordCount !== 24) {
       toast.error("Recovery phrase must be 12 or 24 words");
