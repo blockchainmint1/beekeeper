@@ -10,6 +10,8 @@ import { WalletPage } from "@/components/wallet/WalletPage";
 import { SecurityCheckupCard } from "@/components/wallet/SecurityCheckupCard";
 import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
+import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
+import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import {
   SecurityPanel, WalletsPanel, AlertsPanel, NectarPanel,
   PasswordPanel, RevealPanel, XpubPanel, DangerPanel,
@@ -39,6 +41,7 @@ export const Route = createFileRoute("/wallet/settings")({
 
 function SettingsPage() {
   const { lock } = useWalletSession();
+  const exchangeAllowed = useExchangeFeaturesAllowed();
 
   return (
     <WalletPage title="Settings" subtitle="Everything here stays in this browser">
@@ -66,6 +69,8 @@ function SettingsPage() {
         </SettingsCard>
 
         <FeaturesCard />
+
+        {exchangeAllowed && <TsdCashoutKeyCard />}
 
         <DeepRescanCard />
 
