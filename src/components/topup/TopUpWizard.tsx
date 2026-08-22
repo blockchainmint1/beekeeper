@@ -424,6 +424,13 @@ export function TopUpWizard({ available }: { available: boolean }) {
             {formatUsd(order.totalDebitUsd)} and delivering {order.asset} to your wallet once the funds
             clear.
           </p>
+          {order.partner && (
+            <p className="text-[11px] text-muted-foreground">
+              Onramp partner order{" "}
+              <span className="font-mono">{order.partner.orderId.slice(0, 12)}</span> · status{" "}
+              {order.partner.status}
+            </p>
+          )}
           <div className="space-y-2">
             {order.confidence.checks.map((c) => (
               <div key={c.id} className="flex gap-2 rounded-xl border p-2.5 text-[12px]">

@@ -18,8 +18,10 @@ import {
   TOPUP_FIRST_ORDER_MAX_USD,
   TOPUP_MAX_USD,
   TOPUP_MIN_USD,
-  quoteTopUp,
+  TOPUP_FEE_BPS,
+  quoteTopUpWithBps,
 } from "./packages";
+import { createBuyOrder, resolveFeeBps, vectorPayConfigured } from "@/lib/vectorpay/client.server";
 import { env } from "@/lib/server-env";
 
 interface SealedBank {
@@ -113,7 +115,9 @@ export async function placeTopUpOrder(input: {
     throw new Error("Your bank link expired. Please link the account again.");
   }
 
-  const quote = quoteTopUp(input.usd);
+  // VectorPay owns per-account discount tiers; standard pricing is 1%.
+  const feeBps = await resolveFeeBps(input.destinationAddress, TOPUP_FEE_BPS);
+  const quote = quoteTopUpWithBps(input.usd, feeBps);
   const checks: GateCheck[] = [];
 
   // Amount rules
@@ -223,6 +227,50 @@ export async function placeTopUpOrder(input: {
     throw new Error(failed.map((f) => f.detail).join(" "));
   }
 
+  // Hand the order to the onramp partner — they originate the ACH and are the
+  // system of record. If they're not wired up yet the order stays local.
+  let partner: { orderId: string; status: string } | null = null;
+  if (vectorPayConfigured()) {
+    try {
+      const vpOrder = await createBuyOrder({
+        externalId: orderId,
+        accountRef: input.destinationAddress,
+        usd: quote.usd,
+        feeUsd: quote.feeUsd,
+        totalDebitUsd: quote.totalDebitUsd,
+        asset: input.asset,
+        chain: input.asset === "USDC" ? "base" : "txc",
+        destinationAddress: input.destinationAddress,
+        bank: {
+          institution: bank.institution,
+          mask: bank.mask,
+          routingLast4: bank.routing.slice(-4),
+          holderNames: bank.holderNames,
+        },
+        acceptedDisclaimers: input.acceptedDisclaimers,
+        riskDecision: signal.decision,
+      });
+      if (vpOrder) partner = { orderId: vpOrder.id, status: vpOrder.status };
+      checks.push({
+        id: "partner",
+        label: "Order accepted by onramp partner",
+        status: "pass",
+        detail: `Partner order ${partner?.orderId ?? "created"} — they originate the ACH debit.`,
+      });
+    } catch (e) {
+      throw new Error(
+        e instanceof Error ? e.message : "The onramp partner couldn't accept this order.",
+      );
+    }
+  } else {
+    checks.push({
+      id: "partner",
+      label: "Order queued for treasury",
+      status: "warn",
+      detail: "The onramp partner isn't connected yet, so this order is queued for manual entry.",
+    });
+  }
+
   const record: TopUpOrderRecord = {
     id: orderId,
     createdAt: Date.now(),
@@ -243,6 +291,8 @@ export async function placeTopUpOrder(input: {
     },
     confidence,
     acceptedDisclaimers: input.acceptedDisclaimers,
+    feeBps,
+    partner,
     // Reopened by treasury only: full ACH numbers + Plaid item for the debit.
     treasuryRef: seal({
       orderId,

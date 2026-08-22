@@ -49,6 +49,10 @@ export interface TopUpOrderRecord {
   };
   confidence: TopUpConfidence;
   acceptedDisclaimers: string[];
+  /** Fee tier applied to this order, in basis points. */
+  feeBps: number;
+  /** Mirror of the onramp partner's order, when VectorPay is connected. */
+  partner: { orderId: string; status: string } | null;
   /** Sealed treasury payload — full ACH numbers, reopened server-side only. */
   treasuryRef: string;
 }
