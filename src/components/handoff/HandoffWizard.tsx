@@ -287,12 +287,18 @@ export function HandoffWizard({ side }: Props) {
           </p>
           <Separator />
           <Row label={buy ? "Order" : "You sell"} value={formatUsd(quote.usd)} />
-          <Row label={buy ? "Receive" : "Send"} value={`${asset.ticker} · ${getChain(chain).name}`} />
+          <Row label="Service fee (1%)" value={formatUsd(quote.feeUsd)} />
           <Row
-            label={buy ? "Total from your bank" : "Estimated to your bank"}
-            value={formatUsd(quote.settlementUsd)}
+            label={buy ? "You receive" : "Estimated to your bank"}
+            value={
+              buy
+                ? `${quote.assetAmount.toFixed(2)} ${asset.ticker} · ${getChain(chain).name}`
+                : formatUsd(quote.settlementUsd)
+            }
             strong
           />
+          {buy && <Row label="Total from your bank" value={formatUsd(quote.settlementUsd)} />}
+
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setStep("details")}>
               Back
