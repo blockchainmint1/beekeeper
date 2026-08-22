@@ -40,6 +40,8 @@ export interface CashOutOrderRecord {
   };
   checks: GateCheck[];
   acceptedDisclaimers: string[];
+  /** Mirror of the settlement partner's order, when VectorPay is connected. */
+  partner: { orderId: string; status: string } | null;
   /** Sealed treasury payload — full ACH numbers, reopened server-side only. */
   treasuryRef: string;
 }

@@ -14,6 +14,11 @@ import {
   quoteCashOut,
 } from "./cashout";
 import { env } from "@/lib/server-env";
+import {
+  createSellOrder,
+  reportSellTransfer,
+  vectorPayConfigured,
+} from "@/lib/vectorpay/client.server";
 
 interface SealedBank {
   accessToken: string;
@@ -140,6 +145,51 @@ export async function createCashOutOrder(input: {
   const failed = checks.filter((c) => c.status === "fail");
   if (failed.length > 0) throw new Error(failed.map((f) => f.detail).join(" "));
 
+  // The settlement partner is the system of record for the sale and the ACH credit.
+  let partner: { orderId: string; status: string } | null = null;
+  if (vectorPayConfigured()) {
+    try {
+      const vpOrder = await createSellOrder({
+        externalId: orderId,
+        accountRef: input.refundAddress,
+        reference,
+        asset: input.asset,
+        chain: input.chainId,
+        cryptoAmount: input.cryptoAmount,
+        grossUsd: quote.grossUsd,
+        feeUsd: quote.feeUsd,
+        netUsd: quote.netUsd,
+        depositAddress: address,
+        refundAddress: input.refundAddress,
+        bank: {
+          institution: bank.institution,
+          mask: bank.mask,
+          routingLast4: bank.routing.slice(-4),
+          holderNames: bank.holderNames,
+        },
+        acceptedDisclaimers: input.acceptedDisclaimers,
+      });
+      if (vpOrder) partner = { orderId: vpOrder.id, status: vpOrder.status };
+      checks.push({
+        id: "partner",
+        label: "Sale accepted by settlement partner",
+        status: "pass",
+        detail: `Partner order ${partner?.orderId ?? "created"} — they buy the crypto and send the ACH credit.`,
+      });
+    } catch (e) {
+      throw new Error(
+        e instanceof Error ? e.message : "The settlement partner couldn't accept this sale.",
+      );
+    }
+  } else {
+    checks.push({
+      id: "partner",
+      label: "Sale queued for treasury",
+      status: "warn",
+      detail: "The settlement partner isn't connected yet, so this sale is matched manually.",
+    });
+  }
+
   const record: CashOutOrderRecord = {
     id: orderId,
     createdAt: Date.now(),
@@ -162,9 +212,11 @@ export async function createCashOutOrder(input: {
     },
     checks,
     acceptedDisclaimers: input.acceptedDisclaimers,
+    partner,
     treasuryRef: seal({
       orderId,
       reference,
+      partnerOrderId: partner?.orderId ?? null,
       direction: "payout",
       accessToken: bank.accessToken,
       itemId: bank.itemId,
@@ -200,11 +252,24 @@ export async function reportCashOutTransfer(input: {
   txid: string;
 }): Promise<{ ok: true; reference: string }> {
   const { unseal } = await import("@/lib/topup/plaid.server");
-  let payload: { reference?: string; asset?: string; cryptoAmount?: string };
+  type Payload = {
+    reference?: string;
+    asset?: string;
+    cryptoAmount?: string;
+    partnerOrderId?: string | null;
+  };
+  let payload: Payload;
   try {
-    payload = unseal<{ reference?: string; asset?: string; cryptoAmount?: string }>(input.treasuryRef);
+    payload = unseal<Payload>(input.treasuryRef);
   } catch {
     throw new Error("We couldn't match that order. Contact support with your reference code.");
+  }
+  if (payload.partnerOrderId && vectorPayConfigured()) {
+    try {
+      await reportSellTransfer(payload.partnerOrderId, input.txid);
+    } catch (e) {
+      console.error(`[cashout] partner transfer report failed: ${String(e)}`);
+    }
   }
   console.info(
     `[cashout] transfer reported for ${payload.reference ?? "?"}: ${input.txid} ` +
