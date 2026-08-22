@@ -44,10 +44,13 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       };
     }
 
-    // Fee comes out of the order amount, and our assets are USD-pegged 1:1, so the
-    // quantity delivered/sold is the net-of-fee dollar amount at rate 1.
-    const netUsd = Math.max(0, Math.round((data.usd - feeUsd) * 100) / 100);
-    const assetAmount = data.assetAmount ?? netUsd.toFixed(2);
+    // The fee rides on top of the crypto: the customer gets the full ordered
+    // quantity (1:1 USD-pegged assets) and the bank moves order + fee on a buy.
+    const assetAmount = data.assetAmount ?? data.usd.toFixed(2);
+    const chargedUsd =
+      data.side === "buy"
+        ? Math.round((data.usd + feeUsd) * 100) / 100
+        : Math.round(data.usd * 100) / 100;
 
     const relay = await postOrder({
       side: data.side,
@@ -58,8 +61,9 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       asset: data.asset,
       chain: data.chain,
       ...(destination ? { destination_address: destination } : {}),
-      usd_amount: data.usd.toFixed(2),
+      usd_amount: chargedUsd.toFixed(2),
       asset_amount: assetAmount,
+
       rate: "1",
       fee_bps: 100,
       fee_usd: feeUsd.toFixed(2),
