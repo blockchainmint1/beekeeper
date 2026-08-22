@@ -33,7 +33,8 @@ function webhookUrl(): string {
 
 /** Shared HMAC key. Accepts either name the secret may be stored under. */
 function webhookSecret(): string | undefined {
-  return env("BEEKEEPER_WEBHOOK_SECRET") || env("VECTORPAY_WEBHOOK");
+  const raw = env("BEEKEEPER_WEBHOOK_SECRET") || env("VECTORPAY_WEBHOOK");
+  return raw ? raw.trim() : undefined;
 }
 
 export function handoffConfigured(): boolean {
