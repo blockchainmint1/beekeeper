@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { verifyWebhookSignature } from "@/lib/vectorpay/client.server";
 
 // VectorPay order lifecycle callbacks (debit submitted / returned / settled /
 // crypto delivered). Signature-verified; we only log for now, since VectorPay
@@ -10,6 +9,7 @@ export const Route = createFileRoute("/api/public/vectorpay/webhook")({
       POST: async ({ request }) => {
         const body = await request.text();
         const sig = request.headers.get("x-vectorpay-signature");
+        const { verifyWebhookSignature } = await import("@/lib/vectorpay/client.server");
         if (!verifyWebhookSignature(body, sig)) {
           return new Response("Invalid signature", { status: 401 });
         }
