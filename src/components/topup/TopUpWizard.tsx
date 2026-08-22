@@ -59,6 +59,7 @@ export function TopUpWizard({ available }: { available: boolean }) {
   const [order, setOrder] = useState<TopUpOrderRecord | null>(null);
 
   const chain = getChain(asset);
+  const deliveryTicker = TOPUP_ASSETS.find((a) => a.chain === asset)?.ticker ?? chain.ticker;
   const account = useChainAccount(chain);
   const quote = useMemo(() => quoteTopUp(usd), [usd]);
   const isFirstOrder = useMemo(() => !hasCompletedTopUp(), []);
