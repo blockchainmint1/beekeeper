@@ -456,17 +456,17 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
       <section className="px-5 mt-5">
         <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            className="h-12 rounded-2xl text-sm font-semibold"
-            asChild
-          >
+          <Button className="h-12 rounded-2xl text-sm font-semibold" asChild>
             <Link to="/wallet/topup">
               <ArrowDownLeft className="mr-2 h-4 w-4" />
               Top Up
             </Link>
           </Button>
-          <Button className="h-12 rounded-2xl text-sm font-semibold" asChild>
+          <Button
+            variant="outline"
+            className="h-12 rounded-2xl text-sm font-semibold"
+            asChild
+          >
             <Link to="/wallet/cashout">
               <Banknote className="mr-2 h-4 w-4" />
               Cash Out
