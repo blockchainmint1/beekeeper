@@ -457,24 +457,23 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
       <section className="px-5 mt-5">
         <div className="grid grid-cols-2 gap-3">
           <Button
-            asChild
+            disabled
             variant="outline"
-            className="h-12 rounded-2xl text-sm font-semibold"
+            className="h-12 rounded-2xl text-sm font-semibold opacity-60 cursor-not-allowed"
           >
-            <Link to="/wallet/topup">
-              <ArrowDownLeft className="mr-2 h-4 w-4" />
-              Top Up
-            </Link>
+            <ArrowDownLeft className="mr-2 h-4 w-4" />
+            Top Up
           </Button>
-          <Button asChild className="h-12 rounded-2xl text-sm font-semibold">
-            <Link to="/wallet/cashout">
-              <Banknote className="mr-2 h-4 w-4" />
-              Cash Out
-            </Link>
+          <Button
+            disabled
+            className="h-12 rounded-2xl text-sm font-semibold opacity-60 cursor-not-allowed"
+          >
+            <Banknote className="mr-2 h-4 w-4" />
+            Cash Out
           </Button>
         </div>
         <p className="mt-2 text-[11px] text-center text-muted-foreground px-4">
-          Top Up buys crypto with your bank account. Cash Out sells crypto and sends dollars to your bank.
+          Top Up and Cash Out are paused while we finish the VectorPay handoff. They'll be back soon.
         </p>
       </section>
 
