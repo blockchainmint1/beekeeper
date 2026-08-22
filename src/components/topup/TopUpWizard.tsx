@@ -100,7 +100,7 @@ export function TopUpWizard({ available }: { available: boolean }) {
         data: {
           sealedRef: bank.sealedRef,
           usd,
-          asset: chain.ticker,
+          asset: deliveryTicker,
           destinationAddress: account.data.account.address,
           acceptedDisclaimers: TOPUP_DISCLAIMERS.filter((d) => accepted[d.id]).map((d) => d.id),
           isFirstOrder,
