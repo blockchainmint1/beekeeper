@@ -10,9 +10,12 @@ export const TOPUP_MIN_USD = 25;
 export const TOPUP_FIRST_ORDER_MAX_USD = 250;
 /** Buffer required on top of the order total in the bank's available balance. */
 export const TOPUP_BALANCE_BUFFER_USD = 10;
-/** Service fee charged on the fiat amount, in basis points. */
-export const TOPUP_FEE_BPS = 149;
-export const TOPUP_FEE_FLAT_USD = 0.5;
+/**
+ * Service fee charged on the fiat amount, in basis points. 1% standard; some
+ * accounts get a discounted tier, which is applied server-side per order.
+ */
+export const TOPUP_FEE_BPS = 100;
+export const TOPUP_FEE_FLAT_USD = 0;
 
 export const TRADE_DESK_URL = "https://honest.money/trade-desk";
 
