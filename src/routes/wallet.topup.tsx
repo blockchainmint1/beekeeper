@@ -32,7 +32,13 @@ function TopUpPage() {
 
   return (
     <WalletPage title="Top Up" subtitle="Buy crypto with your bank account">
-      <TopUpWizard available={Boolean(status.data?.available)} />
+      {status.isPending ? (
+        <Card className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking bank top-up availability…
+        </Card>
+      ) : (
+        <TopUpWizard available={Boolean(status.data?.available)} />
+      )}
     </WalletPage>
   );
 }
