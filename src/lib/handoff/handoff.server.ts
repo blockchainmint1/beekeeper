@@ -8,7 +8,6 @@
 //   X-Partner-Name: Beekeeper
 //   keyed with BEEKEEPER_WEBHOOK_SECRET
 //   201 new order / 200 idempotent replay on the same `reference`.
-import { createHmac } from "node:crypto";
 import { env } from "@/lib/server-env";
 
 export interface BeekeeperOrderPayload {
@@ -54,8 +53,20 @@ export function cashoutDepositAddress(chain: string): string | null {
 }
 
 
-export function sign(body: string, secret: string): string {
-  return `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
+export async function sign(body: string, secret: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, enc.encode(body));
+  const hex = Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `sha256=${hex}`;
 }
 
 export interface RelayResult {
@@ -80,7 +91,7 @@ export async function postOrder(payload: BeekeeperOrderPayload): Promise<RelayRe
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-beekeeper-signature": sign(body, secret),
+        "x-beekeeper-signature": await sign(body, secret),
         "x-partner-name": "Beekeeper",
       },
       body,
