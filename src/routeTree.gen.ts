@@ -35,7 +35,6 @@ import { Route as WalletChainReceiveRouteImport } from './routes/wallet.$chain.r
 import { Route as WalletChainQrLoginRouteImport } from './routes/wallet.$chain.qr-login'
 import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.history'
 import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$chain.consolidate'
-import { Route as ApiPublicHandoffSelftestRouteImport } from './routes/api.public.handoff-selftest'
 import { Route as ApiPublicVectorpayWebhookRouteImport } from './routes/api.public.vectorpay.webhook'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
@@ -169,12 +168,6 @@ const WalletChainConsolidateRoute = WalletChainConsolidateRouteImport.update({
   path: '/$chain/consolidate',
   getParentRoute: () => WalletRoute,
 } as any)
-const ApiPublicHandoffSelftestRoute =
-  ApiPublicHandoffSelftestRouteImport.update({
-    id: '/api/public/handoff-selftest',
-    path: '/api/public/handoff-selftest',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicVectorpayWebhookRoute =
   ApiPublicVectorpayWebhookRouteImport.update({
     id: '/api/public/vectorpay/webhook',
@@ -207,7 +200,6 @@ export interface FileRoutesByFullPath {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
-  '/api/public/handoff-selftest': typeof ApiPublicHandoffSelftestRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -236,7 +228,6 @@ export interface FileRoutesByTo {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension': typeof ExtensionIndexRoute
   '/wallet': typeof WalletIndexRoute
-  '/api/public/handoff-selftest': typeof ApiPublicHandoffSelftestRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -268,7 +259,6 @@ export interface FileRoutesById {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
-  '/api/public/handoff-selftest': typeof ApiPublicHandoffSelftestRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -301,7 +291,6 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
-    | '/api/public/handoff-selftest'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -330,7 +319,6 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension'
     | '/wallet'
-    | '/api/public/handoff-selftest'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -361,7 +349,6 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
-    | '/api/public/handoff-selftest'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -382,7 +369,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
-  ApiPublicHandoffSelftestRoute: typeof ApiPublicHandoffSelftestRoute
   ApiPublicVectorpayWebhookRoute: typeof ApiPublicVectorpayWebhookRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -571,13 +557,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletChainConsolidateRouteImport
       parentRoute: typeof WalletRoute
     }
-    '/api/public/handoff-selftest': {
-      id: '/api/public/handoff-selftest'
-      path: '/api/public/handoff-selftest'
-      fullPath: '/api/public/handoff-selftest'
-      preLoaderRoute: typeof ApiPublicHandoffSelftestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/vectorpay/webhook': {
       id: '/api/public/vectorpay/webhook'
       path: '/api/public/vectorpay/webhook'
@@ -660,7 +639,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WalletRoute: WalletRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
-  ApiPublicHandoffSelftestRoute: ApiPublicHandoffSelftestRoute,
   ApiPublicVectorpayWebhookRoute: ApiPublicVectorpayWebhookRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
