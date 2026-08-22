@@ -455,16 +455,28 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
       </section>
 
       <section className="px-5 mt-5">
-        <Button
-          disabled
-          className="w-full h-12 rounded-2xl text-sm font-semibold"
-          onClick={() => toast.info("Cash Out is coming soon.")}
-        >
-          <Banknote className="mr-2 h-4 w-4" />
-          Cash Out — Coming Soon
-        </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            asChild
+            variant="outline"
+            className="h-12 rounded-2xl text-sm font-semibold"
+          >
+            <Link to="/wallet/$chain/sweep" params={{ chain: "eth" }}>
+              <ArrowDownLeft className="mr-2 h-4 w-4" />
+              Top Up
+            </Link>
+          </Button>
+          <Button
+            disabled
+            className="h-12 rounded-2xl text-sm font-semibold"
+            onClick={() => toast.info("Cash Out is coming soon.")}
+          >
+            <Banknote className="mr-2 h-4 w-4" />
+            Cash Out
+          </Button>
+        </div>
         <p className="mt-2 text-[11px] text-center text-muted-foreground px-4">
-          One tap to convert everything to USDC and send to your bank.
+          Top Up pulls spare change from derived addresses. Cash Out converts to USDC and sends to your bank.
         </p>
       </section>
 
