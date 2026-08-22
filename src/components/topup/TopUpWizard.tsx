@@ -393,7 +393,7 @@ export function TopUpWizard({ available }: { available: boolean }) {
           <dl className="space-y-2 text-sm">
             <Row label="You pay" value={formatUsd(quote.totalDebitUsd)} />
             <Row label="Debited from" value={`${bank.institution ?? "Bank"} •••• ${bank.mask}`} />
-            <Row label="You receive" value={`${formatUsd(quote.usd)} of ${chain.ticker}`} />
+            <Row label="You receive" value={`${formatUsd(quote.usd)} of ${deliveryTicker}`} />
             <Row label="Destination" value={account.data?.account.address ?? ""} mono />
             <Row label="Settlement" value="1–3 business days, delivery after funds clear" />
           </dl>
