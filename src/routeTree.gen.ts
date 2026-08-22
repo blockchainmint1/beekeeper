@@ -27,6 +27,7 @@ import { Route as WalletCashoutRouteImport } from './routes/wallet.cashout'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as WalletOrderIdRouteImport } from './routes/wallet.order.$id'
 import { Route as WalletChainXpubRouteImport } from './routes/wallet.$chain.xpub'
 import { Route as WalletChainSweepRouteImport } from './routes/wallet.$chain.sweep'
 import { Route as WalletChainSwapRouteImport } from './routes/wallet.$chain.swap'
@@ -128,6 +129,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
   path: '/admin/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WalletOrderIdRoute = WalletOrderIdRouteImport.update({
+  id: '/order/$id',
+  path: '/order/$id',
+  getParentRoute: () => WalletRoute,
+} as any)
 const WalletChainXpubRoute = WalletChainXpubRouteImport.update({
   id: '/$chain/xpub',
   path: '/$chain/xpub',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
+  '/wallet/order/$id': typeof WalletOrderIdRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
+  '/wallet/order/$id': typeof WalletOrderIdRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/wallet/$chain/swap': typeof WalletChainSwapRoute
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
+  '/wallet/order/$id': typeof WalletOrderIdRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
+    | '/wallet/order/$id'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesByTo: FileRoutesByTo
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
+    | '/wallet/order/$id'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   id:
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/swap'
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
+    | '/wallet/order/$id'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesById: FileRoutesById
@@ -501,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wallet/order/$id': {
+      id: '/wallet/order/$id'
+      path: '/order/$id'
+      fullPath: '/wallet/order/$id'
+      preLoaderRoute: typeof WalletOrderIdRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/wallet/$chain/xpub': {
       id: '/wallet/$chain/xpub'
       path: '/$chain/xpub'
@@ -607,6 +626,7 @@ interface WalletRouteChildren {
   WalletChainSwapRoute: typeof WalletChainSwapRoute
   WalletChainSweepRoute: typeof WalletChainSweepRoute
   WalletChainXpubRoute: typeof WalletChainXpubRoute
+  WalletOrderIdRoute: typeof WalletOrderIdRoute
 }
 
 const WalletRouteChildren: WalletRouteChildren = {
@@ -626,6 +646,7 @@ const WalletRouteChildren: WalletRouteChildren = {
   WalletChainSwapRoute: WalletChainSwapRoute,
   WalletChainSweepRoute: WalletChainSweepRoute,
   WalletChainXpubRoute: WalletChainXpubRoute,
+  WalletOrderIdRoute: WalletOrderIdRoute,
 }
 
 const WalletRouteWithChildren =

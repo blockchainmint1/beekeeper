@@ -78,6 +78,7 @@ export function HandoffWizard({ side }: Props) {
           name: name.trim(),
           email: email.trim(),
           acceptedDisclaimers: HANDOFF_DISCLAIMERS.map((d) => d.id),
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
         },
       });
       setResult(res);
@@ -347,6 +348,13 @@ export function HandoffWizard({ side }: Props) {
               </Button>
             )}
           </div>
+          <Link
+            to="/wallet/order/$id"
+            params={{ id: result.orderId }}
+            className="text-center text-xs text-muted-foreground underline"
+          >
+            View order confirmation
+          </Link>
         </Card>
       )}
     </div>
