@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { WalletPage } from "@/components/wallet/WalletPage";
 import { TopUpWizard } from "@/components/topup/TopUpWizard";
 import { topUpStatus } from "@/lib/topup/plaid.functions";
