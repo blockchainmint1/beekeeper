@@ -44,6 +44,11 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       };
     }
 
+    // Fee comes out of the order amount, and our assets are USD-pegged 1:1, so the
+    // quantity delivered/sold is the net-of-fee dollar amount at rate 1.
+    const netUsd = Math.max(0, Math.round((data.usd - feeUsd) * 100) / 100);
+    const assetAmount = data.assetAmount ?? netUsd.toFixed(2);
+
     const relay = await postOrder({
       side: data.side,
       reference: orderId,
@@ -54,8 +59,12 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       chain: data.chain,
       ...(destination ? { destination_address: destination } : {}),
       usd_amount: data.usd.toFixed(2),
-      ...(data.assetAmount ? { asset_amount: data.assetAmount } : {}),
+      asset_amount: assetAmount,
+      rate: "1",
+      fee_bps: 100,
+      fee_usd: feeUsd.toFixed(2),
     });
+
 
     return {
       orderId,
