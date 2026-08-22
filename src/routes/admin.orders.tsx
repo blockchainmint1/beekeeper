@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { Download, Loader2, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { WalletPage } from "@/components/wallet/WalletPage";
-import { fetchAdminOrders } from "@/lib/admin/orders.functions";
+import { fetchAdminOrders, refreshAdminOrder } from "@/lib/admin/orders.functions";
 import { formatUsd } from "@/lib/topup/packages";
+import type { VectorPayOrder } from "@/lib/vectorpay/client.server";
 
 export const Route = createFileRoute("/admin/orders")({
   head: () => ({
@@ -33,12 +34,69 @@ type Kind = "all" | "buy" | "sell";
 function AdminOrdersPage() {
   const [key, setKey] = useState("");
   const [kind, setKind] = useState<Kind>("all");
+  const [status, setStatus] = useState("");
+  const [accountRef, setAccountRef] = useState("");
+  const [detail, setDetail] = useState<VectorPayOrder | null>(null);
 
   const load = useMutation({
     mutationFn: (k: Kind) =>
-      fetchAdminOrders({ data: { key, kind: k === "all" ? undefined : k } }),
+      fetchAdminOrders({
+        data: {
+          key,
+          kind: k === "all" ? undefined : k,
+          status: status || undefined,
+          accountRef: accountRef || undefined,
+        },
+      }),
   });
   const view = load.data;
+
+  const refresh = useMutation({
+    mutationFn: (partnerOrderId: string) =>
+      refreshAdminOrder({ data: { key, partnerOrderId } }),
+  });
+
+  const csv = useMemo(() => {
+    if (!view?.orders.length) return "";
+    const rows = view.orders.map((o) => ({
+      id: o.id,
+      reference: o.reference ?? "",
+      external_id: o.externalId ?? "",
+      kind: o.kind,
+      status: o.status,
+      asset: o.asset,
+      chain: o.chain ?? "",
+      usd: o.usd,
+      fee_usd: o.feeUsd ?? "",
+      net_usd: o.netUsd ?? "",
+      destination_address: o.destinationAddress ?? "",
+      deposit_address: o.depositAddress ?? "",
+      txid: o.txid ?? "",
+      bank_mask: o.bankMask ?? "",
+      created_at: o.createdAt ?? "",
+      updated_at: o.updatedAt ?? "",
+    }));
+    const headers = Object.keys(rows[0]).join(",");
+    const body = rows
+      .map((r) =>
+        Object.values(r)
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+    return `${headers}\n${body}`;
+  }, [view?.orders]);
+
+  const downloadCsv = () => {
+    if (!csv) return;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `beekeeper-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <WalletPage title="Order console" subtitle="Top-ups and cash-outs, mirrored from the partner">
@@ -133,14 +191,49 @@ function AdminOrdersPage() {
                 ))}
               </div>
 
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  placeholder="Status filter (e.g. settled)"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="text-sm"
+                />
+                <Input
+                  placeholder="Account ref"
+                  value={accountRef}
+                  onChange={(e) => setAccountRef(e.target.value)}
+                  className="text-sm"
+                />
+                <Button
+                  variant="secondary"
+                  size="default"
+                  onClick={() => load.mutate(kind)}
+                  disabled={load.isPending}
+                >
+                  Filter
+                </Button>
+              </div>
+
               {view.note && <p className="text-[12px] text-muted-foreground">{view.note}</p>}
+
+              {view.orders.length > 0 && (
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" onClick={downloadCsv}>
+                    <Download className="mr-2 h-3.5 w-3.5" /> Export CSV
+                  </Button>
+                </div>
+              )}
 
               {view.orders.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No orders to show.</p>
               ) : (
                 <div className="space-y-2">
                   {view.orders.map((o) => (
-                    <div key={o.id} className="rounded-xl border p-3 text-[12px]">
+                    <button
+                      key={o.id}
+                      onClick={() => setDetail(o)}
+                      className="w-full rounded-xl border p-3 text-left text-[12px] transition hover:bg-muted/40"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-semibold capitalize">
                           {o.kind} · {o.asset}
@@ -161,7 +254,7 @@ function AdminOrdersPage() {
                         {o.reference ? `${o.reference} · ` : ""}
                         {o.id}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -169,6 +262,67 @@ function AdminOrdersPage() {
           </>
         )}
       </div>
+
+      {detail && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+          <Card className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 sm:rounded-b-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold">Order detail</div>
+              <Button variant="ghost" size="icon" onClick={() => setDetail(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <dl className="mt-4 space-y-2 text-[12px]">
+              <DetailRow label="ID" value={detail.id} />
+              <DetailRow label="Reference" value={detail.reference} />
+              <DetailRow label="External ID" value={detail.externalId} />
+              <DetailRow label="Kind" value={detail.kind} />
+              <DetailRow label="Status" value={detail.status} />
+              <DetailRow label="Asset" value={`${detail.asset}${detail.chain ? ` on ${detail.chain.toUpperCase()}` : ""}`} />
+              <DetailRow label="USD" value={formatUsd(detail.usd)} />
+              <DetailRow label="Fee" value={detail.feeUsd !== null ? formatUsd(detail.feeUsd) : null} />
+              <DetailRow label="Net" value={detail.netUsd !== null ? formatUsd(detail.netUsd) : null} />
+              <DetailRow label="Crypto amount" value={detail.cryptoAmount} />
+              <DetailRow label="Destination" value={detail.destinationAddress} />
+              <DetailRow label="Deposit address" value={detail.depositAddress} />
+              <DetailRow label="TxID" value={detail.txid} />
+              <DetailRow label="Bank mask" value={detail.bankMask ? `••••${detail.bankMask}` : null} />
+              <DetailRow label="Created" value={detail.createdAt ? new Date(detail.createdAt).toLocaleString() : null} />
+              <DetailRow label="Updated" value={detail.updatedAt ? new Date(detail.updatedAt).toLocaleString() : null} />
+            </dl>
+            <div className="mt-5 flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                disabled={refresh.isPending}
+                onClick={async () => {
+                  const r = await refresh.mutateAsync(detail.id);
+                  if (r.order) setDetail(r.order);
+                }}
+              >
+                {refresh.isPending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+                Sync status
+              </Button>
+            </div>
+            {refresh.error && (
+              <p className="mt-2 text-[12px] text-destructive">
+                {refresh.error instanceof Error ? refresh.error.message : "Sync failed."}
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
     </WalletPage>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+      <dt className="w-32 shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="break-all font-mono text-[11px]">{value}</dd>
+    </div>
   );
 }

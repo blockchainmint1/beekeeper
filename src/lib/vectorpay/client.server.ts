@@ -12,6 +12,7 @@ import { env } from "@/lib/server-env";
 export interface VectorPayOrder {
   id: string;
   reference: string | null;
+  externalId: string | null;
   kind: "buy" | "sell";
   status: string;
   asset: string;
@@ -19,7 +20,10 @@ export interface VectorPayOrder {
   usd: number;
   feeUsd: number | null;
   netUsd: number | null;
+  cryptoAmount: string | null;
   destinationAddress: string | null;
+  depositAddress: string | null;
+  txid: string | null;
   bankMask: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -67,9 +71,9 @@ async function vp<T>(
     throw new Error("The order partner returned an unexpected response.");
   }
   if (!res.ok) {
-    const e = json as { message?: string; error?: string };
-    console.error(`[vectorpay] ${path} ${res.status}: ${e.error ?? e.message ?? text.slice(0, 300)}`);
-    throw new Error(e.message || e.error || "The order partner rejected this order.");
+    const e = json as { message?: string; error?: string; detail?: string };
+    console.error(`[vectorpay] ${path} ${res.status}: ${e.error ?? e.message ?? e.detail ?? text.slice(0, 300)}`);
+    throw new Error(e.message || e.error || e.detail || "The order partner rejected this order.");
   }
   return json as T;
 }
@@ -77,20 +81,25 @@ async function vp<T>(
 function normalize(raw: Record<string, unknown>, fallbackKind: "buy" | "sell"): VectorPayOrder {
   const n = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const s = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
+  const kind = (s(raw["kind"]) as "buy" | "sell") ?? fallbackKind;
   return {
     id: s(raw["id"]) ?? s(raw["order_id"]) ?? "",
     reference: s(raw["reference"]),
-    kind: (s(raw["kind"]) as "buy" | "sell") ?? fallbackKind,
+    externalId: s(raw["external_id"]) ?? s(raw["externalId"]),
+    kind,
     status: s(raw["status"]) ?? "pending",
     asset: s(raw["asset"]) ?? "",
     chain: s(raw["chain"]),
     usd: n(raw["usd"]) ?? n(raw["amount_usd"]) ?? 0,
-    feeUsd: n(raw["fee_usd"]),
-    netUsd: n(raw["net_usd"]),
-    destinationAddress: s(raw["destination_address"]),
-    bankMask: s(raw["bank_mask"]),
-    createdAt: s(raw["created_at"]),
-    updatedAt: s(raw["updated_at"]),
+    feeUsd: n(raw["fee_usd"]) ?? n(raw["feeUsd"]),
+    netUsd: n(raw["net_usd"]) ?? n(raw["netUsd"]),
+    cryptoAmount: s(raw["crypto_amount"]) ?? s(raw["cryptoAmount"]),
+    destinationAddress: s(raw["destination_address"]) ?? s(raw["destinationAddress"]),
+    depositAddress: s(raw["deposit_address"]) ?? s(raw["depositAddress"]),
+    txid: s(raw["txid"]) ?? s(raw["tx_id"]) ?? s(raw["transaction_id"]),
+    bankMask: s(raw["bank_mask"]) ?? s(raw["bankMask"]),
+    createdAt: s(raw["created_at"]) ?? s(raw["createdAt"]),
+    updatedAt: s(raw["updated_at"]) ?? s(raw["updatedAt"]),
   };
 }
 
@@ -111,10 +120,11 @@ export async function resolveFeeBps(accountRef: string, fallbackBps: number): Pr
   }
   if (!vectorPayConfigured()) return fallbackBps;
   try {
-    const r = await vp<{ fee_bps?: number }>(`/v1/accounts/${encodeURIComponent(accountRef)}/fees`);
-    if (typeof r.fee_bps === "number" && r.fee_bps >= 0 && r.fee_bps <= 1000) {
-      return Math.round(r.fee_bps);
-    }
+    const r = await vp<{ fee_bps?: number; feeBps?: number }>(
+      `/v1/accounts/${encodeURIComponent(accountRef)}/fees`,
+    );
+    const bps = typeof r.fee_bps === "number" ? r.fee_bps : typeof r.feeBps === "number" ? r.feeBps : null;
+    if (bps !== null && bps >= 0 && bps <= 1000) return Math.round(bps);
   } catch {
     /* partner unreachable — standard pricing */
   }
@@ -220,6 +230,10 @@ export async function getOrder(partnerOrderId: string): Promise<VectorPayOrder |
   return normalize(raw, "buy");
 }
 
+export async function syncOrderStatus(partnerOrderId: string): Promise<VectorPayOrder | null> {
+  return getOrder(partnerOrderId);
+}
+
 export async function listOrders(query: {
   kind?: "buy" | "sell";
   status?: string;
@@ -251,4 +265,30 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
   const b = Buffer.from(expected, "utf8");
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
+}
+
+export interface VectorPayWebhookEvent {
+  event_id: string;
+  type: string;
+  created_at: string;
+  order?: VectorPayOrder;
+}
+
+export function parseWebhookEvent(body: string): VectorPayWebhookEvent | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const p = parsed as Record<string, unknown>;
+  const orderRaw = p["order"] as Record<string, unknown> | undefined;
+  const kind = (orderRaw?.["kind"] as "buy" | "sell") ?? "buy";
+  return {
+    event_id: typeof p["event_id"] === "string" ? p["event_id"] : "",
+    type: typeof p["type"] === "string" ? p["type"] : "",
+    created_at: typeof p["created_at"] === "string" ? p["created_at"] : new Date().toISOString(),
+    order: orderRaw ? normalize(orderRaw, kind) : undefined,
+  };
 }
