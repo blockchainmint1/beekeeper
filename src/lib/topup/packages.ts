@@ -34,12 +34,13 @@ export const TOPUP_PACKAGES: TopUpPackage[] = [
   { id: "hive", usd: 1000, label: "Full Hive", blurb: "Self-serve maximum" },
 ];
 
-/** Assets a top-up can be delivered in. */
-export const TOPUP_ASSETS: { chain: ChainId; label: string }[] = [
-  { chain: "txc", label: "TEXITcoin (TXC)" },
-  { chain: "btc", label: "Bitcoin (BTC)" },
-  { chain: "eth", label: "Ethereum (ETH)" },
-  { chain: "base", label: "Base (ETH)" },
+/**
+ * Assets a top-up can be delivered in. Stablecoins only: `chain` decides which
+ * wallet address the delivery goes to, `ticker` is the asset we owe.
+ */
+export const TOPUP_ASSETS: { chain: ChainId; label: string; ticker: string }[] = [
+  { chain: "txc", label: "TSD on TEXITcoin", ticker: "TSD" },
+  { chain: "base", label: "USDC on Base", ticker: "USDC" },
 ];
 
 export interface TopUpQuote {
