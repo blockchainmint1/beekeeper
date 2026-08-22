@@ -195,18 +195,20 @@ export async function createCashOutOrder(input: {
 }
 
 /** Customer reports the on-chain transfer so treasury can match it to the order. */
-export function reportCashOutTransfer(input: {
+export async function reportCashOutTransfer(input: {
   treasuryRef: string;
   txid: string;
-}): { ok: true; reference: string } {
+}): Promise<{ ok: true; reference: string }> {
+  const { unseal } = await import("@/lib/topup/plaid.server");
   let payload: { reference?: string; asset?: string; cryptoAmount?: string };
   try {
-    payload = JSON.parse("{}") as never;
+    payload = unseal<{ reference?: string; asset?: string; cryptoAmount?: string }>(input.treasuryRef);
   } catch {
-    payload = {};
+    throw new Error("We couldn't match that order. Contact support with your reference code.");
   }
-  // Reopen the sealed record so the reported txid is bound to a real order.
-  // (Kept synchronous-safe: unseal is imported lazily by the caller wrapper.)
-  throw new Error("unreachable");
+  console.info(
+    `[cashout] transfer reported for ${payload.reference ?? "?"}: ${input.txid} ` +
+      `(${payload.cryptoAmount ?? "?"} ${payload.asset ?? "?"})`,
+  );
   return { ok: true, reference: payload.reference ?? "" };
 }
