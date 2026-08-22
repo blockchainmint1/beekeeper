@@ -95,17 +95,32 @@ export function unseal<T>(stored: string): T {
 
 /* ─── Plaid calls ─────────────────────────────────────────────── */
 
-export function createLinkToken(clientUserId: string, redirectUri?: string) {
-  return plaid<{ link_token: string; expiration: string }>("/link/token/create", {
+export async function createLinkToken(clientUserId: string, redirectUri?: string) {
+  const base = {
     client_name: "Beekeeper",
     language: "en",
     country_codes: ["US"],
     user: { client_user_id: clientUserId },
     products: ["auth"],
-    optional_products: ["identity"],
     ...(redirectUri ? { redirect_uri: redirectUri } : {}),
-  });
+  };
+  // Identity is a nice-to-have: only request it when the Plaid account has it
+  // enabled, otherwise Plaid rejects the whole link token with INVALID_PRODUCT.
+  const optional = (env("PLAID_OPTIONAL_PRODUCTS") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  try {
+    return await plaid<{ link_token: string; expiration: string }>("/link/token/create", {
+      ...base,
+      ...(optional.length ? { optional_products: optional } : {}),
+    });
+  } catch (e) {
+    if (!optional.length || !(e instanceof Error) || !e.message.includes("INVALID_PRODUCT")) throw e;
+    return plaid<{ link_token: string; expiration: string }>("/link/token/create", base);
+  }
 }
+
 
 export function exchangePublicToken(publicToken: string) {
   return plaid<{ access_token: string; item_id: string }>("/item/public_token/exchange", {
