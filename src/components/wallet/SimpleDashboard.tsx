@@ -466,17 +466,15 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
               Top Up
             </Link>
           </Button>
-          <Button
-            disabled
-            className="h-12 rounded-2xl text-sm font-semibold"
-            onClick={() => toast.info("Cash Out is coming soon.")}
-          >
-            <Banknote className="mr-2 h-4 w-4" />
-            Cash Out
+          <Button asChild className="h-12 rounded-2xl text-sm font-semibold">
+            <Link to="/wallet/cashout">
+              <Banknote className="mr-2 h-4 w-4" />
+              Cash Out
+            </Link>
           </Button>
         </div>
         <p className="mt-2 text-[11px] text-center text-muted-foreground px-4">
-          Top Up buys crypto with your bank account. Cash Out converts to USDC and sends to your bank.
+          Top Up buys crypto with your bank account. Cash Out sells crypto and sends dollars to your bank.
         </p>
       </section>
 

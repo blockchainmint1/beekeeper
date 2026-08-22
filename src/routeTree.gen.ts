@@ -23,6 +23,7 @@ import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
 import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
 import { Route as WalletMultisendRouteImport } from './routes/wallet.multisend'
 import { Route as WalletContactsRouteImport } from './routes/wallet.contacts'
+import { Route as WalletCashoutRouteImport } from './routes/wallet.cashout'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 import { Route as WalletChainXpubRouteImport } from './routes/wallet.$chain.xpub'
@@ -105,6 +106,11 @@ const WalletContactsRoute = WalletContactsRouteImport.update({
   path: '/contacts',
   getParentRoute: () => WalletRoute,
 } as any)
+const WalletCashoutRoute = WalletCashoutRouteImport.update({
+  id: '/cashout',
+  path: '/cashout',
+  getParentRoute: () => WalletRoute,
+} as any)
 const ExtensionSignRoute = ExtensionSignRouteImport.update({
   id: '/sign',
   path: '/sign',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof WalletRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/wallet': typeof WalletRouteWithChildren
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
+  '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/cashout'
     | '/wallet/contacts'
     | '/wallet/multisend'
     | '/wallet/security'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/cashout'
     | '/wallet/contacts'
     | '/wallet/multisend'
     | '/wallet/security'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/extension/pair'
     | '/extension/sign'
+    | '/wallet/cashout'
     | '/wallet/contacts'
     | '/wallet/multisend'
     | '/wallet/security'
@@ -434,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletContactsRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/wallet/cashout': {
+      id: '/wallet/cashout'
+      path: '/cashout'
+      fullPath: '/wallet/cashout'
+      preLoaderRoute: typeof WalletCashoutRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/extension/sign': {
       id: '/extension/sign'
       path: '/sign'
@@ -531,6 +550,7 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 )
 
 interface WalletRouteChildren {
+  WalletCashoutRoute: typeof WalletCashoutRoute
   WalletContactsRoute: typeof WalletContactsRoute
   WalletMultisendRoute: typeof WalletMultisendRoute
   WalletSecurityRoute: typeof WalletSecurityRoute
@@ -549,6 +569,7 @@ interface WalletRouteChildren {
 }
 
 const WalletRouteChildren: WalletRouteChildren = {
+  WalletCashoutRoute: WalletCashoutRoute,
   WalletContactsRoute: WalletContactsRoute,
   WalletMultisendRoute: WalletMultisendRoute,
   WalletSecurityRoute: WalletSecurityRoute,
