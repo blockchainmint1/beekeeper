@@ -26,6 +26,9 @@ export interface BeekeeperOrderPayload {
   /** Beekeeper's service fee, taken out of usd_amount. */
   fee_bps?: number;
   fee_usd?: string;
+  /** Where VectorPay sends the customer after checkout completes / is cancelled. */
+  return_url?: string;
+  cancel_url?: string;
 }
 
 const DEFAULT_WEBHOOK_URL = "https://vector-pay.com/api/public/beekeeper";

@@ -53,6 +53,9 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
         ? Math.round((data.usd + feeUsd) * 100) / 100
         : Math.round(data.usd * 100) / 100;
 
+    const origin = data.origin?.replace(/\/$/, "");
+    const returnUrl = origin ? `${origin}/wallet/order/${orderId}` : undefined;
+
     const relay = await postOrder({
       side: data.side,
       reference: orderId,
@@ -65,6 +68,7 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       usd_amount: chargedUsd.toFixed(2),
       asset_amount: assetAmount,
 
+      ...(returnUrl ? { return_url: returnUrl, cancel_url: returnUrl } : {}),
       rate: "1",
       fee_bps: 100,
       fee_usd: feeUsd.toFixed(2),
