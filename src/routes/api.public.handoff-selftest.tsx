@@ -7,8 +7,18 @@ export const Route = createFileRoute("/api/public/handoff-selftest")({
     handlers: {
       GET: async () => {
         const { handoffConfigured, postOrder } = await import("@/lib/handoff/handoff.server");
+        const { env } = await import("@/lib/server-env");
+        const shape = (n: string) => {
+          const v = env(n);
+          return v ? { present: true, len: v.length, isUrl: /^https?:\/\//.test(v) } : { present: false };
+        };
+        const secrets = {
+          BEEKEEPER_WEBHOOK_SECRET: shape("BEEKEEPER_WEBHOOK_SECRET"),
+          VECTORPAY_WEBHOOK: shape("VECTORPAY_WEBHOOK"),
+          VECTORPAY_ORDER_WEBHOOK_URL: shape("VECTORPAY_ORDER_WEBHOOK_URL"),
+        };
         if (!handoffConfigured()) {
-          return Response.json({ configured: false }, { status: 200 });
+          return Response.json({ configured: false, secrets }, { status: 200 });
         }
         const result = await postOrder({
           side: "buy",
@@ -20,7 +30,7 @@ export const Route = createFileRoute("/api/public/handoff-selftest")({
           chain: "base",
           usd_amount: "25.00",
         });
-        return Response.json({ configured: true, ...result });
+        return Response.json({ configured: true, secrets, ...result });
       },
     },
   },
