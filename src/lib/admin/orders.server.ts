@@ -2,7 +2,12 @@
 // record, we just mirror its order list for the treasury/ops view.
 import { createHash, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/server-env";
-import { listOrders, vectorPayConfigured, type VectorPayOrder } from "@/lib/vectorpay/client.server";
+import {
+  listOrders,
+  syncOrderStatus,
+  vectorPayConfigured,
+  type VectorPayOrder,
+} from "@/lib/vectorpay/client.server";
 import { TOPUP_FEE_BPS } from "@/lib/topup/packages";
 
 export function assertAdmin(key: string): void {
@@ -21,10 +26,17 @@ export interface AdminOrdersView {
   note: string | null;
 }
 
+export interface AdminOrderActionResult {
+  ok: boolean;
+  order: VectorPayOrder | null;
+  error: string | null;
+}
+
 export async function adminOrders(input: {
   key: string;
   kind?: "buy" | "sell";
   status?: string;
+  accountRef?: string;
 }): Promise<AdminOrdersView> {
   assertAdmin(input.key);
 
@@ -47,7 +59,12 @@ export async function adminOrders(input: {
       "VectorPay isn't connected yet, so there are no partner orders to show. Orders placed now are sealed locally and logged server-side.";
   } else {
     try {
-      const r = await listOrders({ kind: input.kind, status: input.status, limit: 100 });
+      const r = await listOrders({
+        kind: input.kind,
+        status: input.status,
+        accountRef: input.accountRef,
+        limit: 100,
+      });
       orders = r.orders;
     } catch (e) {
       note = e instanceof Error ? e.message : "Couldn't load orders from the partner.";
@@ -61,4 +78,20 @@ export async function adminOrders(input: {
     orders,
     note,
   };
+}
+
+export async function adminRefreshOrder(input: {
+  key: string;
+  partnerOrderId: string;
+}): Promise<AdminOrderActionResult> {
+  assertAdmin(input.key);
+  if (!vectorPayConfigured()) {
+    return { ok: false, order: null, error: "VectorPay isn't connected." };
+  }
+  try {
+    const order = await syncOrderStatus(input.partnerOrderId);
+    return { ok: Boolean(order), order, error: order ? null : "Order not found." };
+  } catch (e) {
+    return { ok: false, order: null, error: e instanceof Error ? e.message : "Refresh failed." };
+  }
 }
