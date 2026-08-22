@@ -23,6 +23,9 @@ export interface BeekeeperOrderPayload {
   usd_amount: string;
   asset_amount?: string;
   rate?: string;
+  /** Beekeeper's service fee, taken out of usd_amount. */
+  fee_bps?: number;
+  fee_usd?: string;
 }
 
 const DEFAULT_WEBHOOK_URL = "https://vector-pay.com/api/public/beekeeper";
