@@ -37,20 +37,23 @@ export const SUGGESTED_USD = [50, 100, 250, 1000];
 export interface OrderQuote {
   usd: number;
   feeUsd: number;
-  /** Buy: what the bank is debited (equals the order amount). Sell: what lands in the bank. */
+  /** Buy: what the bank is debited (order + fee). Sell: what lands in the bank. */
   settlementUsd: number;
-  /** Units of the stablecoin delivered (buy) or sold (sell): net of fee, 1:1 pegged. */
+  /** Units of the stablecoin delivered (buy) or sold (sell), 1:1 pegged. */
   assetAmount: number;
 }
 
 export function quoteOrder(side: OrderSide, usd: number): OrderQuote {
   const feeUsd = Math.round(usd * (ORDER_FEE_BPS / 10_000) * 100) / 100;
-  const net = Math.max(0, Math.round((usd - feeUsd) * 100) / 100);
-  // VectorPay takes the fee out of the order amount, so the bank moves exactly `usd`
-  // on a buy, and the seller receives net-of-fee dollars on a sell.
-  const settlementUsd = side === "buy" ? Math.round(usd * 100) / 100 : net;
-  return { usd, feeUsd, settlementUsd, assetAmount: net };
+  // The fee rides on top: a buyer receives the full ordered quantity and the bank
+  // moves order + fee. A seller sends the full quantity and banks net of fee.
+  const settlementUsd =
+    side === "buy"
+      ? Math.round((usd + feeUsd) * 100) / 100
+      : Math.max(0, Math.round((usd - feeUsd) * 100) / 100);
+  return { usd, feeUsd, settlementUsd, assetAmount: Math.round(usd * 100) / 100 };
 }
+
 
 
 export function formatUsd(n: number): string {
