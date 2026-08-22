@@ -78,6 +78,7 @@ export function HandoffWizard({ side }: Props) {
           name: name.trim(),
           email: email.trim(),
           acceptedDisclaimers: HANDOFF_DISCLAIMERS.map((d) => d.id),
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
         },
       });
       setResult(res);
