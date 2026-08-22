@@ -11,6 +11,7 @@ const startSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email().max(200),
   acceptedDisclaimers: z.array(z.string().max(64)).max(32),
+  origin: z.string().max(200).optional(),
 });
 
 export const handoffStatus = createServerFn({ method: "GET" }).handler(async () => {
