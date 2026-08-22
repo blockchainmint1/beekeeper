@@ -49,9 +49,13 @@ export interface TopUpQuote {
   totalDebitUsd: number;
 }
 
-export function quoteTopUp(usd: number): TopUpQuote {
-  const feeUsd = Math.round((usd * (TOPUP_FEE_BPS / 10_000) + TOPUP_FEE_FLAT_USD) * 100) / 100;
+export function quoteTopUpWithBps(usd: number, bps: number): TopUpQuote {
+  const feeUsd = Math.round((usd * (bps / 10_000) + TOPUP_FEE_FLAT_USD) * 100) / 100;
   return { usd, feeUsd, totalDebitUsd: Math.round((usd + feeUsd) * 100) / 100 };
+}
+
+export function quoteTopUp(usd: number): TopUpQuote {
+  return quoteTopUpWithBps(usd, TOPUP_FEE_BPS);
 }
 
 export function formatUsd(n: number): string {
