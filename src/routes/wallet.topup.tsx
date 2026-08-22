@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { WalletPage } from "@/components/wallet/WalletPage";
 import { TopUpWizard } from "@/components/topup/TopUpWizard";
-import { topUpStatus } from "@/lib/topup/plaid.functions";
 
 export const Route = createFileRoute("/wallet/topup")({
   head: () => ({
@@ -20,27 +16,17 @@ export const Route = createFileRoute("/wallet/topup")({
         property: "og:description",
         content: "Link a bank account, pick a package, and fund your self-custodied Beekeeper wallet.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TopUpPage,
 });
 
 function TopUpPage() {
-  const status = useQuery({
-    queryKey: ["topup-status"],
-    queryFn: () => topUpStatus(),
-    staleTime: 60_000,
-  });
-
   return (
     <WalletPage title="Top Up" subtitle="Buy crypto with your bank account">
-      {status.isPending ? (
-        <Card className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Checking bank top-up availability…
-        </Card>
-      ) : (
-        <TopUpWizard available={Boolean(status.data?.available)} />
-      )}
+      <TopUpWizard available />
     </WalletPage>
   );
 }
