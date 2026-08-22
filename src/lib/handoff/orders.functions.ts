@@ -21,13 +21,28 @@ export const handoffStatus = createServerFn({ method: "GET" }).handler(async () 
 export const startHandoffOrder = createServerFn({ method: "POST" })
   .inputValidator((input) => startSchema.parse(input))
   .handler(async ({ data }) => {
-    const { postOrder } = await import("./handoff.server");
+    const { postOrder, cashoutDepositAddress } = await import("./handoff.server");
 
     const feeUsd = Math.round(data.usd * 0.01 * 100) / 100;
     const orderId = `BK-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
       .slice(2, 6)
       .toUpperCase()}`;
+
+    const destination =
+      data.side === "sell"
+        ? cashoutDepositAddress(data.chain) ?? data.address ?? null
+        : (data.address ?? null);
+
+    if (data.side === "sell" && !destination) {
+      return {
+        orderId,
+        feeUsd,
+        registered: false,
+        detail: `No treasury deposit address is configured for ${data.chain}. Add it to CASHOUT_DEPOSIT_ADDRESSES and try again.`,
+        handoffUrl: null,
+      };
+    }
 
     const relay = await postOrder({
       side: data.side,
@@ -37,7 +52,7 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       customer_email: data.email,
       asset: data.asset,
       chain: data.chain,
-      ...(data.address ? { destination_address: data.address } : {}),
+      ...(destination ? { destination_address: destination } : {}),
       usd_amount: data.usd.toFixed(2),
       ...(data.assetAmount ? { asset_amount: data.assetAmount } : {}),
     });
@@ -50,4 +65,5 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       handoffUrl: relay.checkoutUrl,
     };
   });
+
 
