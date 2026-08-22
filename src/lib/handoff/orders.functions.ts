@@ -21,7 +21,7 @@ export const handoffStatus = createServerFn({ method: "GET" }).handler(async () 
 export const startHandoffOrder = createServerFn({ method: "POST" })
   .inputValidator((input) => startSchema.parse(input))
   .handler(async ({ data }) => {
-    const { postOrder, buildHandoffUrl } = await import("./handoff.server");
+    const { postOrder } = await import("./handoff.server");
 
     const feeUsd = Math.round(data.usd * 0.01 * 100) / 100;
     const orderId = `BK-${Date.now().toString(36).toUpperCase()}-${Math.random()
@@ -31,22 +31,15 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
 
     const relay = await postOrder({
       side: data.side,
-      order_id: orderId,
-      status: "pending",
-      merchant_name: data.name,
-      merchant_email: data.email,
+      reference: orderId,
+      account_ref: data.email.toLowerCase(),
+      customer_name: data.name,
+      customer_email: data.email,
       asset: data.asset,
-      asset_amount: data.assetAmount ?? data.usd.toFixed(2),
+      chain: data.chain,
+      ...(data.address ? { destination_address: data.address } : {}),
       usd_amount: data.usd.toFixed(2),
-      fee_usd: feeUsd.toFixed(2),
-      occurred_at: new Date().toISOString(),
-      notes: [
-        `chain=${data.chain}`,
-        data.address ? `address=${data.address}` : null,
-        `disclaimers=${data.acceptedDisclaimers.length}`,
-      ]
-        .filter(Boolean)
-        .join(" "),
+      ...(data.assetAmount ? { asset_amount: data.assetAmount } : {}),
     });
 
     return {
@@ -54,13 +47,7 @@ export const startHandoffOrder = createServerFn({ method: "POST" })
       feeUsd,
       registered: relay.ok,
       detail: relay.detail,
-      handoffUrl: buildHandoffUrl({
-        orderId,
-        side: data.side,
-        usd: data.usd,
-        asset: data.asset,
-        email: data.email,
-        address: data.address ?? null,
-      }),
+      handoffUrl: relay.checkoutUrl,
     };
   });
+
