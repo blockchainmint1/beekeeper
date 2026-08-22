@@ -461,7 +461,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             variant="outline"
             className="h-12 rounded-2xl text-sm font-semibold"
           >
-            <Link to="/wallet/eth/sweep">
+            <Link to="/wallet/$chain/sweep" params={{ chain: "eth" }}>
               <ArrowDownLeft className="mr-2 h-4 w-4" />
               Top Up
             </Link>
