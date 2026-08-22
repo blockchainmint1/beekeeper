@@ -53,10 +53,11 @@ export function HandoffWizard({ side }: Props) {
     handoffUrl: string | null;
     registered: boolean;
     detail: string;
+    feeUsd: number;
   } | null>(null);
 
   const start = useServerFn(startHandoffOrder);
-  const account = useChainAccount(chain);
+  const account = useChainAccount(getChain(chain));
   const asset = assets.find((a) => a.chain === chain) ?? assets[0]!;
   const usd = Number(usdText) || 0;
   const quote = useMemo(() => quoteOrder(side, usd), [side, usd]);
