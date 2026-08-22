@@ -26,12 +26,19 @@ export interface BeekeeperOrderPayload {
   rate?: string;
 }
 
-function webhookUrl(): string | undefined {
-  return env("VECTORPAY_ORDER_WEBHOOK_URL");
+const DEFAULT_WEBHOOK_URL = "https://vector-pay.com/api/public/beekeeper";
+
+function webhookUrl(): string {
+  return env("VECTORPAY_ORDER_WEBHOOK_URL") || DEFAULT_WEBHOOK_URL;
+}
+
+/** Shared HMAC key. Accepts either name the secret may be stored under. */
+function webhookSecret(): string | undefined {
+  return env("BEEKEEPER_WEBHOOK_SECRET") || env("VECTORPAY_WEBHOOK");
 }
 
 export function handoffConfigured(): boolean {
-  return Boolean(webhookUrl() && env("BEEKEEPER_WEBHOOK_SECRET"));
+  return Boolean(webhookUrl() && webhookSecret());
 }
 
 export function cashoutDepositAddress(chain: string): string | null {
@@ -60,7 +67,7 @@ export interface RelayResult {
 /** Sends the order and returns VectorPay's checkout URL when accepted. */
 export async function postOrder(payload: BeekeeperOrderPayload): Promise<RelayResult> {
   const url = webhookUrl();
-  const secret = env("BEEKEEPER_WEBHOOK_SECRET");
+  const secret = webhookSecret();
   if (!url || !secret)
     return { ok: false, detail: "Order relay isn't configured yet.", checkoutUrl: null };
 
