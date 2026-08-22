@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { WalletPage } from "@/components/wallet/WalletPage";
 import { fetchAdminOrders, refreshAdminOrder } from "@/lib/admin/orders.functions";
-import { formatUsd } from "@/lib/topup/packages";
+import { formatUsd } from "@/lib/handoff/orders";
 import type { VectorPayOrder } from "@/lib/vectorpay/client.server";
 
 export const Route = createFileRoute("/admin/orders")({
