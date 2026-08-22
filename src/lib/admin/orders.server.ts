@@ -8,7 +8,7 @@ import {
   vectorPayConfigured,
   type VectorPayOrder,
 } from "@/lib/vectorpay/client.server";
-import { TOPUP_FEE_BPS } from "@/lib/topup/packages";
+import { ORDER_FEE_BPS as TOPUP_FEE_BPS } from "@/lib/handoff/orders";
 
 export function assertAdmin(key: string): void {
   const expected = env("ADMIN_CONSOLE_KEY");
