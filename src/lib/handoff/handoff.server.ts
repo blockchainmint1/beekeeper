@@ -34,6 +34,19 @@ export function handoffConfigured(): boolean {
   return Boolean(webhookUrl() && env("BEEKEEPER_WEBHOOK_SECRET"));
 }
 
+export function cashoutDepositAddress(chain: string): string | null {
+  const raw = env("CASHOUT_DEPOSIT_ADDRESSES");
+  if (!raw) return null;
+  try {
+    const map = JSON.parse(raw) as Record<string, string>;
+    const addr = map[chain];
+    return typeof addr === "string" && addr.length > 0 ? addr : null;
+  } catch {
+    return null;
+  }
+}
+
+
 export function sign(body: string, secret: string): string {
   return `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
 }
