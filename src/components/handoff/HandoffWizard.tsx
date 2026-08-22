@@ -348,6 +348,13 @@ export function HandoffWizard({ side }: Props) {
               </Button>
             )}
           </div>
+          <Link
+            to="/wallet/order/$id"
+            params={{ id: result.orderId }}
+            className="text-center text-xs text-muted-foreground underline"
+          >
+            View order confirmation
+          </Link>
         </Card>
       )}
     </div>
