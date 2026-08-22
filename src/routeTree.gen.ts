@@ -17,6 +17,7 @@ import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalletIndexRouteImport } from './routes/wallet.index'
 import { Route as ExtensionIndexRouteImport } from './routes/extension.index'
+import { Route as WalletTopupRouteImport } from './routes/wallet.topup'
 import { Route as WalletSignRouteImport } from './routes/wallet.sign'
 import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
 import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
@@ -73,6 +74,11 @@ const ExtensionIndexRoute = ExtensionIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ExtensionRoute,
+} as any)
+const WalletTopupRoute = WalletTopupRouteImport.update({
+  id: '/topup',
+  path: '/topup',
+  getParentRoute: () => WalletRoute,
 } as any)
 const WalletSignRoute = WalletSignRouteImport.update({
   id: '/sign',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
+  '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
+  '/wallet/topup': typeof WalletTopupRoute
   '/extension': typeof ExtensionIndexRoute
   '/wallet': typeof WalletIndexRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
   '/wallet/sign': typeof WalletSignRoute
+  '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
+    | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
     | '/wallet/$chain/consolidate'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
+    | '/wallet/topup'
     | '/extension'
     | '/wallet'
     | '/wallet/$chain/consolidate'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/settings'
     | '/wallet/sign'
+    | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
     | '/wallet/$chain/consolidate'
@@ -379,6 +391,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/extension/'
       preLoaderRoute: typeof ExtensionIndexRouteImport
       parentRoute: typeof ExtensionRoute
+    }
+    '/wallet/topup': {
+      id: '/wallet/topup'
+      path: '/topup'
+      fullPath: '/wallet/topup'
+      preLoaderRoute: typeof WalletTopupRouteImport
+      parentRoute: typeof WalletRoute
     }
     '/wallet/sign': {
       id: '/wallet/sign'
@@ -517,6 +536,7 @@ interface WalletRouteChildren {
   WalletSecurityRoute: typeof WalletSecurityRoute
   WalletSettingsRoute: typeof WalletSettingsRoute
   WalletSignRoute: typeof WalletSignRoute
+  WalletTopupRoute: typeof WalletTopupRoute
   WalletIndexRoute: typeof WalletIndexRoute
   WalletChainConsolidateRoute: typeof WalletChainConsolidateRoute
   WalletChainHistoryRoute: typeof WalletChainHistoryRoute
@@ -534,6 +554,7 @@ const WalletRouteChildren: WalletRouteChildren = {
   WalletSecurityRoute: WalletSecurityRoute,
   WalletSettingsRoute: WalletSettingsRoute,
   WalletSignRoute: WalletSignRoute,
+  WalletTopupRoute: WalletTopupRoute,
   WalletIndexRoute: WalletIndexRoute,
   WalletChainConsolidateRoute: WalletChainConsolidateRoute,
   WalletChainHistoryRoute: WalletChainHistoryRoute,

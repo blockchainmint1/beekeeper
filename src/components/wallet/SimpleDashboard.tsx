@@ -461,7 +461,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
             variant="outline"
             className="h-12 rounded-2xl text-sm font-semibold"
           >
-            <Link to="/wallet/$chain/sweep" params={{ chain: "eth" }}>
+            <Link to="/wallet/topup">
               <ArrowDownLeft className="mr-2 h-4 w-4" />
               Top Up
             </Link>
@@ -476,7 +476,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
           </Button>
         </div>
         <p className="mt-2 text-[11px] text-center text-muted-foreground px-4">
-          Top Up pulls spare change from derived addresses. Cash Out converts to USDC and sends to your bank.
+          Top Up buys crypto with your bank account. Cash Out converts to USDC and sends to your bank.
         </p>
       </section>
 
