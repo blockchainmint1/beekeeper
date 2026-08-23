@@ -34,7 +34,9 @@ export interface BeekeeperOrderPayload {
 const DEFAULT_WEBHOOK_URL = "https://vector-pay.com/api/public/beekeeper";
 
 function webhookUrl(): string {
-  return env("VECTORPAY_ORDER_WEBHOOK_URL") || DEFAULT_WEBHOOK_URL;
+  return (
+    env("VECTORPAY_WEBHOOK_URL") || env("VECTORPAY_ORDER_WEBHOOK_URL") || DEFAULT_WEBHOOK_URL
+  );
 }
 
 /** Shared HMAC key. Prefers the current name, falls back to the legacy one. */
