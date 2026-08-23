@@ -37,9 +37,9 @@ function webhookUrl(): string {
   return env("VECTORPAY_ORDER_WEBHOOK_URL") || DEFAULT_WEBHOOK_URL;
 }
 
-/** Shared HMAC key. Accepts either name the secret may be stored under. */
+/** Shared HMAC key. Prefers the current name, falls back to the legacy one. */
 function webhookSecret(): string | undefined {
-  const raw = env("BEEKEEPER_WEBHOOK_SECRET") || env("VECTORPAY_WEBHOOK");
+  const raw = env("VECTORPAY_WEBHOOK") || env("BEEKEEPER_WEBHOOK_SECRET");
   return raw ? raw.trim() : undefined;
 }
 
