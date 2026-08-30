@@ -139,7 +139,7 @@ export async function addSeedAccount({
     throw new Error("That seed is already in this wallet");
   }
 
-  const blob = await encryptJson<VaultPayload>(
+  const blob = await encryptJson(
     { mnemonic: clean, createdAt: Date.now() },
     password,
   );
