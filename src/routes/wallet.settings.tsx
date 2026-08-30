@@ -17,6 +17,9 @@ import {
   PasswordPanel, RevealPanel, XpubPanel, DangerPanel,
 } from "@/components/wallet/SettingsDialog";
 import { wipeVault } from "@/lib/wallet/seed";
+import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
+import { SeedsPanel } from "@/components/wallet/SeedsPanel";
+import { KeyRound } from "lucide-react";
 import { useWalletSession } from "@/components/wallet/session";
 import { APP_VERSION } from "@/lib/version";
 
@@ -50,6 +53,14 @@ function SettingsPage() {
 
         <SettingsCard icon={Palette} title="Appearance" description="Light, dark, or follow your system.">
           <ThemeToggle />
+        </SettingsCard>
+
+        <SettingsCard
+          icon={KeyRound}
+          title="Seeds"
+          description="Store more than one recovery phrase and switch between them."
+        >
+          <SeedsPanel />
         </SettingsCard>
 
         <SettingsCard
@@ -152,6 +163,7 @@ function SettingsPage() {
             <DangerPanel
               onWipe={() => {
                 wipeVault();
+                wipeSeedRegistry();
                 lock();
                 toast.success("Wallet erased from this browser");
               }}

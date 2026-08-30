@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Lock, Upload, Wallet as WalletIcon, Fingerprint } from "lucide-react";
 import { unlockVault, wipeVault, importVaultBlob, cacheMnemonic } from "@/lib/wallet/seed";
+import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
 import { useSecurityPrefs } from "@/lib/wallet/security";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
@@ -59,6 +60,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   function handleReset() {
     if (!confirm("This will erase the encrypted wallet from this browser. Continue?")) return;
     wipeVault();
+    wipeSeedRegistry();
     onReset();
   }
 
