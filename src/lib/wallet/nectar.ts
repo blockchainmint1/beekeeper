@@ -141,3 +141,54 @@ export function hasNectarLink(): boolean {
   return loadNectarLink() !== null;
 }
 
+
+/* ─────────── Cross-device link recovery ───────────
+   Link state used to live only in localStorage, so restoring a seed on a new
+   phone looked "unlinked". Nectar now answers a signature-gated pre-flight
+   check, so we can rebuild the record from the seed alone. */
+
+/** Host we ask when there is no locally-remembered Nectar URL. */
+export const NECTAR_DEFAULT_HOST = "nectar-pay.com";
+
+let statusProbe: Promise<NectarLinkRecord | null> | null = null;
+
+/**
+ * Restores the Nectar link record for the currently unlocked seed by asking
+ * Nectar directly. Memoized per page load. Resolves null when the wallet is
+ * locked, the endpoint isn't live, or the seed has never pushed xpubs.
+ */
+export function refreshNectarLinkFromServer(
+  hostOrUrl?: string,
+): Promise<NectarLinkRecord | null> {
+  if (statusProbe) return statusProbe;
+  statusProbe = (async () => {
+    const mnemonic = getCachedMnemonic();
+    if (!mnemonic) return null;
+    const existing = loadNectarLink();
+    if (existing) return existing;
+    const target = hostOrUrl ?? NECTAR_DEFAULT_HOST;
+    try {
+      const status = await fetchNectarLinkStatus(mnemonic, target);
+      if (!status || !status.linked) return null;
+      const first = status.stores?.[0];
+      const record: NectarLinkRecord = {
+        merchantId: status.store_id ?? first?.store_id,
+        merchantName: status.merchant_name ?? first?.merchant_name,
+        url: nectarStatusUrl(target).replace(/\/status$/, ""),
+        linkedAt: Date.parse(status.linked_at ?? first?.linked_at ?? "") || Date.now(),
+      };
+      saveNectarLink(record);
+      return record;
+    } catch (e) {
+      // Offline / signature rejected / server error — keep local state as-is.
+      console.warn("[nectar] link status check failed:", e);
+      return null;
+    }
+  })();
+  return statusProbe;
+}
+
+/** Forget the memoized probe (e.g. after switching seeds). */
+export function resetNectarLinkProbe(): void {
+  statusProbe = null;
+}
