@@ -16,7 +16,7 @@ import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { useScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX, SCAN_GAP_DEFAULT } from "@/lib/wallet/scan-prefs";
-import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { loadNectarLink, clearNectarLink, refreshNectarLinkFromServer, type NectarLinkRecord } from "@/lib/wallet/nectar";
 import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
@@ -156,6 +156,17 @@ export function SettingsDialog({
 export function NectarPanel() {
   const [link, setLink] = useState<NectarLinkRecord | null>(() => loadNectarLink());
   const [linkOpen, setLinkOpen] = useState(false);
+  // Restored on a new device? Ask Nectar whether this seed is already linked.
+  useEffect(() => {
+    if (link) return;
+    let alive = true;
+    refreshNectarLinkFromServer().then((rec) => {
+      if (alive && rec) setLink(rec);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [link]);
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
