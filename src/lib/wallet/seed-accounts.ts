@@ -119,6 +119,32 @@ export function noteActiveFingerprint(mnemonic: string): void {
   write({ ...reg, accounts: next });
 }
 
+/**
+ * Derives and stores the Cold Storage Coin Asset ID for the active seed — the
+ * same six characters printed on the coin's sticker, taken from the TXC
+ * identity key. Cached so it still shows when another seed is active.
+ */
+export async function noteActiveAssetId(mnemonic: string): Promise<void> {
+  const reg = ensureRegistry();
+  if (!reg.activeId) return;
+  const current = reg.accounts.find((a) => a.id === reg.activeId);
+  if (current?.assetId) return;
+  try {
+    const address = await deriveTxcIdentityAddress(mnemonic);
+    const assetId = assetIdForAddress(address);
+    if (!assetId) return;
+    const after = read();
+    write({
+      ...after,
+      accounts: after.accounts.map((a) =>
+        a.id === after.activeId ? { ...a, assetId } : a,
+      ),
+    });
+  } catch {
+    /* derivation is best-effort */
+  }
+}
+
 export interface AddSeedInput {
   mnemonic: string;
   password: string;
