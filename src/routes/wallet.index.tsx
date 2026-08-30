@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowDownToLine, Link2, Send as SendIcon, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CHAIN_LIST } from "@/lib/chains";
-import { hasNectarLink } from "@/lib/wallet/nectar";
+import { hasNectarLink, refreshNectarLinkFromServer } from "@/lib/wallet/nectar";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { usePortfolioTotal } from "@/lib/wallet/portfolio";
 import { formatUsd, priceForChain, type PriceMap } from "@/lib/wallet/price";
@@ -36,7 +36,18 @@ function WalletHome() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [nectarLinked, setNectarLinked] = useState(true);
   useEffect(() => {
-    setNectarLinked(hasNectarLink());
+    if (hasNectarLink()) {
+      setNectarLinked(true);
+      return;
+    }
+    setNectarLinked(false);
+    let alive = true;
+    refreshNectarLinkFromServer().then((rec) => {
+      if (alive && rec) setNectarLinked(true);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const [activeChainId, setActiveChainId] = useState<string>(visibleIds[0] ?? "txc");

@@ -29,7 +29,7 @@ import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
 import { NectarLinkDialog } from "./NectarLinkDialog";
-import { hasNectarLink } from "@/lib/wallet/nectar";
+import { hasNectarLink, refreshNectarLinkFromServer } from "@/lib/wallet/nectar";
 import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -308,7 +308,20 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
   const [linkOpen, setLinkOpen] = useState(false);
   const [nectarLinked, setNectarLinked] = useState(false);
-  useEffect(() => { setNectarLinked(hasNectarLink()); }, []);
+  useEffect(() => {
+    if (hasNectarLink()) {
+      setNectarLinked(true);
+      return;
+    }
+    // Fresh device: the seed may already be linked on Nectar's side.
+    let alive = true;
+    refreshNectarLinkFromServer().then((rec) => {
+      if (alive && rec) setNectarLinked(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   function handleLock() {
     clearCachedMnemonic();
