@@ -20,9 +20,10 @@ import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wa
 import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
+import { SeedsPanel } from "./SeedsPanel";
 
 type SectionId =
-  | "security" | "wallets" | "alerts" | "nectar"
+  | "security" | "seeds" | "wallets" | "alerts" | "nectar"
   | "password" | "reveal" | "xpub" | "danger";
 
 interface SectionDef {
@@ -35,6 +36,7 @@ interface SectionDef {
 
 const SECTIONS: SectionDef[] = [
   { id: "security", label: "Security",     hint: "Auto-lock, biometrics, anti-phishing",    icon: ShieldCheck },
+  { id: "seeds",    label: "Seeds",        hint: "Add, name, and switch between seeds",     icon: KeyRound },
   { id: "wallets",  label: "Wallets",      hint: "Show, hide, and reorder chains",          icon: Layers },
   { id: "alerts",   label: "Alerts",       hint: "In-app, email, and Telegram alerts",      icon: Bell },
   { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
@@ -87,6 +89,7 @@ export function SettingsDialog({
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
               {section.id === "security" && <SecurityPanel />}
+              {section.id === "seeds"    && <SeedsPanel />}
               {section.id === "wallets"  && <WalletsPanel />}
               {section.id === "alerts"   && <AlertsPanel />}
               {section.id === "nectar"   && <NectarPanel />}
