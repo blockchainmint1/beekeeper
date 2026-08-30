@@ -28,6 +28,8 @@ import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
+import { TSD_PROPERTY_ID } from "@/lib/cashout/tsd";
+
 import { NectarLinkDialog } from "./NectarLinkDialog";
 import { hasNectarLink, refreshNectarLinkFromServer } from "@/lib/wallet/nectar";
 import { Link2 } from "lucide-react";
@@ -40,7 +42,12 @@ type TokenLine = {
   name?: string;
   formatted: string;
   usd: number | null;
+  /** Omni property id, when this line is an Omni-layer asset on TXC. */
+  propertyId?: number;
+  /** Raw numeric amount (used for the top-level TSD row). */
+  amount?: number;
 };
+
 
 type AssetRow = {
   chain: ChainConfig;
@@ -111,21 +118,27 @@ async function loadChainAsset(
             });
           }
         }
-        for (const { name, total } of agg.values()) {
+        for (const [pid, { name, total }] of agg.entries()) {
           tokens.push({
-            symbol: name,
+            symbol: pid === TSD_PROPERTY_ID ? "TSD" : name,
+            propertyId: pid,
+            amount: total,
             formatted: total.toLocaleString(undefined, { maximumFractionDigits: 6 }),
-            usd: null, // Omni tokens have no price feed
+            // TSD is a dollar-pegged stable on the TXC Omni layer: $1 each.
+            usd: pid === TSD_PROPERTY_ID ? total * 1 : null,
           });
         }
       } catch { /* ignore omni failures */ }
     }
 
+    const omniUsd = tokens.reduce((s, t) => s + (t.usd ?? 0), 0);
+
     return {
       chain: c,
       address,
       balance,
-      usd: nativeUsd,
+      usd: nativeUsd + omniUsd,
+
       nativeUsd,
       tokens,
       utxoAddrs: scan.active,
@@ -225,6 +238,17 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
       PRIMARY_CHAIN_IDS.map((id) => ({ chain: CHAINS[id], row: loadedRows.find((r) => r.chain.id === id) })),
     [loadedRows],
   );
+
+  // TSD is the dominant stable on our system — it gets its own top-level row
+  // (and its $1 peg is already folded into the TXC row's usd, so the total
+  // stays correct without adding it twice).
+  const tsdRow = useMemo(() => {
+    const txc = loadedRows.find((r) => r.chain.id === "txc");
+    const line = txc?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID);
+    if (!line) return null;
+    return { formatted: line.formatted, usd: line.usd ?? 0 };
+  }, [loadedRows]);
+
 
   const visiblePrimaryCount = PRIMARY_CHAIN_IDS.filter((id) => visibleIds.includes(id)).length;
   const primaryLoadedCount = primaryRows.filter((p) => !!p.row).length;
@@ -397,7 +421,31 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
             {expanded && (
               <>
+                {tsdRow && (
+                  <div className="glass-card flex items-center gap-3 rounded-xl p-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                      style={{
+                        background: "color-mix(in oklab, var(--primary) 22%, transparent)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      TSD
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm">TSD</span>
+                        <span className="text-sm font-semibold tabular">{formatUsd(tsdRow.usd)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span className="truncate">Texas Dollar · TXC layer 2</span>
+                        <span className="tabular">{tsdRow.formatted} TSD</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {primaryRows.map((item) => {
+
                   const r = item.row;
                   const chain = item.chain;
                   return (
@@ -433,9 +481,9 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                           </div>
                         </div>
                       </div>
-                      {r && r.tokens.length > 0 && (
+                      {r && r.tokens.some((t) => t.propertyId !== TSD_PROPERTY_ID) && (
                         <div className="pl-12 -mt-0.5 flex flex-col gap-1 border-l border-border/40 ml-4">
-                          {r.tokens.map((t) => (
+                          {r.tokens.filter((t) => t.propertyId !== TSD_PROPERTY_ID).map((t) => (
                             <div
                               key={t.symbol}
                               className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pl-3"
