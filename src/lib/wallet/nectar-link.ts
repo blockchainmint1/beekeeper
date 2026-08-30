@@ -20,12 +20,13 @@
 // Wallet receives either an https URL or a JSON envelope (QR or deep link):
 //
 //   JSON envelope (preferred — self-describing, works in any web/PWA wallet):
+//   (Nectar serves API calls from app.nectar-pay.com; the apex 308s /api/* there.)
 //     {
 //       "v": 1,
 //       "type": "hm-link-xpubs",
 //       "challenge_id": "<uuid>",
-//       "from":         "nectar-pay.com",
-//       "callback_url": "https://nectar-pay.com/api/public/v1/wallet-link",
+//       "from":         "app.nectar-pay.com",
+//       "callback_url": "https://app.nectar-pay.com/api/public/v1/wallet-link",
 //       "chains":       ["BTC","TXC","EVM","LTC","BCH","TRX"],
 //       "exp":          1735689600
 //     }
@@ -44,8 +45,8 @@
 //     "v": 1,
 //     "type": "hm-link-xpubs",
 //     "challenge_id": "<uuid>",
-//     "from":         "nectar-pay.com",
-//     "callback_url": "https://nectar-pay.com/api/public/v1/wallet-link",
+//     "from":         "app.nectar-pay.com",
+//     "callback_url": "https://app.nectar-pay.com/api/public/v1/wallet-link",
 //     "chains":       ["BTC","TXC","EVM","LTC","BCH","TRX"],
 //     "xpubs":        { "BTC": "zpub6...", "TXC": "xpub6...", ... },
 //     "exp":          1735689600,
@@ -175,7 +176,7 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
     throw new Error(`Manifest missing/invalid: ${missing.join(", ")}`);
   }
   if (Date.now() / 1000 > m.exp) throw new Error("Link code expired");
-  // Origin guard — kills api.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
+  // Origin guard — kills app.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
   let mu: URL, cu: URL;
   try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
   try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }

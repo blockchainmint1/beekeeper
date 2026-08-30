@@ -147,10 +147,14 @@ export function hasNectarLink(): boolean {
 /* ─────────── Cross-device link recovery ───────────
    Link state used to live only in localStorage, so restoring a seed on a new
    phone looked "unlinked". Nectar now answers a signature-gated pre-flight
-   check, so we can rebuild the record from the seed alone. */
+   check, so we can rebuild the record from the seed alone.
+
+   Nectar split marketing/app/CRM hosts; the status endpoint lives on the app
+   subdomain. The apex domain still 308s /api/* to app, but we point directly at
+   app.nectar-pay.com to skip the hop. */
 
 /** Host we ask when there is no locally-remembered Nectar URL. */
-export const NECTAR_DEFAULT_HOST = "nectar-pay.com";
+export const NECTAR_DEFAULT_HOST = "app.nectar-pay.com";
 
 let statusProbe: Promise<NectarLinkRecord | null> | null = null;
 
