@@ -116,21 +116,27 @@ async function loadChainAsset(
             });
           }
         }
-        for (const { name, total } of agg.values()) {
+        for (const [pid, { name, total }] of agg.entries()) {
           tokens.push({
-            symbol: name,
+            symbol: pid === TSD_PROPERTY_ID ? "TSD" : name,
+            propertyId: pid,
+            amount: total,
             formatted: total.toLocaleString(undefined, { maximumFractionDigits: 6 }),
-            usd: null, // Omni tokens have no price feed
+            // TSD is a dollar-pegged stable on the TXC Omni layer: $1 each.
+            usd: pid === TSD_PROPERTY_ID ? total * 1 : null,
           });
         }
       } catch { /* ignore omni failures */ }
     }
 
+    const omniUsd = tokens.reduce((s, t) => s + (t.usd ?? 0), 0);
+
     return {
       chain: c,
       address,
       balance,
-      usd: nativeUsd,
+      usd: nativeUsd + omniUsd,
+
       nativeUsd,
       tokens,
       utxoAddrs: scan.active,
