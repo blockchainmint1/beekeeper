@@ -133,10 +133,47 @@ export function loadNectarLink(): NectarLinkRecord | null {
 export function saveNectarLink(r: NectarLinkRecord): void {
   const walletId = getVaultFingerprint() ?? undefined;
   localStorage.setItem(LINK_KEY, JSON.stringify({ ...r, walletId }));
+  if (walletId) writeLinkMapEntry(walletId, { ...r, walletId });
 }
 
 export function clearNectarLink(): void {
   localStorage.removeItem(LINK_KEY);
+  const fp = getVaultFingerprint();
+  if (fp) writeLinkMapEntry(fp, null);
+}
+
+/* Link history keyed by vault fingerprint, so the Seeds list can show which
+   stored seeds are linked even while another seed is the active vault. */
+const LINK_MAP_KEY = "beekeeper-nectar-links-by-fp-v1";
+
+type LinkMap = Record<string, NectarLinkRecord>;
+
+function readLinkMap(): LinkMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LINK_MAP_KEY);
+    const parsed = raw ? (JSON.parse(raw) as LinkMap) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLinkMapEntry(fp: string, rec: NectarLinkRecord | null): void {
+  const map = readLinkMap();
+  if (rec) map[fp] = rec;
+  else delete map[fp];
+  try {
+    localStorage.setItem(LINK_MAP_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Known Nectar Pay link for a stored seed (by vault fingerprint). */
+export function nectarLinkForFingerprint(fp: string): NectarLinkRecord | null {
+  if (!fp) return null;
+  return readLinkMap()[fp] ?? null;
 }
 
 export function hasNectarLink(): boolean {

@@ -14,6 +14,8 @@ import {
   vaultFingerprint,
   type VaultPayload,
 } from "./seed";
+import { deriveTxcIdentityAddress } from "./nectar-link";
+import { assetIdForAddress } from "./asset-id";
 
 const REGISTRY_KEY = "beekeeper-seed-accounts-v1";
 const FP_KEY = "lovable-multi-wallet-vault-fp-v1";
@@ -24,6 +26,8 @@ export interface SeedAccount {
   label: string;
   /** First 16 hex chars of sha256(mnemonic) — safe to store, not reversible. */
   fingerprint: string;
+  /** Six-char Cold Storage Coin Asset ID derived from the TXC identity key. */
+  assetId?: string;
   blob: EncryptedBlob;
   createdAt: number;
 }
@@ -115,6 +119,32 @@ export function noteActiveFingerprint(mnemonic: string): void {
     a.id === reg.activeId ? { ...a, fingerprint: fp } : a,
   );
   write({ ...reg, accounts: next });
+}
+
+/**
+ * Derives and stores the Cold Storage Coin Asset ID for the active seed — the
+ * same six characters printed on the coin's sticker, taken from the TXC
+ * identity key. Cached so it still shows when another seed is active.
+ */
+export async function noteActiveAssetId(mnemonic: string): Promise<void> {
+  const reg = ensureRegistry();
+  if (!reg.activeId) return;
+  const current = reg.accounts.find((a) => a.id === reg.activeId);
+  if (current?.assetId) return;
+  try {
+    const address = await deriveTxcIdentityAddress(mnemonic);
+    const assetId = assetIdForAddress(address);
+    if (!assetId) return;
+    const after = read();
+    write({
+      ...after,
+      accounts: after.accounts.map((a) =>
+        a.id === after.activeId ? { ...a, assetId } : a,
+      ),
+    });
+  } catch {
+    /* derivation is best-effort */
+  }
 }
 
 export interface AddSeedInput {
