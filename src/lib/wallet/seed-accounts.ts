@@ -14,6 +14,8 @@ import {
   vaultFingerprint,
   type VaultPayload,
 } from "./seed";
+import { deriveTxcIdentityAddress } from "./nectar-link";
+import { assetIdForAddress } from "./asset-id";
 
 const REGISTRY_KEY = "beekeeper-seed-accounts-v1";
 const FP_KEY = "lovable-multi-wallet-vault-fp-v1";
