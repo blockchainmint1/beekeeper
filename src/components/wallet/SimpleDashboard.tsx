@@ -28,6 +28,8 @@ import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { addNotification, detectNewIncoming } from "@/lib/wallet/notifications";
 import { getOmniBalancesForAddress } from "@/lib/wallet/omni.functions";
+import { TSD_PROPERTY_ID } from "@/lib/cashout/tsd";
+
 import { NectarLinkDialog } from "./NectarLinkDialog";
 import { hasNectarLink, refreshNectarLinkFromServer } from "@/lib/wallet/nectar";
 import { Link2 } from "lucide-react";
