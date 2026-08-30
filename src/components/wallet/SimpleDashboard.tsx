@@ -421,7 +421,31 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
             {expanded && (
               <>
+                {tsdRow && (
+                  <div className="glass-card flex items-center gap-3 rounded-xl p-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                      style={{
+                        background: "color-mix(in oklab, var(--primary) 22%, transparent)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      TSD
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm">TSD</span>
+                        <span className="text-sm font-semibold tabular">{formatUsd(tsdRow.usd)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span className="truncate">Texas Dollar · TXC layer 2</span>
+                        <span className="tabular">{tsdRow.formatted} TSD</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {primaryRows.map((item) => {
+
                   const r = item.row;
                   const chain = item.chain;
                   return (
