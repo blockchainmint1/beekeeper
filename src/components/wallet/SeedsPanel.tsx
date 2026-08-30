@@ -10,6 +10,7 @@ import {
   getActiveSeedAccountId,
   listSeedAccounts,
   noteActiveFingerprint,
+  noteActiveAssetId,
   removeSeedAccount,
   renameSeedAccount,
   switchSeedAccount,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/wallet/seed-accounts";
 import { getCachedMnemonic, isValidMnemonic } from "@/lib/wallet/seed";
 import { QrScanDialog } from "./QrScanDialog";
+import { nectarLinkForFingerprint } from "@/lib/wallet/nectar";
 
 export function SeedsPanel() {
   const [accounts, setAccounts] = useState<SeedAccount[]>([]);
@@ -39,7 +41,10 @@ export function SeedsPanel() {
   useEffect(() => {
     syncActiveBlob();
     const cached = getCachedMnemonic();
-    if (cached) noteActiveFingerprint(cached);
+    if (cached) {
+      noteActiveFingerprint(cached);
+      void noteActiveAssetId(cached).then(refresh);
+    }
     refresh();
   }, []);
 
@@ -94,6 +99,7 @@ export function SeedsPanel() {
       <div className="space-y-1.5">
         {accounts.map((a) => {
           const isActive = a.id === activeId;
+          const link = a.fingerprint ? nectarLinkForFingerprint(a.fingerprint) : null;
           return (
             <div key={a.id} className="rounded-lg border bg-muted/30 p-3">
               <div className="flex items-center gap-2">
@@ -127,8 +133,23 @@ export function SeedsPanel() {
                     </p>
                   )}
                   <p className="font-mono text-[10px] text-muted-foreground">
-                    {a.fingerprint ? `id ${a.fingerprint.slice(0, 8)}` : "unlock once to fingerprint"}
+                    {a.assetId
+                      ? `coin ${a.assetId}`
+                      : a.fingerprint
+                        ? `vault ${a.fingerprint.slice(0, 8)}`
+                        : "unlock once to identify"}
                   </p>
+                  {link ? (
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      <Badge
+                        variant="secondary"
+                        className="h-4 px-1.5 text-[10px] font-normal"
+                      >
+                        Nectar Pay linked
+                      </Badge>
+                      {link.merchantName ? ` ${link.merchantName}` : ""}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
                   <Button
