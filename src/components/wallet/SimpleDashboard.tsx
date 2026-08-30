@@ -40,7 +40,12 @@ type TokenLine = {
   name?: string;
   formatted: string;
   usd: number | null;
+  /** Omni property id, when this line is an Omni-layer asset on TXC. */
+  propertyId?: number;
+  /** Raw numeric amount (used for the top-level TSD row). */
+  amount?: number;
 };
+
 
 type AssetRow = {
   chain: ChainConfig;
