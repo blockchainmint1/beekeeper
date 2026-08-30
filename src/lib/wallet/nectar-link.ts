@@ -176,7 +176,7 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
     throw new Error(`Manifest missing/invalid: ${missing.join(", ")}`);
   }
   if (Date.now() / 1000 > m.exp) throw new Error("Link code expired");
-  // Origin guard — kills api.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
+  // Origin guard — kills app.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
   let mu: URL, cu: URL;
   try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
   try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }
