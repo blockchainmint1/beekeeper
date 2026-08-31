@@ -448,6 +448,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
                   const r = item.row;
                   const chain = item.chain;
+                  // TSD has its own top-level row; don't double-count it inside TXC's headline value.
+                  const tsdInRow =
+                    chain.id === "txc"
+                      ? (r?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID)?.usd ?? 0)
+                      : 0;
+                  const displayUsd = r ? r.usd - tsdInRow : 0;
                   return (
                     <div key={chain.id} className="glass-card flex flex-col gap-2 rounded-xl p-3">
                       <div className="flex items-center gap-3">
@@ -464,7 +470,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-sm">{chain.ticker}</span>
                             {r ? (
-                              <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+                              <span className="text-sm font-semibold tabular">{formatUsd(displayUsd)}</span>
                             ) : (
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                             )}
