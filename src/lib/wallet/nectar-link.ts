@@ -135,6 +135,7 @@ export function parseNectarManifestUrl(raw: string): string | null {
   if (!/^https:\/\//i.test(t)) return null;
   let u: URL;
   try { u = new URL(t); } catch { return null; }
+  if (!isNectarHost(u.host)) return null;
   if (!/\/wallet-link\/?$/.test(u.pathname)) return null;
   if (!u.searchParams.get("token")) return null;
   return u.toString();
