@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import QrScanner from "qr-scanner";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageUp, ScanLine } from "lucide-react";
+import { ImageUp, ScanLine, X } from "lucide-react";
 
-/** Lightweight QR scanner dialog. Calls onResult with the raw decoded text. */
+/**
+ * Full-screen QR scanner overlay. Rendered straight into <body> so no dialog
+ * animation, transform, or overflow container can stop the camera from
+ * appearing — Chrome on Android was the problem child here.
+ */
 export function QrScanDialog({
   open,
   onOpenChange,
@@ -24,8 +28,9 @@ export function QrScanDialog({
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [phase, setPhase] = useState<"idle" | "starting" | "scan">("idle");
+  const [ready, setReady] = useState(false);
   const [manual, setManual] = useState("");
+  const [showManual, setShowManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function stopScanner() {
@@ -34,37 +39,32 @@ export function QrScanDialog({
     scannerRef.current = null;
   }
 
+  useEffect(() => stopScanner, []);
+
   useEffect(() => {
     if (!open) {
       stopScanner();
-      setPhase("idle");
+      setReady(false);
       setManual("");
+      setShowManual(false);
       setError(null);
+      return;
     }
-  }, [open]);
-
-  // Unmount safety — a torn-down dialog must release the camera.
-  useEffect(() => stopScanner, []);
-
-  // Start the camera only once the <video> element is actually in the DOM.
-  // Chrome on Android silently no-ops when start() runs before the element
-  // exists (Radix animates the dialog content in), so wait for the ref.
-  useEffect(() => {
-    if (!open || phase !== "starting") return;
     let cancelled = false;
 
     (async () => {
-      const video = await waitForRef(videoRef);
+      // Wait for the video element to be committed to the DOM.
+      let video: HTMLVideoElement | null = null;
+      for (let i = 0; i < 30 && !video; i++) {
+        video = videoRef.current;
+        if (!video) await new Promise((r) => requestAnimationFrame(() => r(null)));
+      }
       if (cancelled) return;
       if (!video) {
-        setError("Could not open the camera view. Try the photo option below.");
-        setPhase("idle");
+        setError("Could not open the camera view. Use a photo instead.");
         return;
       }
       try {
-        if (!(await QrScanner.hasCamera())) {
-          throw new Error("No camera found on this device");
-        }
         const s = new QrScanner(
           video,
           (result) => {
@@ -76,6 +76,7 @@ export function QrScanDialog({
             highlightScanRegion: true,
             highlightCodeOutline: true,
             preferredCamera: "environment",
+            maxScansPerSecond: 8,
             returnDetailedScanResult: true,
           },
         );
@@ -85,19 +86,20 @@ export function QrScanDialog({
           stopScanner();
           return;
         }
-        setPhase("scan");
+        setReady(true);
       } catch (e: unknown) {
         if (cancelled) return;
         stopScanner();
         setError(cameraErrorMessage(e));
-        setPhase("idle");
       }
     })();
 
     return () => {
       cancelled = true;
+      stopScanner();
     };
-  }, [open, phase, onResult, onOpenChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   async function scanFromFile(file: File) {
     setError(null);
@@ -117,113 +119,110 @@ export function QrScanDialog({
     onOpenChange(false);
   }
 
-  const showCamera = phase !== "idle";
+  if (!open || typeof document === "undefined") return null;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ScanLine className="h-5 w-5" /> {title}
-          </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {/* Kept mounted so the scanner always has a live element to attach to. */}
-          <div
-            className={
-              showCamera
-                ? "relative aspect-square w-full overflow-hidden rounded-xl bg-black"
-                : "hidden"
-            }
-          >
-            <video
-              ref={videoRef}
-              className="h-full w-full object-cover"
-              muted
-              autoPlay
-              playsInline
-              disablePictureInPicture
-            />
-            {phase === "starting" && (
-              <div className="absolute inset-0 grid place-items-center text-xs text-white/80">
-                Starting camera…
-              </div>
-            )}
-          </div>
-
-          {!showCamera && (
-            <div className="flex flex-col items-center gap-3 rounded-xl border bg-muted/30 py-10 text-center">
-              <ScanLine className="h-10 w-10 text-muted-foreground" />
-              <Button onClick={() => setPhase("starting")}>
-                <ScanLine className="mr-1.5 h-4 w-4" /> Start camera
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                <ImageUp className="mr-1.5 h-4 w-4" /> Use a photo instead
-              </Button>
-            </div>
-          )}
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void scanFromFile(f);
-            }}
-          />
-
-          {error && <p className="text-xs text-destructive">{error}</p>}
-
-          {!showCamera && (
-            <>
-              {helpLink && (
-                <p className="text-center text-xs text-muted-foreground">
-                  <a
-                    href={helpLink.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    {helpLink.label}
-                  </a>
-                </p>
-              )}
-              <details className="text-xs text-muted-foreground">
-                <summary className="cursor-pointer">Paste QR contents instead</summary>
-                <Textarea
-                  rows={3}
-                  className="mt-2 font-mono text-[11px]"
-                  value={manual}
-                  onChange={(e) => setManual(e.target.value)}
-                  placeholder="bitcoin:bc1q…?amount=0.01"
-                />
-                <Button size="sm" className="mt-2 w-full" disabled={!manual.trim()} onClick={submitManual}>
-                  Use pasted text
-                </Button>
-              </details>
-            </>
-          )}
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white">
+      <div
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}
+      >
+        <ScanLine className="h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{title}</p>
+          <p className="truncate text-[11px] text-white/60">{description}</p>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+        <button
+          aria-label="Close scanner"
+          className="rounded-full p-2 hover:bg-white/10"
+          onClick={() => onOpenChange(false)}
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-/** Polls a ref across a few frames until React has committed the element. */
-async function waitForRef(
-  ref: React.RefObject<HTMLVideoElement | null>,
-  tries = 30,
-): Promise<HTMLVideoElement | null> {
-  for (let i = 0; i < tries; i++) {
-    if (ref.current) return ref.current;
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-  }
-  return ref.current;
+      <div className="relative flex-1 overflow-hidden">
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          muted
+          autoPlay
+          playsInline
+          disablePictureInPicture
+        />
+        {!ready && !error && (
+          <div className="absolute inset-0 grid place-items-center text-xs text-white/70">
+            Starting camera…
+          </div>
+        )}
+        {error && (
+          <div className="absolute inset-0 grid place-items-center px-8 text-center text-sm text-white/80">
+            {error}
+          </div>
+        )}
+      </div>
+
+      <div
+        className="space-y-2 px-4 py-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+      >
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1"
+            onClick={() => fileRef.current?.click()}
+          >
+            <ImageUp className="mr-1.5 h-4 w-4" /> Use a photo
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1"
+            onClick={() => setShowManual((v) => !v)}
+          >
+            Paste instead
+          </Button>
+        </div>
+
+        {showManual && (
+          <div>
+            <Textarea
+              rows={3}
+              className="bg-white/10 font-mono text-[11px] text-white placeholder:text-white/40"
+              value={manual}
+              onChange={(e) => setManual(e.target.value)}
+              placeholder="word word word… or bitcoin:bc1q…?amount=0.01"
+            />
+            <Button size="sm" className="mt-2 w-full" disabled={!manual.trim()} onClick={submitManual}>
+              Use pasted text
+            </Button>
+          </div>
+        )}
+
+        {helpLink && (
+          <p className="text-center text-[11px] text-white/60">
+            <a href={helpLink.href} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              {helpLink.label}
+            </a>
+          </p>
+        )}
+      </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void scanFromFile(f);
+        }}
+      />
+    </div>,
+    document.body,
+  );
 }
 
 function cameraErrorMessage(e: unknown): string {
@@ -233,13 +232,13 @@ function cameraErrorMessage(e: unknown): string {
     return "Camera access was blocked. Allow camera for this site in your browser settings, then try again — or use a photo instead.";
   }
   if (name === "NotFoundError" || /no camera/i.test(raw)) {
-    return "No camera found on this device. Use a photo or paste the QR contents.";
+    return "No camera found on this device. Use a photo or paste the phrase.";
   }
   if (name === "NotReadableError" || /in use|track start/i.test(raw)) {
     return "The camera is busy in another app or tab. Close it and try again.";
   }
-  if (!window.isSecureContext) {
-    return "Camera needs a secure (https) connection. Open the site over https and try again.";
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return "Camera needs a secure (https) connection.";
   }
   return raw || "Camera unavailable";
 }
