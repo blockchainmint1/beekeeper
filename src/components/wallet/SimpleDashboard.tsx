@@ -239,9 +239,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     [loadedRows],
   );
 
-  // TSD is the dominant stable on our system — it gets its own top-level row
-  // (and its $1 peg is already folded into the TXC row's usd, so the total
-  // stays correct without adding it twice).
+  // TSD is the dominant stable on our system — it gets its own top-level row.
+  // Its $1 peg is still folded into the TXC row's usd for the total, but we
+  // subtract it from the displayed TXC headline so the breakdown doesn't look
+  // like extra TXC.
   const tsdRow = useMemo(() => {
     const txc = loadedRows.find((r) => r.chain.id === "txc");
     const line = txc?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID);
@@ -448,6 +449,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
                   const r = item.row;
                   const chain = item.chain;
+                  // TSD has its own top-level row; don't double-count it inside TXC's headline value.
+                  const tsdInRow =
+                    chain.id === "txc"
+                      ? (r?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID)?.usd ?? 0)
+                      : 0;
+                  const displayUsd = r ? r.usd - tsdInRow : 0;
                   return (
                     <div key={chain.id} className="glass-card flex flex-col gap-2 rounded-xl p-3">
                       <div className="flex items-center gap-3">
@@ -464,7 +471,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-sm">{chain.ticker}</span>
                             {r ? (
-                              <span className="text-sm font-semibold tabular">{formatUsd(r.usd)}</span>
+                              <span className="text-sm font-semibold tabular">{formatUsd(displayUsd)}</span>
                             ) : (
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                             )}
