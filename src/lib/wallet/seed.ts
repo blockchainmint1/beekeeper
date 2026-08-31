@@ -111,6 +111,7 @@ export function isValidMnemonic(m: string): boolean {
 }
 
 export async function createVault(mnemonic: string, password: string): Promise<void> {
+  assertStrongEnough(password);
   const blob = await encryptJson(
     { mnemonic, createdAt: Date.now() },
     password,
@@ -132,6 +133,7 @@ export async function unlockVault(password: string): Promise<string> {
 
 /** Re-encrypts the existing vault under a new password. */
 export async function changePassword(current: string, next: string): Promise<void> {
+  assertStrongEnough(next);
   const blob = loadVault();
   if (!blob) throw new Error("No wallet found");
   const payload = await decryptJson<VaultPayload>(blob, current);
@@ -191,6 +193,21 @@ export function importVaultBlob(json: string): void {
   const blob = parsed as Partial<EncryptedBlob>;
   if (!blob || typeof blob !== "object" || !blob.ct || !blob.iv || !blob.salt) {
     throw new Error("Backup file is missing required fields");
+  }
+  if (blob.v !== undefined && blob.v !== 1 && blob.v !== 2) {
+    throw new Error("Unsupported backup version");
+  }
+  // A backup carries its own PBKDF2 iteration count. Refuse anything that
+  // would weaken key stretching (or that would hang the browser).
+  if (blob.it !== undefined) {
+    if (
+      typeof blob.it !== "number" ||
+      !Number.isFinite(blob.it) ||
+      blob.it < MIN_TRUSTED_PBKDF2_ITERATIONS ||
+      blob.it > MAX_PBKDF2_ITERATIONS
+    ) {
+      throw new Error("Backup file has unsafe encryption settings — refusing to import");
+    }
   }
   saveVault(blob as EncryptedBlob);
   // Unknown seed until it's unlocked — drop any seed-scoped state.
