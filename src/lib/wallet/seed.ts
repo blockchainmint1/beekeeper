@@ -3,7 +3,22 @@
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
+import {
+  encryptJson,
+  decryptJson,
+  MIN_TRUSTED_PBKDF2_ITERATIONS,
+  MAX_PBKDF2_ITERATIONS,
+  type EncryptedBlob,
+} from "./crypto";
+
+/** Shortest password we'll encrypt a seed under. */
+export const MIN_PASSWORD_LENGTH = 8;
+
+function assertStrongEnough(password: string): void {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+}
 
 const VAULT_KEY = "lovable-multi-wallet-vault-v1";
 const SESSION_KEY = "lovable-multi-wallet-session-v1";
