@@ -59,6 +59,36 @@ function withSecurityHeaders(response: Response): Response {
   return out;
 }
 
+/**
+ * The Capacitor app serves its bundle from a local asset server, so its calls
+ * to /_serverFn and /api are cross-origin. Allow exactly the native shell
+ * origins (nothing else — no wildcard) so the mobile app can reach the backend.
+ */
+const NATIVE_ORIGINS = new Set([
+  "https://beekeeper.honest.money",
+  "https://localhost",
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
+
+function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/_serverFn/") || pathname.startsWith("/api/");
+}
+
+function withNativeCors(request: Request, response: Response): Response {
+  const origin = request.headers.get("origin");
+  if (!origin || !NATIVE_ORIGINS.has(origin)) return response;
+  if (!isApiPath(new URL(request.url).pathname)) return response;
+  const out = new Response(response.body, response);
+  out.headers.set("access-control-allow-origin", origin);
+  out.headers.set("vary", "origin");
+  out.headers.set("access-control-allow-headers", "content-type, x-tsr-redirect, accept");
+  out.headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+  out.headers.set("access-control-max-age", "86400");
+  return out;
+}
+
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
