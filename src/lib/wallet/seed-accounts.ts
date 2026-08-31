@@ -126,28 +126,42 @@ export function noteActiveFingerprint(mnemonic: string): void {
 }
 
 /**
- * Derives and stores the Cold Storage Coin Asset ID for the active seed — the
- * same six characters printed on the coin's sticker, taken from the TXC
- * identity key. Cached so it still shows when another seed is active.
+ * Looks up and stores the Cold Storage Coin Asset ID for the active seed.
+ *
+ * The Asset ID is assigned by the mint, not derived — one seed can back a TXC,
+ * an Iskander, a Bitcoin or an EVM coin, and only the registry knows which. We
+ * hand it every candidate address for this seed and cache what it returns, so
+ * the ID still shows when another seed is active.
  */
 export async function noteActiveAssetId(mnemonic: string): Promise<void> {
   const reg = ensureRegistry();
   if (!reg.activeId) return;
   const current = reg.accounts.find((a) => a.id === reg.activeId);
-  if (current?.assetId) return;
+  // Older builds derived the ID locally, which was wrong for non-TXC coins —
+  // re-resolve anything that didn't come from the registry.
+  if (current?.assetId && current.assetIdSource === "registry") return;
   try {
-    const address = await deriveTxcIdentityAddress(mnemonic);
-    const assetId = assetIdForAddress(address);
-    if (!assetId) return;
+    const addresses = await deriveCoinCandidateAddresses(mnemonic);
+    if (addresses.length === 0) return;
+    const result = await lookupMintCoin({ data: { addresses } });
+    if (!result.found || !result.coin.assetId) return;
+    const assetId = result.coin.assetId;
+    const coinChain =
+      result.coin.blockchainCode ??
+      result.coin.cryptoCurrency ??
+      result.coin.blockchainName ??
+      undefined;
     const after = read();
     write({
       ...after,
       accounts: after.accounts.map((a) =>
-        a.id === after.activeId ? { ...a, assetId } : a,
+        a.id === after.activeId
+          ? { ...a, assetId, coinChain, assetIdSource: "registry" as const }
+          : a,
       ),
     });
   } catch {
-    /* derivation is best-effort */
+    /* registry lookup is best-effort */
   }
 }
 
