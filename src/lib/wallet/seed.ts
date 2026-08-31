@@ -109,6 +109,16 @@ export function clearCachedMnemonic(): void {
   }
 }
 
+// One-time cleanup for users upgrading from a build that stored the seed in
+// sessionStorage — otherwise a stale plaintext copy lingers for the whole tab.
+if (typeof window !== "undefined") {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function createMnemonic(strength: 128 | 256 = 128): string {
   return generateMnemonic(wordlist, strength);
 }
