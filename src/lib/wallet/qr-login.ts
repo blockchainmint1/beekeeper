@@ -52,6 +52,19 @@ function decodeBase64Url(s: string): string {
   return Buffer.from(b64, "base64").toString("utf8");
 }
 
+/** A login callback receives a signature over a message we may not have fully
+ *  rendered, so the transport must be authenticated. `new URL()` alone accepts
+ *  `http:` and even `javascript:`, so check the scheme explicitly. */
+function assertHttpsCallback(cb: string): void {
+  let u: URL;
+  try { u = new URL(cb); } catch { throw new Error("Invalid callback URL"); }
+  const localDev =
+    u.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
+  if (u.protocol !== "https:" && !localDev) {
+    throw new Error("Login callback must use https");
+  }
+}
+
 export function parseQrLogin(raw: string): ParsedQrLogin {
   const trimmed = raw.trim();
 
@@ -68,7 +81,7 @@ export function parseQrLogin(raw: string): ParsedQrLogin {
     const cb = url.searchParams.get("cb");
     const msg = url.searchParams.get("msg");
     if (!id || !nonce || !cb) throw new Error("Missing id/nonce/cb in login URL");
-    try { new URL(cb); } catch { throw new Error("Invalid callback URL"); }
+    assertHttpsCallback(cb);
     return {
       protocol: "deep-link",
       scheme: url.protocol.replace(/:$/, ""),
@@ -92,7 +105,7 @@ export function parseQrLogin(raw: string): ParsedQrLogin {
   if (typeof o.origin !== "string" || typeof o.nonce !== "string" || typeof o.callback !== "string") {
     throw new Error("Missing origin/nonce/callback");
   }
-  try { new URL(o.callback); } catch { throw new Error("Invalid callback URL"); }
+  assertHttpsCallback(o.callback);
   if (o.expiresAt && typeof o.expiresAt === "number" && o.expiresAt < Date.now()) {
     throw new Error("Login request expired");
   }

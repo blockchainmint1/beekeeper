@@ -83,23 +83,40 @@ export function hasVault(): boolean {
 }
 
 
-// In-memory unlocked mnemonic (persisted to sessionStorage so a reload while
-// the tab is open keeps the wallet unlocked).
+/* ─── Unlocked mnemonic: process memory only ───
+   Deliberately NOT sessionStorage. Anything readable by JS storage is readable
+   by injected script and by a browser extension with storage access, and the
+   seed is the whole wallet. Cost of this choice: a page reload drops the
+   unlock, so the user re-enters the password. That is the intended trade. */
+let unlockedMnemonic: string | null = null;
+
 export function cacheMnemonic(mnemonic: string): void {
+  unlockedMnemonic = mnemonic;
+}
+
+export function getCachedMnemonic(): string | null {
+  if (typeof window === "undefined") return null;
+  return unlockedMnemonic;
+}
+
+export function clearCachedMnemonic(): void {
+  unlockedMnemonic = null;
+  // Clear the legacy sessionStorage copy left by older builds.
   try {
-    sessionStorage.setItem(SESSION_KEY, mnemonic);
+    sessionStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
   }
 }
 
-export function getCachedMnemonic(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(SESSION_KEY);
-}
-
-export function clearCachedMnemonic(): void {
-  sessionStorage.removeItem(SESSION_KEY);
+// One-time cleanup for users upgrading from a build that stored the seed in
+// sessionStorage — otherwise a stale plaintext copy lingers for the whole tab.
+if (typeof window !== "undefined") {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function createMnemonic(strength: 128 | 256 = 128): string {
