@@ -45,6 +45,9 @@ import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/
 import type { Address } from "viem";
 import { QrScanDialog } from "./QrScanDialog";
 import { parsePaymentUri } from "@/lib/wallet/payment-uri";
+import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
+import { useCashoutApiKey } from "@/lib/cashout/api-key";
+import { TsdCashoutPanel, type CashoutPlan } from "./TsdCashoutPanel";
 
 type Account =
   | { kind: "utxo"; account: UtxoAccount }
@@ -88,6 +91,15 @@ export function SendDialog({
   const securityPrefs = useSecurityPrefs();
   const [pendingConfirmation, setPendingConfirmation] = useState(false);
   const ownAddress = account.account.address;
+
+  const exchangeAllowed = useExchangeFeaturesAllowed();
+  const [cashoutKey] = useCashoutApiKey();
+  const showCashout = chain.id === "txc" && exchangeAllowed && !!cashoutKey;
+  function handleCashoutReady(plan: CashoutPlan) {
+    setTo(plan.depositAddress);
+    setAmount(String(plan.amount));
+    toast.success("Cash-out address filled in — review and send");
+  }
 
   const ticker = token?.symbol ?? chain.ticker;
 
@@ -353,6 +365,10 @@ export function SendDialog({
                 </div>
               )}
             </div>
+            {showCashout && cashoutKey && (
+              <TsdCashoutPanel amount={amount} apiKey={cashoutKey} onReady={handleCashoutReady} />
+            )}
+
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <Label htmlFor="amt" className="text-xs">Amount ({ticker})</Label>

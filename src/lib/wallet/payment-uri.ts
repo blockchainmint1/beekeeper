@@ -121,3 +121,40 @@ function formatBaseUnits(value: bigint, decimals: number): string {
   let s = frac.toString().padStart(decimals, "0").replace(/0+$/, "");
   return (neg ? "-" : "") + whole.toString() + "." + s;
 }
+
+/**
+ * Detects whether a scanned QR payload is a public address or extended public key
+ * rather than a recovery phrase. Useful for warning users who scan the sticker on
+ * the outside of a Cold Storage Coin instead of the laser-etched recovery phrase.
+ */
+export function looksLikePublicAddressOrKey(raw: string): boolean {
+  const text = raw.trim();
+  if (!text) return false;
+
+  // Extended public keys (BIP32).
+  if (/^(xpub|ypub|zpub|tpub|upub|vpub)[A-Za-z0-9]{100,}$/i.test(text)) return true;
+
+  // Payment URI schemes.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(text)) return true;
+
+  // EVM addresses (0x + 40 hex).
+  if (/^0x[a-f0-9]{40}$/i.test(text)) return true;
+
+  // UTXO-style addresses: alphanumeric, common prefixes, plausible length.
+  if (/^[a-z0-9]{25,90}$/i.test(text)) {
+    // Known prefixes for the chains we support.
+    const knownPrefixes = [
+      "1", "3", "bc1", "L", "M", "ltc1", "bitcoincash:", "q", "p",
+      "D", "X", "doge", "dash", "txc", "T", "7",
+    ];
+    const lower = text.toLowerCase();
+    if (knownPrefixes.some((p) => lower.startsWith(p.toLowerCase()))) return true;
+    // TRON addresses start with T and are 34 chars.
+    if (/^T[A-Za-z0-9]{33}$/.test(text)) return true;
+  }
+
+  // Solana base58 addresses (32-44 chars).
+  if (/^[A-HJ-NP-Za-km-z1-9]{32,44}$/.test(text)) return true;
+
+  return false;
+}

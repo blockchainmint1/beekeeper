@@ -20,12 +20,13 @@
 // Wallet receives either an https URL or a JSON envelope (QR or deep link):
 //
 //   JSON envelope (preferred — self-describing, works in any web/PWA wallet):
+//   (Nectar serves API calls from app.nectar-pay.com; the apex 308s /api/* there.)
 //     {
 //       "v": 1,
 //       "type": "hm-link-xpubs",
 //       "challenge_id": "<uuid>",
-//       "from":         "nectar-pay.com",
-//       "callback_url": "https://nectar-pay.com/api/public/v1/wallet-link",
+//       "from":         "app.nectar-pay.com",
+//       "callback_url": "https://app.nectar-pay.com/api/public/v1/wallet-link",
 //       "chains":       ["BTC","TXC","EVM","LTC","BCH","TRX"],
 //       "exp":          1735689600
 //     }
@@ -44,8 +45,8 @@
 //     "v": 1,
 //     "type": "hm-link-xpubs",
 //     "challenge_id": "<uuid>",
-//     "from":         "nectar-pay.com",
-//     "callback_url": "https://nectar-pay.com/api/public/v1/wallet-link",
+//     "from":         "app.nectar-pay.com",
+//     "callback_url": "https://app.nectar-pay.com/api/public/v1/wallet-link",
 //     "chains":       ["BTC","TXC","EVM","LTC","BCH","TRX"],
 //     "xpubs":        { "BTC": "zpub6...", "TXC": "xpub6...", ... },
 //     "exp":          1735689600,
@@ -175,7 +176,7 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
     throw new Error(`Manifest missing/invalid: ${missing.join(", ")}`);
   }
   if (Date.now() / 1000 > m.exp) throw new Error("Link code expired");
-  // Origin guard — kills api.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
+  // Origin guard — kills app.nectar-pay.com vs evil.nectar-pay.com.attacker.tld.
   let mu: URL, cu: URL;
   try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
   try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }
@@ -474,4 +475,97 @@ export function callbackMatchesOrigin(from: string, callbackUrl: string): boolea
   } catch {
     return false;
   }
+}
+
+/* ───────────────── Pre-flight link status (hm-link-status) ─────────────────
+   Read-only check: "does Nectar already know this seed?" Signature-gated with
+   the same primitive as the link handshake, so only the seed holder can ask.
+   Server enforces issued_at within ±5 min, so payloads must be built fresh. */
+
+export interface NectarStatusPayload {
+  v: 1;
+  type: "hm-link-status";
+  nonce: string;
+  issued_at: string;
+}
+
+export interface NectarLinkedStore {
+  store_id?: string;
+  merchant_name?: string;
+  chains_linked?: NectarChainKey[];
+  linked_at?: string;
+}
+
+export interface NectarStatusResponse extends NectarLinkedStore {
+  /** ≥1 store has consumed an xpub push from this address. */
+  linked: boolean;
+  /** Address is known to Nectar but may not have pushed xpubs. */
+  registered: boolean;
+  stores?: NectarLinkedStore[];
+}
+
+export function buildStatusPayload(): NectarStatusPayload {
+  const nonce =
+    (globalThis.crypto?.randomUUID?.() as string | undefined) ??
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return { v: 1, type: "hm-link-status", nonce, issued_at: new Date().toISOString() };
+}
+
+export async function signStatusPayload(
+  mnemonic: string,
+  payload: NectarStatusPayload,
+): Promise<{ address: string; signature: string }> {
+  const txc = CHAINS.txc as UtxoChain;
+  const acct = await deriveUtxoAccount(mnemonic, txc, 0, "legacy");
+  const signature = await utxoSignMessage({
+    mnemonic,
+    chain: txc,
+    index: 0,
+    type: "legacy",
+    message: canonicalJson(payload),
+  });
+  return { address: acct.address, signature };
+}
+
+/** Default status endpoint for a Nectar host (or a full wallet-link URL). */
+export function nectarStatusUrl(hostOrUrl: string): string {
+  const base = /^https?:\/\//i.test(hostOrUrl) ? hostOrUrl : `https://${hostOrUrl}`;
+  const u = new URL(base);
+  if (/\/wallet-link\/?$/.test(u.pathname)) {
+    return `${u.origin}${u.pathname.replace(/\/$/, "")}/status`;
+  }
+  return `${u.origin}/api/public/v1/wallet-link/status`;
+}
+
+/**
+ * Asks Nectar whether this seed is already linked. Returns null when the
+ * endpoint is not deployed (404) so callers can fall back to local state.
+ * Throws on network failure or a rejected signature.
+ */
+export async function fetchNectarLinkStatus(
+  mnemonic: string,
+  hostOrUrl: string,
+): Promise<NectarStatusResponse | null> {
+  const payload = buildStatusPayload();
+  const { address, signature } = await signStatusPayload(mnemonic, payload);
+  const res = await fetch(nectarStatusUrl(hostOrUrl), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ payload, signature, address }),
+  });
+  if (res.status === 404) return null; // endpoint not live on this host
+  if (!res.ok) {
+    let msg = `Status check failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string; message?: string; hint?: string };
+      msg = j.hint || j.error || j.message || msg;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  const body = (await res.json()) as NectarStatusResponse;
+  return {
+    ...body,
+    linked: body.linked === true,
+    registered: body.registered === true || body.linked === true,
+  };
 }

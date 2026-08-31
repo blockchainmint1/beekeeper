@@ -16,13 +16,14 @@ import { evmPrivateKey, evmAccountXpub, deriveEvmAddressesFromXpub } from "@/lib
 import { useSecurityPrefs, setSecurityPrefs, secureCopy } from "@/lib/wallet/security";
 import { useVisibleChainIds, setVisibleChainIds } from "@/lib/wallet/visible-chains";
 import { useScanGap, setScanGap, SCAN_GAP_MIN, SCAN_GAP_MAX, SCAN_GAP_DEFAULT } from "@/lib/wallet/scan-prefs";
-import { loadNectarLink, clearNectarLink, type NectarLinkRecord } from "@/lib/wallet/nectar";
+import { loadNectarLink, clearNectarLink, refreshNectarLinkFromServer, type NectarLinkRecord } from "@/lib/wallet/nectar";
 import { savePrefs, useNotifPrefs } from "@/lib/wallet/notifications";
 import { Switch } from "@/components/ui/switch";
 import { NectarLinkDialog } from "./NectarLinkDialog";
+import { SeedsPanel } from "./SeedsPanel";
 
 type SectionId =
-  | "security" | "wallets" | "alerts" | "nectar"
+  | "security" | "seeds" | "wallets" | "alerts" | "nectar"
   | "password" | "reveal" | "xpub" | "danger";
 
 interface SectionDef {
@@ -35,6 +36,7 @@ interface SectionDef {
 
 const SECTIONS: SectionDef[] = [
   { id: "security", label: "Security",     hint: "Auto-lock, biometrics, anti-phishing",    icon: ShieldCheck },
+  { id: "seeds",    label: "Seeds",        hint: "Add, name, and switch between seeds",     icon: KeyRound },
   { id: "wallets",  label: "Wallets",      hint: "Show, hide, and reorder chains",          icon: Layers },
   { id: "alerts",   label: "Alerts",       hint: "In-app, email, and Telegram alerts",      icon: Bell },
   { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
@@ -87,6 +89,7 @@ export function SettingsDialog({
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
               {section.id === "security" && <SecurityPanel />}
+              {section.id === "seeds"    && <SeedsPanel />}
               {section.id === "wallets"  && <WalletsPanel />}
               {section.id === "alerts"   && <AlertsPanel />}
               {section.id === "nectar"   && <NectarPanel />}
@@ -150,9 +153,20 @@ export function SettingsDialog({
 }
 
 
-function NectarPanel() {
+export function NectarPanel() {
   const [link, setLink] = useState<NectarLinkRecord | null>(() => loadNectarLink());
   const [linkOpen, setLinkOpen] = useState(false);
+  // Restored on a new device? Ask Nectar whether this seed is already linked.
+  useEffect(() => {
+    if (link) return;
+    let alive = true;
+    refreshNectarLinkFromServer().then((rec) => {
+      if (alive && rec) setLink(rec);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [link]);
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
@@ -243,7 +257,7 @@ function ScanDepthRow() {
   );
 }
 
-function WalletsPanel() {
+export function WalletsPanel() {
   const visible = useVisibleChainIds();
   const visibleChains = visible
     .map((id) => CHAIN_LIST.find((c) => c.id === id))
@@ -340,7 +354,7 @@ function WalletsPanel() {
   );
 }
 
-function SecurityPanel() {
+export function SecurityPanel() {
   const prefs = useSecurityPrefs();
   return (
     <div className="space-y-4">
@@ -504,7 +518,7 @@ function BiometricRow() {
   );
 }
 
-function PasswordPanel() {
+export function PasswordPanel() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -542,7 +556,7 @@ function PasswordPanel() {
   );
 }
 
-function RevealPanel() {
+export function RevealPanel() {
   const [chainId, setChainId] = useState<ChainId>("txc");
   const [pass, setPass] = useState("");
   const [key, setKey] = useState<string | null>(null);
@@ -667,7 +681,7 @@ function RevealPanel() {
   );
 }
 
-function DangerPanel({ onWipe }: { onWipe: () => void }) {
+export function DangerPanel({ onWipe }: { onWipe: () => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
@@ -688,7 +702,7 @@ function DangerPanel({ onWipe }: { onWipe: () => void }) {
   );
 }
 
-function XpubPanel() {
+export function XpubPanel() {
   const [pass, setPass] = useState("");
   const [xpub, setXpub] = useState<string | null>(null);
   const [count, setCount] = useState(5);
@@ -773,7 +787,7 @@ function XpubPanel() {
     </div>
   );
 }
-function AlertsPanel() {
+export function AlertsPanel() {
   const prefs = useNotifPrefs();
   return (
     <div className="space-y-5">

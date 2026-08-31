@@ -37,7 +37,10 @@ export interface OmniProperty {
 
 // --- Server fns -----------------------------------------------------------
 
-const addressInput = z.object({ address: z.string().min(20).max(80) });
+const addressInput = z.object({
+  address: z.string().min(20).max(80),
+  includePropertyIds: z.array(z.number().int().positive()).max(20).optional(),
+});
 
 export const getOmniBalancesForAddress = createServerFn({ method: "POST" })
   .inputValidator(addressInput)
@@ -48,10 +51,16 @@ export const getOmniBalancesForAddress = createServerFn({ method: "POST" })
     } catch (e) {
       // Address with zero Omni history returns an error on some node versions —
       // treat that as "no balances" rather than failing the UI.
-      if (e instanceof Error && /Address not found|no tokens/i.test(e.message)) return [];
-      throw e;
+      if (!(e instanceof Error && /Address not found|no tokens/i.test(e.message))) throw e;
     }
-    if (!Array.isArray(raw) || raw.length === 0) return [];
+    if (!Array.isArray(raw)) raw = [];
+
+    // Always surface the chain's default properties, even at zero balance.
+    const seen = new Set(raw.map((b) => b.propertyid));
+    for (const id of data.includePropertyIds ?? []) {
+      if (!seen.has(id)) raw.push({ propertyid: id, balance: "0", reserved: "0" });
+    }
+    if (raw.length === 0) return [];
 
     // Enrich with property metadata (name) — cached per call.
     const props = await Promise.all(
@@ -73,6 +82,7 @@ export const getOmniBalancesForAddress = createServerFn({ method: "POST" })
       frozen: b.frozen,
     }));
   });
+
 
 export const listOmniProperties = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ecosystem: z.union([z.literal(1), z.literal(2)]).optional() }))

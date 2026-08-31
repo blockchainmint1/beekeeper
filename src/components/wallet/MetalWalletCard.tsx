@@ -55,7 +55,7 @@ export function MetalWalletCard({
 
   return (
     <div
-      className="relative shrink-0 w-[calc(100vw-2rem)] max-w-[560px] rounded-3xl p-5 overflow-hidden snap-center isolate text-left"
+      className="relative shrink-0 w-full max-w-[560px] rounded-3xl p-5 overflow-hidden snap-center isolate text-left"
       style={{ background: s.gradient, boxShadow: "none" }}
       onTouchStart={startPress}
       onTouchEnd={endPress}

@@ -34,9 +34,16 @@ async function renderShell(serverEntryPath, route = "/") {
     { waitUntil() {} },
   );
   if (!response.ok) throw new Error(`SPA shell render failed: HTTP ${response.status}`);
-  const html = await response.text();
+  // TanStack's serialized route match IDs can contain literal NUL bytes. While
+  // Chromium tolerates them in an inline script, WKWebView may reject the
+  // script before hydration starts and leave the native app completely blank.
+  // Preserve the JavaScript string value using an escape sequence instead.
+  const html = (await response.text()).replaceAll("\0", "\\u0000");
   if (!html.includes("$_TSR") || !html.includes("/assets/")) {
     throw new Error("Generated SPA shell is missing TanStack hydration data or asset links.");
+  }
+  if (html.includes("\0")) {
+    throw new Error("Generated SPA shell contains a literal NUL byte.");
   }
   return html;
 }
@@ -55,7 +62,40 @@ if (!serverEntryPath) throw new Error("No server entry found to render the SPA s
 const iosExists = await isDirectory(resolve(root, "ios/App/App"));
 const outputDirs = Array.from(new Set([capacitorWebDir, publicDir, ...(iosExists ? [iosWebDir] : [])]));
 
-const homeHtml = await renderShell(serverEntryPath, "/");
+/**
+ * Native-only boot watchdog. In a webview a single failed module load (bad
+ * asset path, stale sync, WebKit parse error) leaves the body empty and the app
+ * looks dead with no way to read the error on device. This captures early
+ * errors and, if nothing has rendered after a few seconds, paints the reason
+ * on screen with a reload button.
+ */
+const BOOT_WATCHDOG = `(function(){
+var errs=[];
+function push(m){try{errs.push(String(m).slice(0,400));}catch(e){}}
+addEventListener("error",function(e){push(e&&e.message?e.message+" @ "+(e.filename||"")+":"+(e.lineno||0):"error");},true);
+addEventListener("unhandledrejection",function(e){push("unhandled: "+((e&&e.reason&&(e.reason.message||e.reason))||"?"));});
+function booted(){var b=document.body;if(!b)return false;return (b.innerText||"").trim().length>0;}
+setTimeout(function(){
+  if(booted())return;
+  var d=document.createElement("div");
+  d.setAttribute("style","position:fixed;inset:0;z-index:2147483647;padding:24px;padding-top:56px;background:#0D1B33;color:#fff;font:14px/1.5 -apple-system,system-ui,sans-serif;overflow:auto");
+  d.innerHTML='<div style="font-weight:700;font-size:17px;margin-bottom:8px">Beekeeper couldn\\'t start</div>'+
+    '<div style="opacity:.75;margin-bottom:14px">The app shell loaded but the interface never rendered.</div>'+
+    '<pre style="white-space:pre-wrap;font:12px/1.45 ui-monospace,Menlo,monospace;background:rgba(255,255,255,.07);padding:12px;border-radius:10px;margin:0 0 16px">'+
+    (errs.length?errs.join("\\n\\n"):"No JavaScript error was reported. The bundle at /assets/ may be missing from the native build (re-run: bun run build && bunx cap sync).").replace(/</g,"&lt;")+'</pre>'+
+    '<button id="bk-reload" style="appearance:none;border:0;border-radius:10px;padding:12px 18px;background:#F0A81E;color:#0D1B33;font-weight:700;font-size:15px">Reload</button>';
+  document.body.appendChild(d);
+  var b=d.querySelector("#bk-reload");
+  if(b)b.addEventListener("click",function(){location.replace("/");});
+},6000);
+})();`;
+
+const rawHomeHtml = await renderShell(serverEntryPath, "/");
+const homeHtml = rawHomeHtml.replace(
+  "</head>",
+  `<script>${BOOT_WATCHDOG}</script></head>`,
+);
+if (homeHtml === rawHomeHtml) throw new Error("Could not inject boot watchdog into SPA shell.");
 
 /**
  * The native webview loads files off disk, so a hard load of a client route

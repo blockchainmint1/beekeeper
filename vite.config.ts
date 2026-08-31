@@ -39,13 +39,13 @@ export default defineConfig({
       // production bundle ships a real Buffer instead of Vite's stub.
       nodePolyfills({
         include: ["buffer", "stream", "util", "events", "string_decoder", "crypto", "process"],
-        // Production chunks can execute before the document shell/router has
-        // installed a runtime global (notably on mobile Chrome). Inject the
-        // process import into every production chunk that references it, so
-        // crypto dependencies never depend on script evaluation order. Keep
-        // dev injection disabled: TanStack's dev server-function URL transform
-        // must see process.env.TSS_SERVER_FN_BASE unchanged.
-        globals: { Buffer: true, global: true, process: "build" },
+        // NEVER inject the `process` global (not even for builds): the injected
+        // shim shadows `process.env.TSS_SERVER_FN_BASE` before TanStack's
+        // transform can replace it, producing "/undefined<fnId>" server-function
+        // URLs that 500 on every request. The runtime shim in
+        // src/lib/wallet/buffer-polyfill.ts installs `process` for the crypto
+        // libraries instead, and it runs from the client entry graph.
+        globals: { Buffer: true, global: true, process: false },
         protocolImports: true,
       }),
     ],

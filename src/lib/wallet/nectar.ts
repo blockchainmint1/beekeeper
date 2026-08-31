@@ -6,6 +6,8 @@ import {
   buildLinkPayload,
   signLinkPayload,
   postLinkPayload,
+  fetchNectarLinkStatus,
+  nectarStatusUrl,
   type NectarLinkRequest,
 } from "./nectar-link";
 import { getCachedMnemonic, getVaultFingerprint } from "./seed";
@@ -131,13 +133,105 @@ export function loadNectarLink(): NectarLinkRecord | null {
 export function saveNectarLink(r: NectarLinkRecord): void {
   const walletId = getVaultFingerprint() ?? undefined;
   localStorage.setItem(LINK_KEY, JSON.stringify({ ...r, walletId }));
+  if (walletId) writeLinkMapEntry(walletId, { ...r, walletId });
 }
 
 export function clearNectarLink(): void {
   localStorage.removeItem(LINK_KEY);
+  const fp = getVaultFingerprint();
+  if (fp) writeLinkMapEntry(fp, null);
+}
+
+/* Link history keyed by vault fingerprint, so the Seeds list can show which
+   stored seeds are linked even while another seed is the active vault. */
+const LINK_MAP_KEY = "beekeeper-nectar-links-by-fp-v1";
+
+type LinkMap = Record<string, NectarLinkRecord>;
+
+function readLinkMap(): LinkMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LINK_MAP_KEY);
+    const parsed = raw ? (JSON.parse(raw) as LinkMap) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLinkMapEntry(fp: string, rec: NectarLinkRecord | null): void {
+  const map = readLinkMap();
+  if (rec) map[fp] = rec;
+  else delete map[fp];
+  try {
+    localStorage.setItem(LINK_MAP_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Known Nectar Pay link for a stored seed (by vault fingerprint). */
+export function nectarLinkForFingerprint(fp: string): NectarLinkRecord | null {
+  if (!fp) return null;
+  return readLinkMap()[fp] ?? null;
 }
 
 export function hasNectarLink(): boolean {
   return loadNectarLink() !== null;
 }
 
+
+/* ─────────── Cross-device link recovery ───────────
+   Link state used to live only in localStorage, so restoring a seed on a new
+   phone looked "unlinked". Nectar now answers a signature-gated pre-flight
+   check, so we can rebuild the record from the seed alone.
+
+   Nectar split marketing/app/CRM hosts; the status endpoint lives on the app
+   subdomain. The apex domain still 308s /api/* to app, but we point directly at
+   app.nectar-pay.com to skip the hop. */
+
+/** Host we ask when there is no locally-remembered Nectar URL. */
+export const NECTAR_DEFAULT_HOST = "app.nectar-pay.com";
+
+let statusProbe: Promise<NectarLinkRecord | null> | null = null;
+
+/**
+ * Restores the Nectar link record for the currently unlocked seed by asking
+ * Nectar directly. Memoized per page load. Resolves null when the wallet is
+ * locked, the endpoint isn't live, or the seed has never pushed xpubs.
+ */
+export function refreshNectarLinkFromServer(
+  hostOrUrl?: string,
+): Promise<NectarLinkRecord | null> {
+  if (statusProbe) return statusProbe;
+  statusProbe = (async () => {
+    const mnemonic = getCachedMnemonic();
+    if (!mnemonic) return null;
+    const existing = loadNectarLink();
+    if (existing) return existing;
+    const target = hostOrUrl ?? NECTAR_DEFAULT_HOST;
+    try {
+      const status = await fetchNectarLinkStatus(mnemonic, target);
+      if (!status || !status.linked) return null;
+      const first = status.stores?.[0];
+      const record: NectarLinkRecord = {
+        merchantId: status.store_id ?? first?.store_id,
+        merchantName: status.merchant_name ?? first?.merchant_name,
+        url: nectarStatusUrl(target).replace(/\/status$/, ""),
+        linkedAt: Date.parse(status.linked_at ?? first?.linked_at ?? "") || Date.now(),
+      };
+      saveNectarLink(record);
+      return record;
+    } catch (e) {
+      // Offline / signature rejected / server error — keep local state as-is.
+      console.warn("[nectar] link status check failed:", e);
+      return null;
+    }
+  })();
+  return statusProbe;
+}
+
+/** Forget the memoized probe (e.g. after switching seeds). */
+export function resetNectarLinkProbe(): void {
+  statusProbe = null;
+}
