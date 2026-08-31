@@ -239,9 +239,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     [loadedRows],
   );
 
-  // TSD is the dominant stable on our system — it gets its own top-level row
-  // (and its $1 peg is already folded into the TXC row's usd, so the total
-  // stays correct without adding it twice).
+  // TSD is the dominant stable on our system — it gets its own top-level row.
+  // Its $1 peg is still folded into the TXC row's usd for the total, but we
+  // subtract it from the displayed TXC headline so the breakdown doesn't look
+  // like extra TXC.
   const tsdRow = useMemo(() => {
     const txc = loadedRows.find((r) => r.chain.id === "txc");
     const line = txc?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID);
