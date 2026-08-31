@@ -92,6 +92,7 @@ export function SeedsPanel() {
       const wasActive = id === activeId;
       removeSeedAccount(id);
       toast.success("Seed removed from this device");
+      setPendingRemove(null);
       if (wasActive) window.location.reload();
       else refresh();
     } catch (e) {
