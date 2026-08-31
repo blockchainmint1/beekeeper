@@ -8,6 +8,7 @@ import {
   postLinkPayload,
   fetchNectarLinkStatus,
   nectarStatusUrl,
+  NECTAR_LINK_HOST,
   type NectarLinkRequest,
 } from "./nectar-link";
 import { getCachedMnemonic, getVaultFingerprint } from "./seed";
