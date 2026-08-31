@@ -70,6 +70,11 @@ export const Route = createFileRoute("/api/public/rpc/alchemy/$chain")({
         }
 
         const calls = Array.isArray(body) ? body : [body];
+        // Cap batch size so the proxy can't be used to drain the Alchemy quota
+        // with one giant request.
+        if (calls.length === 0 || calls.length > 25) {
+          return new Response("Batch too large", { status: 413 });
+        }
         for (const c of calls) {
           if (typeof c?.method !== "string" || !ALLOWED_METHODS.has(c.method)) {
             const rejects = calls.map((cc) => rejectMethod(cc?.id, String(cc?.method ?? "")));
