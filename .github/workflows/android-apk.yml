@@ -60,6 +60,9 @@ jobs:
       - name: Patch AndroidManifest
         run: bun scripts/patch-android-manifest.mjs
 
+      - name: Install sharp native binding (linux-x64)
+        run: npm install --no-save --os=linux --cpu=x64 --ignore-scripts=false sharp
+
       - name: Generate icons / splash
         run: bunx capacitor-assets generate --android --iconBackgroundColor '#0b0f14' --splashBackgroundColor '#0b0f14'
 
