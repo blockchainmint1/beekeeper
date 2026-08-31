@@ -14,6 +14,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 // Install the Buffer polyfill eagerly so wallet/crypto modules that read
 // `globalThis.Buffer` at import time always see it.
 import "../lib/wallet/buffer-polyfill";
+// Native (Capacitor) shell: send /_serverFn and /api traffic to the deployed
+// origin instead of the local asset server, which cannot answer them.
+import "../lib/native/api-origin";
+
 
 function NotFoundComponent() {
   return (
