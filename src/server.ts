@@ -92,17 +92,31 @@ function withNativeCors(request: Request, response: Response): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // CORS preflight from the native shell.
+      if (request.method === "OPTIONS") {
+        const origin = request.headers.get("origin");
+        if (origin && NATIVE_ORIGINS.has(origin) && isApiPath(new URL(request.url).pathname)) {
+          return withNativeCors(request, new Response(null, { status: 204 }));
+        }
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+      return withNativeCors(
+        request,
+        withSecurityHeaders(await normalizeCatastrophicSsrResponse(response)),
+      );
     } catch (error) {
       console.error(error);
-      return withSecurityHeaders(
-        new Response(renderErrorPage(), {
-          status: 500,
-          headers: { "content-type": "text/html; charset=utf-8" },
-        }),
+      return withNativeCors(
+        request,
+        withSecurityHeaders(
+          new Response(renderErrorPage(), {
+            status: 500,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        ),
       );
     }
   },
 };
+
