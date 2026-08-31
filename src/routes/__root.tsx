@@ -37,12 +37,30 @@ function NotFoundComponent() {
   );
 }
 
+const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Failed to fetch|ChunkLoadError|error loading dynamically imported/i;
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  // In the native webview a single stale/missing route chunk otherwise dead-ends
+  // the whole screen. Recover once automatically before showing the error.
+  useEffect(() => {
+    if (!CHUNK_ERROR.test(error?.message ?? "")) return;
+    try {
+      const key = "bk-chunk-reload";
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      location.reload();
+    } catch {
+      /* storage unavailable — fall through to the manual UI */
+    }
+  }, [error]);
+
+  const detail = [error?.name, error?.message].filter(Boolean).join(": ");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -53,6 +71,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {detail ? (
+          <pre className="mt-4 max-h-52 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-3 text-left text-[11px] leading-relaxed text-muted-foreground">
+            {detail}
+            {error?.stack ? `\n\n${error.stack.slice(0, 900)}` : ""}
+          </pre>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -63,17 +87,35 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Try again
           </button>
-          <a
-            href="/"
+          <button
+            onClick={() => {
+              try {
+                sessionStorage.removeItem("bk-chunk-reload");
+              } catch {
+                /* ignore */
+              }
+              location.replace("/");
+            }}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             Go home
-          </a>
+          </button>
+          {detail ? (
+            <button
+              onClick={() => {
+                void navigator.clipboard?.writeText(`${detail}\n\n${error?.stack ?? ""}`);
+              }}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+            >
+              Copy details
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
