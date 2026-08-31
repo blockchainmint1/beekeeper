@@ -254,18 +254,22 @@ function normalizeChains(raw: unknown): NectarChainKey[] {
 /* ─── Relying-party pinning ───
    A link request hands over every receive xpub for the wallet. Showing the
    domain in the consent dialog is not enough on its own: "nectar-pay-secure.com"
-   reads fine at a glance. Only Nectar-owned hosts may ask. */
-const NECTAR_HOST_SUFFIXES = ["nectar-pay.com", "nectarpay.com"] as const;
+   reads fine at a glance. Only the Nectar Pay app host may ask.
+
+   The apex marketing site (nectar-pay.com) is intentionally NOT trusted here:
+   it does not implement the wallet-link API and is not exclusively controlled
+   by the same operator. Only app.nectar-pay.com is valid. */
+export const NECTAR_LINK_HOST = "app.nectar-pay.com" as const;
 
 export function isNectarHost(host: string): boolean {
   const h = host.toLowerCase().replace(/\.$/, "").split(":")[0];
-  return NECTAR_HOST_SUFFIXES.some((s) => h === s || h.endsWith(`.${s}`));
+  return h === NECTAR_LINK_HOST;
 }
 
 function assertNectarHost(u: URL, field: string): void {
   if (!isNectarHost(u.host)) {
     throw new Error(
-      `${field} points at ${u.host}, which is not a Nectar Pay domain — refusing to share keys`,
+      `${field} points at ${u.host}, which is not ${NECTAR_LINK_HOST} — refusing to share keys`,
     );
   }
 }
