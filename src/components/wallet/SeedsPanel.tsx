@@ -135,7 +135,7 @@ export function SeedsPanel() {
                   )}
                   <p className="font-mono text-[10px] text-muted-foreground">
                     {a.assetId
-                      ? `coin ${a.assetId}`
+                      ? `coin ${a.assetId}${a.coinChain ? ` · ${a.coinChain}` : ""}`
                       : a.fingerprint
                         ? `vault ${a.fingerprint.slice(0, 8)}`
                         : "unlock once to identify"}
