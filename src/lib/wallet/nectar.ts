@@ -202,9 +202,7 @@ export function hasNectarLink(): boolean {
    phone looked "unlinked". Nectar now answers a signature-gated pre-flight
    check, so we can rebuild the record from the seed alone.
 
-   Nectar split marketing/app/CRM hosts; the status endpoint lives on the app
-   subdomain. The apex domain still 308s /api/* to app, but we point directly at
-   app.nectar-pay.com to skip the hop. */
+   Only the app host is trusted for link/status traffic. */
 
 /** Host we ask when there is no locally-remembered Nectar URL. */
 export const NECTAR_DEFAULT_HOST = "app.nectar-pay.com";
