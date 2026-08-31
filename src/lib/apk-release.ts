@@ -6,12 +6,12 @@
  * Update all four fields together when a new release is pinned.
  */
 export const apkRelease = {
-  version: "0.1.202608041050",
-  cid: "QmNmJhf5sJ9J16nt88fveZBK2dn6wpGFkoXbC1j6guScwr",
-  fileName: "beekeeper-0.1.202608041050-release.apk",
+  version: "0.1.202608310501",
+  cid: "QmYQX98XqkpxZGF7hgGBnU1dH8VmJvEnWX7YU2KSmEeTfa",
+  fileName: "beekeeper-0.1.202608310501-release.apk",
   /** shasum -a 256 of the exact pinned file. */
-  sha256: "fdb0c5ca2c47d49205249ecd69fab19bfabce26066ec1a58695bfee40cce2152",
-  sizeBytes: 18444706,
+  sha256: "c28e2089a2256637a0c58997aa39d814ce2488a0030222b73c9880a10e77e6f6",
+  sizeBytes: 18674465,
 } as const;
 
 /** Public IPFS gateway URL for the pinned APK. */
