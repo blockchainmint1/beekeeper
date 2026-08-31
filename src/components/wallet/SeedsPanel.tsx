@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Check, Loader2, Plus, QrCode, Repeat, Trash2, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   addSeedAccount,
   getActiveSeedAccountId,
@@ -32,6 +42,7 @@ export function SeedsPanel() {
   const [busy, setBusy] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
 
   function refresh() {
     setAccounts(listSeedAccounts());
@@ -81,6 +92,7 @@ export function SeedsPanel() {
       const wasActive = id === activeId;
       removeSeedAccount(id);
       toast.success("Seed removed from this device");
+      setPendingRemove(null);
       if (wasActive) window.location.reload();
       else refresh();
     } catch (e) {
@@ -182,7 +194,7 @@ export function SeedsPanel() {
                     className="h-7 w-7 text-destructive"
                     aria-label="Remove seed"
                     disabled={accounts.length <= 1}
-                    onClick={() => handleRemove(a.id)}
+                    onClick={() => setPendingRemove(a.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -278,6 +290,37 @@ export function SeedsPanel() {
           toast.success("Phrase captured");
         }}
       />
+
+      <AlertDialog open={!!pendingRemove} onOpenChange={(open) => !open && setPendingRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove seed from this device?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const account = accounts.find((a) => a.id === pendingRemove);
+                return account ? (
+                  <>
+                    <span className="font-medium text-foreground">{account.label}</span> will be
+                    removed from Beekeeper on this device. The copper coin itself is still the
+                    backup, and you can re-add the seed any time.
+                  </>
+                ) : (
+                  "This seed will be removed from Beekeeper on this device."
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingRemove(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
+              onClick={() => pendingRemove && handleRemove(pendingRemove)}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
