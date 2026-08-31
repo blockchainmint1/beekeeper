@@ -20,7 +20,7 @@
 // Wallet receives either an https URL or a JSON envelope (QR or deep link):
 //
 //   JSON envelope (preferred — self-describing, works in any web/PWA wallet):
-//   (Nectar serves API calls from app.nectar-pay.com; the apex 308s /api/* there.)
+//   (Only app.nectar-pay.com is trusted; the marketing apex is not.)
 //     {
 //       "v": 1,
 //       "type": "hm-link-xpubs",
