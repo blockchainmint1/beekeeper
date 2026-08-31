@@ -42,6 +42,7 @@ export function SeedsPanel() {
   const [busy, setBusy] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
 
   function refresh() {
     setAccounts(listSeedAccounts());
