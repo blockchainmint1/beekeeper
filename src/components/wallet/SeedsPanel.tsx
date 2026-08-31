@@ -290,6 +290,37 @@ export function SeedsPanel() {
           toast.success("Phrase captured");
         }}
       />
+
+      <AlertDialog open={!!pendingRemove} onOpenChange={(open) => !open && setPendingRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove seed from this device?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const account = accounts.find((a) => a.id === pendingRemove);
+                return account ? (
+                  <>
+                    <span className="font-medium text-foreground">{account.label}</span> will be
+                    removed from Beekeeper on this device. The copper coin itself is still the
+                    backup, and you can re-add the seed any time.
+                  </>
+                ) : (
+                  "This seed will be removed from Beekeeper on this device."
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingRemove(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
+              onClick={() => pendingRemove && handleRemove(pendingRemove)}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
