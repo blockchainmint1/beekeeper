@@ -94,7 +94,7 @@ export function SeedsPanel() {
         Each seed is its own encrypted vault on this device, with its own
         password. One seed is active at a time — switching locks the wallet so
         you can unlock the other one. The code under each name is the six-character
-        Asset ID printed on that copper coin, derived from its TEXITcoin key.
+        Asset ID looked up from the mint for that copper coin.
       </p>
 
       <div className="space-y-1.5">
