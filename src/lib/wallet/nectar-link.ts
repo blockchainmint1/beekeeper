@@ -181,6 +181,8 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
   try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
   try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }
   if (mu.protocol !== "https:") throw new Error("Manifest must be https");
+  assertNectarHost(mu, "manifest_url");
+  assertNectarHost(cu, "callback_url");
   if (mu.host !== cu.host) throw new Error(`Host mismatch: manifest=${mu.host} callback=${cu.host}`);
   if (!m.callback_url.startsWith(mu.origin + "/")) {
     throw new Error("Callback escapes manifest origin");
