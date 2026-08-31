@@ -10,7 +10,8 @@
  * A 404 means that public key is not in the mint registry.
  */
 
-const DEFAULT_BASE = "https://api.blockchainmint.com/api";
+// api.blockchainmint.com 307-redirects here; call the canonical host directly.
+const DEFAULT_BASE = "https://admin.coldstoragecoins.com/api";
 const TIMEOUT_MS = 12_000;
 
 function baseUrl(): string {
