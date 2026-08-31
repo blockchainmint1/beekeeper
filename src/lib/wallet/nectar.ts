@@ -77,8 +77,14 @@ export async function linkNectarMerchant(
   // Nectar's /wallet-link endpoint requires the signed envelope
   // { payload, signature, address }. Synthesize a minimal link request from
   // the legacy QR (plain URL, no challenge_id) using defaults.
-  let from = "nectar-pay.com";
-  try { from = new URL(target.url).hostname; } catch { /* keep default */ }
+  // Legacy QR URLs must point at the app host — never the marketing apex.
+  let url: URL;
+  try { url = new URL(target.url); } catch { throw new Error("Not a valid Nectar Pay URL"); }
+  if (!/^https:$/i.test(url.protocol)) throw new Error("Nectar Pay URL must be https");
+  if (url.host !== NECTAR_LINK_HOST) {
+    throw new Error(`Nectar Pay links must point to ${NECTAR_LINK_HOST}`);
+  }
+  const from = NECTAR_LINK_HOST;
   const challengeId =
     (globalThis.crypto?.randomUUID?.() as string | undefined) ??
     `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
