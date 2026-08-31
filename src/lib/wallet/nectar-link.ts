@@ -249,10 +249,30 @@ function normalizeChains(raw: unknown): NectarChainKey[] {
   return Array.from(new Set(out));
 }
 
+/* ─── Relying-party pinning ───
+   A link request hands over every receive xpub for the wallet. Showing the
+   domain in the consent dialog is not enough on its own: "nectar-pay-secure.com"
+   reads fine at a glance. Only Nectar-owned hosts may ask. */
+const NECTAR_HOST_SUFFIXES = ["nectar-pay.com", "nectarpay.com"] as const;
+
+export function isNectarHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/\.$/, "").split(":")[0];
+  return NECTAR_HOST_SUFFIXES.some((s) => h === s || h.endsWith(`.${s}`));
+}
+
+function assertNectarHost(u: URL, field: string): void {
+  if (!isNectarHost(u.host)) {
+    throw new Error(
+      `${field} points at ${u.host}, which is not a Nectar Pay domain — refusing to share keys`,
+    );
+  }
+}
+
 function assertHttps(url: string, field: string): void {
   let u: URL;
   try { u = new URL(url); } catch { throw new Error(`Invalid ${field}`); }
   if (u.protocol !== "https:") throw new Error(`${field} must be https`);
+  assertNectarHost(u, field);
 }
 
 /** Try to parse the raw QR text as a Nectar link-xpubs request. Throws if it
