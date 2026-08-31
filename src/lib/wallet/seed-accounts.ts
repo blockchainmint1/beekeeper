@@ -26,8 +26,12 @@ export interface SeedAccount {
   label: string;
   /** First 16 hex chars of sha256(mnemonic) — safe to store, not reversible. */
   fingerprint: string;
-  /** Six-char Cold Storage Coin Asset ID derived from the TXC identity key. */
+  /** Six-char Cold Storage Coin Asset ID, as looked up in the mint registry. */
   assetId?: string;
+  /** Chain this coin was actually minted on, per the registry (e.g. "ISK"). */
+  coinChain?: string;
+  /** "registry" once the Asset ID came from the mint (older values were derived). */
+  assetIdSource?: "registry";
   blob: EncryptedBlob;
   createdAt: number;
 }
