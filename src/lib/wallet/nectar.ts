@@ -8,6 +8,7 @@ import {
   postLinkPayload,
   fetchNectarLinkStatus,
   nectarStatusUrl,
+  NECTAR_LINK_HOST,
   type NectarLinkRequest,
 } from "./nectar-link";
 import { getCachedMnemonic, getVaultFingerprint } from "./seed";
@@ -45,12 +46,23 @@ export function buildNectarPayload(mnemonic: string): NectarPayload {
 
 /**
  * Accepts either:
- *   - a plain https URL
+ *   - a plain https URL pointing at app.nectar-pay.com
  *   - JSON: { nectar: "merchant-link", v: 1, url: "...", token?: "..." }
  */
 export function parseNectarQr(text: string): NectarQrTarget {
   const t = text.trim();
   if (!t) throw new Error("Empty QR");
+
+  const validateUrl = (raw: string) => {
+    let u: URL;
+    try { u = new URL(raw); } catch { throw new Error("Not a valid Nectar Pay URL"); }
+    if (!/^https:$/i.test(u.protocol)) throw new Error("Nectar Pay URL must be https");
+    if (u.host !== NECTAR_LINK_HOST) {
+      throw new Error(`Nectar Pay links must point to ${NECTAR_LINK_HOST}`);
+    }
+    return u.toString();
+  };
+
   if (t.startsWith("{")) {
     let obj: unknown;
     try {
@@ -60,11 +72,9 @@ export function parseNectarQr(text: string): NectarQrTarget {
     }
     const o = obj as { nectar?: string; url?: string; token?: string };
     if (!o.url || typeof o.url !== "string") throw new Error("QR missing merchant url");
-    if (!/^https:\/\//i.test(o.url)) throw new Error("Merchant url must be https");
-    return { url: o.url, token: typeof o.token === "string" ? o.token : undefined };
+    return { url: validateUrl(o.url), token: typeof o.token === "string" ? o.token : undefined };
   }
-  if (!/^https:\/\//i.test(t)) throw new Error("Not a Nectar Pay QR");
-  return { url: t };
+  return { url: validateUrl(t) };
 }
 
 export async function linkNectarMerchant(
@@ -77,8 +87,14 @@ export async function linkNectarMerchant(
   // Nectar's /wallet-link endpoint requires the signed envelope
   // { payload, signature, address }. Synthesize a minimal link request from
   // the legacy QR (plain URL, no challenge_id) using defaults.
-  let from = "nectar-pay.com";
-  try { from = new URL(target.url).hostname; } catch { /* keep default */ }
+  // Legacy QR URLs must point at the app host — never the marketing apex.
+  let url: URL;
+  try { url = new URL(target.url); } catch { throw new Error("Not a valid Nectar Pay URL"); }
+  if (!/^https:$/i.test(url.protocol)) throw new Error("Nectar Pay URL must be https");
+  if (url.host !== NECTAR_LINK_HOST) {
+    throw new Error(`Nectar Pay links must point to ${NECTAR_LINK_HOST}`);
+  }
+  const from = NECTAR_LINK_HOST;
   const challengeId =
     (globalThis.crypto?.randomUUID?.() as string | undefined) ??
     `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -186,9 +202,7 @@ export function hasNectarLink(): boolean {
    phone looked "unlinked". Nectar now answers a signature-gated pre-flight
    check, so we can rebuild the record from the seed alone.
 
-   Nectar split marketing/app/CRM hosts; the status endpoint lives on the app
-   subdomain. The apex domain still 308s /api/* to app, but we point directly at
-   app.nectar-pay.com to skip the hop. */
+   Only the app host is trusted for link/status traffic. */
 
 /** Host we ask when there is no locally-remembered Nectar URL. */
 export const NECTAR_DEFAULT_HOST = "app.nectar-pay.com";

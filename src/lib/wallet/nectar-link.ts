@@ -20,7 +20,7 @@
 // Wallet receives either an https URL or a JSON envelope (QR or deep link):
 //
 //   JSON envelope (preferred — self-describing, works in any web/PWA wallet):
-//   (Nectar serves API calls from app.nectar-pay.com; the apex 308s /api/* there.)
+//   (Only app.nectar-pay.com is trusted; the marketing apex is not.)
 //     {
 //       "v": 1,
 //       "type": "hm-link-xpubs",
@@ -135,6 +135,7 @@ export function parseNectarManifestUrl(raw: string): string | null {
   if (!/^https:\/\//i.test(t)) return null;
   let u: URL;
   try { u = new URL(t); } catch { return null; }
+  if (!isNectarHost(u.host)) return null;
   if (!/\/wallet-link\/?$/.test(u.pathname)) return null;
   if (!u.searchParams.get("token")) return null;
   return u.toString();
@@ -181,6 +182,8 @@ export async function fetchNectarManifest(url: string): Promise<NectarManifest> 
   try { mu = new URL(m.manifest_url); } catch { throw new Error("manifest_url is not a URL"); }
   try { cu = new URL(m.callback_url); } catch { throw new Error("callback_url is not a URL"); }
   if (mu.protocol !== "https:") throw new Error("Manifest must be https");
+  assertNectarHost(mu, "manifest_url");
+  assertNectarHost(cu, "callback_url");
   if (mu.host !== cu.host) throw new Error(`Host mismatch: manifest=${mu.host} callback=${cu.host}`);
   if (!m.callback_url.startsWith(mu.origin + "/")) {
     throw new Error("Callback escapes manifest origin");
@@ -249,10 +252,34 @@ function normalizeChains(raw: unknown): NectarChainKey[] {
   return Array.from(new Set(out));
 }
 
+/* ─── Relying-party pinning ───
+   A link request hands over every receive xpub for the wallet. Showing the
+   domain in the consent dialog is not enough on its own: "nectar-pay-secure.com"
+   reads fine at a glance. Only the Nectar Pay app host may ask.
+
+   The apex marketing site (nectar-pay.com) is intentionally NOT trusted here:
+   it does not implement the wallet-link API and is not exclusively controlled
+   by the same operator. Only app.nectar-pay.com is valid. */
+export const NECTAR_LINK_HOST = "app.nectar-pay.com" as const;
+
+export function isNectarHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/\.$/, "").split(":")[0];
+  return h === NECTAR_LINK_HOST;
+}
+
+function assertNectarHost(u: URL, field: string): void {
+  if (!isNectarHost(u.host)) {
+    throw new Error(
+      `${field} points at ${u.host}, which is not ${NECTAR_LINK_HOST} — refusing to share keys`,
+    );
+  }
+}
+
 function assertHttps(url: string, field: string): void {
   let u: URL;
   try { u = new URL(url); } catch { throw new Error(`Invalid ${field}`); }
   if (u.protocol !== "https:") throw new Error(`${field} must be https`);
+  assertNectarHost(u, field);
 }
 
 /** Try to parse the raw QR text as a Nectar link-xpubs request. Throws if it

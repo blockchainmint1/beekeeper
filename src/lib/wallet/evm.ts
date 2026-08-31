@@ -101,7 +101,10 @@ export async function pickHealthyRpc(chain: EvmChain): Promise<string> {
         chain: chainDef(chain),
         transport: http(url, { timeout: 8_000, retryCount: 0 }),
       });
-      await client.getChainId();
+      // Reject an endpoint that answers for the wrong network — it would feed
+      // wrong balances/gas estimates into the UI without any visible error.
+      const id = await client.getChainId();
+      if (id !== chain.evmChainId) continue;
       rpcHealth.set(chain.id, { url, at: Date.now() });
       return url;
     } catch {

@@ -37,18 +37,86 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+// A wallet must never be frameable: an overlay on top of an invisible "send"
+// or "approve" control is a straightforward clickjacking theft. These are set
+// as real headers because <meta> can't express framing or transport policy.
+const SECURITY_HEADERS: Record<string, string> = {
+  "content-security-policy": "frame-ancestors 'none'",
+  "x-frame-options": "DENY",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "no-referrer",
+  "permissions-policy": "geolocation=(), microphone=(), payment=(), usb=()",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "cross-origin-opener-policy": "same-origin",
+};
+
+function withSecurityHeaders(response: Response): Response {
+  // Header mutation on an immutable (e.g. redirect) Response throws — clone it.
+  const out = new Response(response.body, response);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    if (!out.headers.has(k)) out.headers.set(k, v);
+  }
+  return out;
+}
+
+/**
+ * The Capacitor app serves its bundle from a local asset server, so its calls
+ * to /_serverFn and /api are cross-origin. Allow exactly the native shell
+ * origins (nothing else — no wildcard) so the mobile app can reach the backend.
+ */
+const NATIVE_ORIGINS = new Set([
+  "https://beekeeper.honest.money",
+  "https://localhost",
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
+
+function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/_serverFn/") || pathname.startsWith("/api/");
+}
+
+function withNativeCors(request: Request, response: Response): Response {
+  const origin = request.headers.get("origin");
+  if (!origin || !NATIVE_ORIGINS.has(origin)) return response;
+  if (!isApiPath(new URL(request.url).pathname)) return response;
+  const out = new Response(response.body, response);
+  out.headers.set("access-control-allow-origin", origin);
+  out.headers.set("vary", "origin");
+  out.headers.set("access-control-allow-headers", "content-type, x-tsr-redirect, accept");
+  out.headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+  out.headers.set("access-control-max-age", "86400");
+  return out;
+}
+
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // CORS preflight from the native shell.
+      if (request.method === "OPTIONS") {
+        const origin = request.headers.get("origin");
+        if (origin && NATIVE_ORIGINS.has(origin) && isApiPath(new URL(request.url).pathname)) {
+          return withNativeCors(request, new Response(null, { status: 204 }));
+        }
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withNativeCors(
+        request,
+        withSecurityHeaders(await normalizeCatastrophicSsrResponse(response)),
+      );
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return withNativeCors(
+        request,
+        withSecurityHeaders(
+          new Response(renderErrorPage(), {
+            status: 500,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        ),
+      );
     }
   },
 };
+

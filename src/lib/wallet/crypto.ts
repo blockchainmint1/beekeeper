@@ -7,6 +7,15 @@ const dec = new TextDecoder();
 const PBKDF2_ITERATIONS_V2 = 600_000;
 const PBKDF2_ITERATIONS_V1 = 250_000;
 
+/**
+ * Lowest iteration count we will honor from a blob we did not create.
+ * Imported backups carry their own `it`, so without a floor a crafted file
+ * could downgrade brute-force cost to nothing.
+ */
+export const MIN_TRUSTED_PBKDF2_ITERATIONS = PBKDF2_ITERATIONS_V1;
+/** Upper bound so a crafted `it` can't be used to hang the browser. */
+export const MAX_PBKDF2_ITERATIONS = 5_000_000;
+
 function b64encode(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   let s = "";

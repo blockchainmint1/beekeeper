@@ -4,7 +4,7 @@ import type { EvmChain, UtxoChain, Erc20Token } from "@/lib/chains";
 import { esplora, type UtxoAccount } from "./utxo";
 import { evmBalance, sendEvm, type EvmAccount } from "./evm";
 import { erc20Transfer } from "./erc20";
-import type { Address } from "viem";
+import { parseEther, type Address } from "viem";
 
 export interface MultiOutputUtxo {
   address: string;
@@ -121,7 +121,8 @@ export async function sendEvmMulti(args: {
   // Preflight balance check (native only — ERC-20 balances checked by transfer).
   if (!token) {
     const bal = await evmBalance(chain, account.address);
-    const total = rows.reduce((s, r) => s + BigInt(Math.floor(parseFloat(r.amount) * 1e18)), 0n);
+    // Exact decimal→wei conversion; never route amounts through a float.
+    const total = rows.reduce((s, r) => s + parseEther(r.amount.trim() as `${number}`), 0n);
     if (bal < total) throw new Error("Insufficient native balance for total send");
   }
 
@@ -133,7 +134,7 @@ export async function sendEvmMulti(args: {
       if (token) {
         hash = await erc20Transfer({ account, token, to: row.to, amount: row.amount });
       } else {
-        const wei = BigInt(Math.floor(parseFloat(row.amount) * 1e18));
+        const wei = parseEther(row.amount.trim() as `${number}`);
         hash = await sendEvm({ account, to: row.to, amountWei: wei });
       }
       const r: MultiSendProgress = { index: i, total: rows.length, to: row.to, status: "sent", hash };

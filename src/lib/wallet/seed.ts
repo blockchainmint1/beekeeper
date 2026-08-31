@@ -3,7 +3,22 @@
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
+import {
+  encryptJson,
+  decryptJson,
+  MIN_TRUSTED_PBKDF2_ITERATIONS,
+  MAX_PBKDF2_ITERATIONS,
+  type EncryptedBlob,
+} from "./crypto";
+
+/** Shortest password we'll encrypt a seed under. */
+export const MIN_PASSWORD_LENGTH = 8;
+
+function assertStrongEnough(password: string): void {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+}
 
 const VAULT_KEY = "lovable-multi-wallet-vault-v1";
 const SESSION_KEY = "lovable-multi-wallet-session-v1";
@@ -68,23 +83,40 @@ export function hasVault(): boolean {
 }
 
 
-// In-memory unlocked mnemonic (persisted to sessionStorage so a reload while
-// the tab is open keeps the wallet unlocked).
+/* ─── Unlocked mnemonic: process memory only ───
+   Deliberately NOT sessionStorage. Anything readable by JS storage is readable
+   by injected script and by a browser extension with storage access, and the
+   seed is the whole wallet. Cost of this choice: a page reload drops the
+   unlock, so the user re-enters the password. That is the intended trade. */
+let unlockedMnemonic: string | null = null;
+
 export function cacheMnemonic(mnemonic: string): void {
+  unlockedMnemonic = mnemonic;
+}
+
+export function getCachedMnemonic(): string | null {
+  if (typeof window === "undefined") return null;
+  return unlockedMnemonic;
+}
+
+export function clearCachedMnemonic(): void {
+  unlockedMnemonic = null;
+  // Clear the legacy sessionStorage copy left by older builds.
   try {
-    sessionStorage.setItem(SESSION_KEY, mnemonic);
+    sessionStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
   }
 }
 
-export function getCachedMnemonic(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(SESSION_KEY);
-}
-
-export function clearCachedMnemonic(): void {
-  sessionStorage.removeItem(SESSION_KEY);
+// One-time cleanup for users upgrading from a build that stored the seed in
+// sessionStorage — otherwise a stale plaintext copy lingers for the whole tab.
+if (typeof window !== "undefined") {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function createMnemonic(strength: 128 | 256 = 128): string {
@@ -96,6 +128,7 @@ export function isValidMnemonic(m: string): boolean {
 }
 
 export async function createVault(mnemonic: string, password: string): Promise<void> {
+  assertStrongEnough(password);
   const blob = await encryptJson(
     { mnemonic, createdAt: Date.now() },
     password,
@@ -117,6 +150,7 @@ export async function unlockVault(password: string): Promise<string> {
 
 /** Re-encrypts the existing vault under a new password. */
 export async function changePassword(current: string, next: string): Promise<void> {
+  assertStrongEnough(next);
   const blob = loadVault();
   if (!blob) throw new Error("No wallet found");
   const payload = await decryptJson<VaultPayload>(blob, current);
@@ -176,6 +210,21 @@ export function importVaultBlob(json: string): void {
   const blob = parsed as Partial<EncryptedBlob>;
   if (!blob || typeof blob !== "object" || !blob.ct || !blob.iv || !blob.salt) {
     throw new Error("Backup file is missing required fields");
+  }
+  if (blob.v !== undefined && blob.v !== 1 && blob.v !== 2) {
+    throw new Error("Unsupported backup version");
+  }
+  // A backup carries its own PBKDF2 iteration count. Refuse anything that
+  // would weaken key stretching (or that would hang the browser).
+  if (blob.it !== undefined) {
+    if (
+      typeof blob.it !== "number" ||
+      !Number.isFinite(blob.it) ||
+      blob.it < MIN_TRUSTED_PBKDF2_ITERATIONS ||
+      blob.it > MAX_PBKDF2_ITERATIONS
+    ) {
+      throw new Error("Backup file has unsafe encryption settings — refusing to import");
+    }
   }
   saveVault(blob as EncryptedBlob);
   // Unknown seed until it's unlocked — drop any seed-scoped state.
