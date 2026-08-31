@@ -194,7 +194,7 @@ export function SeedsPanel() {
                     className="h-7 w-7 text-destructive"
                     aria-label="Remove seed"
                     disabled={accounts.length <= 1}
-                    onClick={() => handleRemove(a.id)}
+                    onClick={() => setPendingRemove(a.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
