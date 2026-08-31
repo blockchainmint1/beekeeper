@@ -55,7 +55,7 @@ export async function lookupCoinDetails(publicKey: string): Promise<RegistryLook
     }
     const c = json?.coin;
     const key = typeof c?.["publicKey"] === "string" ? (c["publicKey"] as string) : null;
-    if (!key) return { found: false, reason: "not_found" };
+    if (!c || !key) return { found: false, reason: "not_found" };
 
     const s = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
     return {
