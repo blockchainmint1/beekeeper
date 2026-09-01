@@ -22,6 +22,7 @@ import { Route as WalletSignRouteImport } from './routes/wallet.sign'
 import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
 import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
 import { Route as WalletMultisendRouteImport } from './routes/wallet.multisend'
+import { Route as WalletImportKeyRouteImport } from './routes/wallet.import-key'
 import { Route as WalletContactsRouteImport } from './routes/wallet.contacts'
 import { Route as WalletCashoutRouteImport } from './routes/wallet.cashout'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
@@ -104,6 +105,11 @@ const WalletSecurityRoute = WalletSecurityRouteImport.update({
 const WalletMultisendRoute = WalletMultisendRouteImport.update({
   id: '/multisend',
   path: '/multisend',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletImportKeyRoute = WalletImportKeyRouteImport.update({
+  id: '/import-key',
+  path: '/import-key',
   getParentRoute: () => WalletRoute,
 } as any)
 const WalletContactsRoute = WalletContactsRouteImport.update({
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -502,6 +514,13 @@ declare module '@tanstack/react-router' {
       path: '/multisend'
       fullPath: '/wallet/multisend'
       preLoaderRoute: typeof WalletMultisendRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/import-key': {
+      id: '/wallet/import-key'
+      path: '/import-key'
+      fullPath: '/wallet/import-key'
+      preLoaderRoute: typeof WalletImportKeyRouteImport
       parentRoute: typeof WalletRoute
     }
     '/wallet/contacts': {
@@ -652,6 +671,7 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 interface WalletRouteChildren {
   WalletCashoutRoute: typeof WalletCashoutRoute
   WalletContactsRoute: typeof WalletContactsRoute
+  WalletImportKeyRoute: typeof WalletImportKeyRoute
   WalletMultisendRoute: typeof WalletMultisendRoute
   WalletSecurityRoute: typeof WalletSecurityRoute
   WalletSettingsRoute: typeof WalletSettingsRoute
@@ -672,6 +692,7 @@ interface WalletRouteChildren {
 const WalletRouteChildren: WalletRouteChildren = {
   WalletCashoutRoute: WalletCashoutRoute,
   WalletContactsRoute: WalletContactsRoute,
+  WalletImportKeyRoute: WalletImportKeyRoute,
   WalletMultisendRoute: WalletMultisendRoute,
   WalletSecurityRoute: WalletSecurityRoute,
   WalletSettingsRoute: WalletSettingsRoute,
