@@ -87,8 +87,10 @@ export function buildCsp(isProduction: boolean): string {
     "frame-src": ["'none'"],
     "frame-ancestors": ["'none'"],
     "manifest-src": ["'self'"],
-    "upgrade-insecure-requests": [],
   };
+
+  // Would rewrite the dev server's http://localhost requests to https.
+  if (isProduction) directives["upgrade-insecure-requests"] = [];
 
   return Object.entries(directives)
     .map(([name, values]) => (values.length ? `${name} ${values.join(" ")}` : name))
