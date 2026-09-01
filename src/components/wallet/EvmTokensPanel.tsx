@@ -44,7 +44,7 @@ export function EvmTokensPanel({
 
   if (chain.tokens.length === 0) return null;
 
-  const totals = scan.data?.tokenTotals ?? [];
+  const totals = Array.isArray(scan.data?.tokenTotals) ? scan.data!.tokenTotals : [];
   const hasBalances = totals.some((t) => t.raw > 0n);
 
   return (
