@@ -1,3 +1,4 @@
+import { estimateFeeRate } from "@/lib/wallet/fees";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -75,7 +76,7 @@ export function MultiSendDialog({ open, onOpenChange }: { open: boolean; onOpenC
         }
         const outputs = cleanRows.map((r) => ({ address: r.to.trim(), amountSats: coinToSats(r.amount, c.decimals) }));
         const account = await deriveUtxoAccount(mnemonic, c, 0, c.defaultAddressType);
-        const { hex, feeSats, totalSpentSats } = await buildAndSignMultiUtxo({ account, outputs, feeRate: c.defaultFeeRate });
+        const { hex, feeSats, totalSpentSats } = await buildAndSignMultiUtxo({ account, outputs, feeRate: await estimateFeeRate(c) });
         const id = await esplora.broadcast(c, hex);
         setUtxoTxid(id);
         toast.success(`Batched ${outputs.length} outputs · fee ${satsToCoin(feeSats, c.decimals)} ${c.ticker} · total ${satsToCoin(totalSpentSats, c.decimals)}`);

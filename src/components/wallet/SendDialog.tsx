@@ -48,6 +48,7 @@ import { parsePaymentUri } from "@/lib/wallet/payment-uri";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import { useCashoutApiKey } from "@/lib/cashout/api-key";
 import { TsdCashoutPanel, type CashoutPlan } from "./TsdCashoutPanel";
+import { estimateFeeRate, useUtxoFeeRate } from "@/lib/wallet/fees";
 
 type Account =
   | { kind: "utxo"; account: UtxoAccount }
@@ -118,7 +119,8 @@ export function SendDialog({
         const totalSats = confirmed.reduce((s, u) => s + u.value, 0);
         // crude fee estimate: 11 + 68*nIn + 34*2
         const est = 11 + 68 * confirmed.length + 34 * 2;
-        const fee = Math.max(est * chain.defaultFeeRate, 250);
+        const rate = await estimateFeeRate(chain);
+        const fee = Math.max(est * rate, 250);
         const max = Math.max(0, totalSats - fee);
         setAmount(satsToCoin(max, chain.decimals));
       } else if (evmChain && account.kind === "evm") {
@@ -177,7 +179,7 @@ export function SendDialog({
           utxos: confirmed,
           toAddress: to.trim(),
           amountSats,
-          feeRate: chain.defaultFeeRate,
+          feeRate: await estimateFeeRate(chain),
         });
         const id = await esplora.broadcast(chain, hex);
         setTxid(id);
@@ -383,7 +385,7 @@ export function SendDialog({
               />
               {chain.kind === "utxo" && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Network fee: ~{satsToCoin(chain.defaultFeeRate * 250, chain.decimals)} {chain.ticker}
+                  Network fee: ~{satsToCoin(utxoFeeRate * 250, chain.decimals)} {chain.ticker}
                 </p>
               )}
               {evmChain && !token && (
