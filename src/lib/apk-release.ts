@@ -14,10 +14,14 @@ export const apkRelease = {
   sizeBytes: 18675769,
 } as const;
 
-/** Public IPFS gateway URL for the pinned APK. */
+/**
+ * Download URL for the pinned APK. Points at our own redirect endpoint so the
+ * dedicated Pinata gateway host stays server-side (see routes/api.public.apk).
+ */
 export function apkDownloadUrl(): string {
-  return `https://gateway.pinata.cloud/ipfs/${apkRelease.cid}?filename=${apkRelease.fileName}`;
+  return "https://beekeeper.money/api/public/apk";
 }
+
 
 export function apkSizeLabel(): string {
   return `${(apkRelease.sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
