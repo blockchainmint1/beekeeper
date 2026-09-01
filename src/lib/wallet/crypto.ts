@@ -2,10 +2,17 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// OWASP 2023 guidance for PBKDF2-SHA256 is ≥ 600k iterations.
-// Older v1 vaults used 250k; we honor whatever iteration count is stored in the blob.
+// OWASP guidance for PBKDF2-SHA256 is ≥ 600k iterations; we go past it because
+// this key protects a seed phrase against offline brute force of a stolen device
+// backup. v1 vaults used 250k, v2 600k — we honor whatever count the blob
+// records, so old vaults keep unlocking and get re-encrypted at the new cost on
+// the next password change.
+const PBKDF2_ITERATIONS_V3 = 1_000_000;
 const PBKDF2_ITERATIONS_V2 = 600_000;
 const PBKDF2_ITERATIONS_V1 = 250_000;
+
+/** Iteration count new blobs are written with. */
+export const CURRENT_PBKDF2_ITERATIONS = PBKDF2_ITERATIONS_V3;
 
 /**
  * Lowest iteration count we will honor from a blob we did not create.
