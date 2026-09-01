@@ -1,0 +1,1 @@
+- [x] Fix APK crash after balance screen: TypeError a.data.map is not a function (harden Omni/EVM token + activity list rendering against non-array payloads)

@@ -62,7 +62,7 @@ export function RecentActivity({
     );
   }
 
-  const items = query.data ?? [];
+  const items = Array.isArray(query.data) ? query.data : [];
 
   if (items.length === 0) {
     return (

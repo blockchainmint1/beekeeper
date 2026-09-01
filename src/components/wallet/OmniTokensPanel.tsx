@@ -17,8 +17,16 @@ export function OmniTokensPanel({ chain, address }: { chain: UtxoChain; address:
     queryKey: ["omni-balances", chain.id, address, defaultIds?.join(",") ?? ""],
     enabled: !!address && chain.supportsOmni,
     refetchInterval: 60_000,
-    queryFn: () =>
-      fetchBalances({ data: { address: address!, includePropertyIds: defaultIds } }),
+    queryFn: async () => {
+      const res = (await fetchBalances({
+        data: { address: address!, includePropertyIds: defaultIds },
+      })) as unknown;
+      // Defensive: some transports (native shell / proxies) can hand back a
+      // wrapped or empty payload — never let a non-array reach .map().
+      if (Array.isArray(res)) return res as OmniBalanceEntry[];
+      const inner = (res as { result?: unknown } | null)?.result;
+      return Array.isArray(inner) ? (inner as OmniBalanceEntry[]) : [];
+    },
     retry: 1,
   });
 
