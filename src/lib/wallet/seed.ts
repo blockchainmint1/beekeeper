@@ -143,8 +143,21 @@ export async function unlockVault(password: string): Promise<string> {
   const payload = await decryptJson<VaultPayload>(blob, password);
   rememberVaultFingerprint(payload.mnemonic);
   cacheMnemonic(payload.mnemonic);
-  return payload.mnemonic;
 
+  // Silently upgrade an older, cheaper vault to the current KDF cost. Runs
+  // after the unlock has already succeeded and never blocks it — a failure here
+  // must not lock anyone out of their own money.
+  if (isStaleKdf(blob)) {
+    void (async () => {
+      try {
+        saveVault(await encryptJson(payload, password));
+      } catch {
+        /* keep the existing vault */
+      }
+    })();
+  }
+
+  return payload.mnemonic;
 }
 
 /** Re-encrypts the existing vault under a new password. */
