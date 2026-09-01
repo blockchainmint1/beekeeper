@@ -36,8 +36,15 @@ function alchemyProxyUrl(chain: EvmChain): string | null {
   return `${window.location.origin}/api/public/rpc/alchemy/${chain.id}`;
 }
 
+/** Zero Chill runs behind basic auth, so it is only reachable via our proxy. */
+function zcuProxyUrl(chain: EvmChain): string | null {
+  if (chain.id !== "zchl") return null;
+  if (typeof window === "undefined") return null;
+  return `${window.location.origin}/api/public/rpc/zcu`;
+}
+
 export function chainRpcUrls(chain: EvmChain): string[] {
-  const proxy = alchemyProxyUrl(chain);
+  const proxy = alchemyProxyUrl(chain) ?? zcuProxyUrl(chain);
   return proxy ? [proxy, ...chain.rpcUrls] : chain.rpcUrls;
 }
 

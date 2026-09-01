@@ -38,6 +38,7 @@ import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.h
 import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$chain.consolidate'
 import { Route as ApiPublicApkRouteImport } from './routes/api.public.apk'
 import { Route as ApiPublicVectorpayWebhookRouteImport } from './routes/api.public.vectorpay.webhook'
+import { Route as ApiPublicRpcZcuRouteImport } from './routes/api.public.rpc.zcu'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
@@ -186,6 +187,11 @@ const ApiPublicVectorpayWebhookRoute =
     path: '/api/public/vectorpay/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRpcZcuRoute = ApiPublicRpcZcuRouteImport.update({
+  id: '/api/public/rpc/zcu',
+  path: '/api/public/rpc/zcu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicRpcAlchemyChainRoute =
   ApiPublicRpcAlchemyChainRouteImport.update({
     id: '/api/public/rpc/alchemy/$chain',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesByTo: FileRoutesByTo
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   id:
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesById: FileRoutesById
@@ -394,6 +406,7 @@ export interface RootRouteChildren {
   WalletRoute: typeof WalletRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
   ApiPublicApkRoute: typeof ApiPublicApkRoute
+  ApiPublicRpcZcuRoute: typeof ApiPublicRpcZcuRoute
   ApiPublicVectorpayWebhookRoute: typeof ApiPublicVectorpayWebhookRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -603,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVectorpayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/rpc/zcu': {
+      id: '/api/public/rpc/zcu'
+      path: '/api/public/rpc/zcu'
+      fullPath: '/api/public/rpc/zcu'
+      preLoaderRoute: typeof ApiPublicRpcZcuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/rpc/alchemy/$chain': {
       id: '/api/public/rpc/alchemy/$chain'
       path: '/api/public/rpc/alchemy/$chain'
@@ -681,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   WalletRoute: WalletRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
   ApiPublicApkRoute: ApiPublicApkRoute,
+  ApiPublicRpcZcuRoute: ApiPublicRpcZcuRoute,
   ApiPublicVectorpayWebhookRoute: ApiPublicVectorpayWebhookRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
