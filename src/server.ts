@@ -52,7 +52,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
   "permissions-policy":
-    "geolocation=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), midi=(), display-capture=()",
+    "geolocation=(), microphone=(), payment=(), usb=(), serial=(), midi=(), display-capture=()",
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "cross-origin-opener-policy": "same-origin",
   "cross-origin-resource-policy": "same-origin",

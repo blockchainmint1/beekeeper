@@ -56,7 +56,7 @@ const CONNECT_HOSTS = [
 ];
 
 /** Hosts allowed to serve fonts/styles. */
-const FONT_HOSTS = ["https://api.fontshare.com"];
+const FONT_HOSTS = ["https://api.fontshare.com", "https://cdn.fontshare.com"];
 
 export function buildCsp(isProduction: boolean): string {
   const connect = ["'self'", ...CONNECT_HOSTS];
