@@ -6,7 +6,7 @@
 // sat/vB and clamp into a band that real miners accept, then fall back to the
 // chain's static default if anything about the answer looks wrong.
 import { useQuery } from "@tanstack/react-query";
-import type { UtxoChain } from "@/lib/chains";
+import type { ChainConfig, UtxoChain } from "@/lib/chains";
 
 /** min / max sat/vB accepted per chain. */
 const BOUNDS: Record<string, { min: number; max: number }> = {
@@ -77,11 +77,13 @@ export async function estimateFeeTiers(
  * Live fee rate (sat/vB) for a UTXO chain. Falls back to the static default
  * until the estimate resolves, so callers can use it synchronously.
  */
-export function useUtxoFeeRate(chain: UtxoChain, tier: FeeTier = "medium"): number {
+export function useUtxoFeeRate(chain: ChainConfig, tier: FeeTier = "medium"): number {
+  const utxo = chain.kind === "utxo" ? chain : null;
   const q = useQuery({
     queryKey: ["fee-rate", chain.id, tier],
-    queryFn: () => estimateFeeRate(chain, tier),
+    queryFn: () => estimateFeeRate(utxo as UtxoChain, tier),
+    enabled: !!utxo,
     staleTime: TTL,
   });
-  return q.data ?? chain.defaultFeeRate;
+  return q.data ?? utxo?.defaultFeeRate ?? 1;
 }

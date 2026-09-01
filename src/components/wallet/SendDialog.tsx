@@ -102,6 +102,8 @@ export function SendDialog({
     toast.success("Cash-out address filled in — review and send");
   }
 
+  const utxoFeeRate = useUtxoFeeRate(chain);
+
   const ticker = token?.symbol ?? chain.ticker;
 
   function reset() {
