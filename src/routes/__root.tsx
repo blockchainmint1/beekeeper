@@ -188,6 +188,9 @@ function RootComponent() {
       const { initNativeChrome, hideSplash } = await import("../lib/native/ui");
       await initNativeChrome();
       await hideSplash();
+      // Pull the operator's Zero Chill node settings (chain id + explorer).
+      const { hydrateZcu } = await import("../lib/chains/zcu-runtime");
+      void hydrateZcu();
     })();
   }, []);
 

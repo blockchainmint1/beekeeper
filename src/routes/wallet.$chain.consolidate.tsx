@@ -1,3 +1,4 @@
+import { useUtxoFeeRate } from "@/lib/wallet/fees";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +28,9 @@ function ConsolidatePage() {
   const chain = getChain(chainId as ChainId);
   const { mnemonic } = useWalletSession();
   const qc = useQueryClient();
-  const [feeRate, setFeeRate] = useState("2");
+  const suggested = useUtxoFeeRate(chain);
+  const [feeRate, setFeeRate] = useState("");
+  const effectiveFeeRate = feeRate || String(suggested);
   const [busy, setBusy] = useState(false);
   const [steps, setSteps] = useState<ConsolidationStep[]>([]);
 
@@ -54,7 +57,7 @@ function ConsolidatePage() {
     setBusy(true);
     setSteps([]);
     try {
-      const rate = Math.max(1, Number(feeRate) || 1);
+      const rate = Math.max(1, Number(effectiveFeeRate) || suggested);
       const results = await runConsolidation(
         mnemonic,
         chain as UtxoChain,
@@ -115,7 +118,7 @@ function ConsolidatePage() {
                 <Label htmlFor="feeRate">Fee rate (sat/vB)</Label>
                 <Input
                   id="feeRate"
-                  value={feeRate}
+                  value={effectiveFeeRate}
                   onChange={(e) => setFeeRate(e.target.value)}
                   inputMode="decimal"
                   className="mt-1.5"

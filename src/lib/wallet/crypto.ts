@@ -2,10 +2,17 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// OWASP 2023 guidance for PBKDF2-SHA256 is ≥ 600k iterations.
-// Older v1 vaults used 250k; we honor whatever iteration count is stored in the blob.
+// OWASP guidance for PBKDF2-SHA256 is ≥ 600k iterations; we go past it because
+// this key protects a seed phrase against offline brute force of a stolen device
+// backup. v1 vaults used 250k, v2 600k — we honor whatever count the blob
+// records, so old vaults keep unlocking and get re-encrypted at the new cost on
+// the next password change.
+const PBKDF2_ITERATIONS_V3 = 1_000_000;
 const PBKDF2_ITERATIONS_V2 = 600_000;
 const PBKDF2_ITERATIONS_V1 = 250_000;
+
+/** Iteration count new blobs are written with. */
+export const CURRENT_PBKDF2_ITERATIONS = PBKDF2_ITERATIONS_V3;
 
 /**
  * Lowest iteration count we will honor from a blob we did not create.
@@ -47,7 +54,7 @@ async function deriveKey(password: string, salt: Uint8Array, iterations: number)
 }
 
 export interface EncryptedBlob {
-  v: 1 | 2;
+  v: 1 | 2 | 3;
   salt: string;
   iv: string;
   ct: string;
@@ -58,17 +65,22 @@ export interface EncryptedBlob {
 export async function encryptJson(data: unknown, password: string): Promise<EncryptedBlob> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(password, salt, PBKDF2_ITERATIONS_V2);
+  const key = await deriveKey(password, salt, PBKDF2_ITERATIONS_V3);
   const ct = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv: iv as BufferSource },
     key,
     enc.encode(JSON.stringify(data)),
   );
-  return { v: 2, salt: b64encode(salt), iv: b64encode(iv), ct: b64encode(ct), it: PBKDF2_ITERATIONS_V2 };
+  return { v: 3, salt: b64encode(salt), iv: b64encode(iv), ct: b64encode(ct), it: PBKDF2_ITERATIONS_V3 };
+}
+
+/** True when a blob was written at a lower KDF cost than we now use. */
+export function isStaleKdf(blob: EncryptedBlob): boolean {
+  return (blob.it ?? PBKDF2_ITERATIONS_V1) < PBKDF2_ITERATIONS_V3;
 }
 
 export async function decryptJson<T>(blob: EncryptedBlob, password: string): Promise<T> {
-  const iterations = blob.it ?? (blob.v === 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1);
+  const iterations = blob.it ?? (blob.v >= 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1);
   const key = await deriveKey(password, b64decode(blob.salt), iterations);
   const pt = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: b64decode(blob.iv) as BufferSource },

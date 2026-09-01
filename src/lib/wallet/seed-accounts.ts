@@ -6,6 +6,7 @@
    Each entry keeps its own encrypted blob, so seeds can have different
    passwords. Switching locks the wallet: the new seed must be unlocked. */
 import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
+import { assertPasswordPolicy } from "../security/password-strength";
 import {
   loadVault,
   saveVault,
@@ -179,7 +180,7 @@ export async function addSeedAccount({
 }: AddSeedInput): Promise<SeedAccount> {
   const clean = mnemonic.trim().toLowerCase().replace(/\s+/g, " ");
   if (!isValidMnemonic(clean)) throw new Error("That recovery phrase isn't valid");
-  if (password.length < 8) throw new Error("Password must be at least 8 characters");
+  assertPasswordPolicy(password);
 
   const reg = ensureRegistry();
   const fingerprint = vaultFingerprint(clean);

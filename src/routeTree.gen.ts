@@ -22,6 +22,7 @@ import { Route as WalletSignRouteImport } from './routes/wallet.sign'
 import { Route as WalletSettingsRouteImport } from './routes/wallet.settings'
 import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
 import { Route as WalletMultisendRouteImport } from './routes/wallet.multisend'
+import { Route as WalletImportKeyRouteImport } from './routes/wallet.import-key'
 import { Route as WalletContactsRouteImport } from './routes/wallet.contacts'
 import { Route as WalletCashoutRouteImport } from './routes/wallet.cashout'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
@@ -38,6 +39,7 @@ import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.h
 import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$chain.consolidate'
 import { Route as ApiPublicApkRouteImport } from './routes/api.public.apk'
 import { Route as ApiPublicVectorpayWebhookRouteImport } from './routes/api.public.vectorpay.webhook'
+import { Route as ApiPublicRpcZcuRouteImport } from './routes/api.public.rpc.zcu'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
@@ -103,6 +105,11 @@ const WalletSecurityRoute = WalletSecurityRouteImport.update({
 const WalletMultisendRoute = WalletMultisendRouteImport.update({
   id: '/multisend',
   path: '/multisend',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletImportKeyRoute = WalletImportKeyRouteImport.update({
+  id: '/import-key',
+  path: '/import-key',
   getParentRoute: () => WalletRoute,
 } as any)
 const WalletContactsRoute = WalletContactsRouteImport.update({
@@ -186,6 +193,11 @@ const ApiPublicVectorpayWebhookRoute =
     path: '/api/public/vectorpay/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRpcZcuRoute = ApiPublicRpcZcuRouteImport.update({
+  id: '/api/public/rpc/zcu',
+  path: '/api/public/rpc/zcu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicRpcAlchemyChainRoute =
   ApiPublicRpcAlchemyChainRouteImport.update({
     id: '/api/public/rpc/alchemy/$chain',
@@ -205,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -222,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -235,6 +249,7 @@ export interface FileRoutesByTo {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -252,6 +267,7 @@ export interface FileRoutesByTo {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -268,6 +284,7 @@ export interface FileRoutesById {
   '/extension/sign': typeof ExtensionSignRoute
   '/wallet/cashout': typeof WalletCashoutRoute
   '/wallet/contacts': typeof WalletContactsRoute
+  '/wallet/import-key': typeof WalletImportKeyRoute
   '/wallet/multisend': typeof WalletMultisendRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/settings': typeof WalletSettingsRoute
@@ -285,6 +302,7 @@ export interface FileRoutesById {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -302,6 +320,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -319,6 +338,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesByTo: FileRoutesByTo
@@ -332,6 +352,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -349,6 +370,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   id:
@@ -364,6 +386,7 @@ export interface FileRouteTypes {
     | '/extension/sign'
     | '/wallet/cashout'
     | '/wallet/contacts'
+    | '/wallet/import-key'
     | '/wallet/multisend'
     | '/wallet/security'
     | '/wallet/settings'
@@ -381,6 +404,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
   fileRoutesById: FileRoutesById
@@ -394,6 +418,7 @@ export interface RootRouteChildren {
   WalletRoute: typeof WalletRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
   ApiPublicApkRoute: typeof ApiPublicApkRoute
+  ApiPublicRpcZcuRoute: typeof ApiPublicRpcZcuRoute
   ApiPublicVectorpayWebhookRoute: typeof ApiPublicVectorpayWebhookRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -489,6 +514,13 @@ declare module '@tanstack/react-router' {
       path: '/multisend'
       fullPath: '/wallet/multisend'
       preLoaderRoute: typeof WalletMultisendRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/import-key': {
+      id: '/wallet/import-key'
+      path: '/import-key'
+      fullPath: '/wallet/import-key'
+      preLoaderRoute: typeof WalletImportKeyRouteImport
       parentRoute: typeof WalletRoute
     }
     '/wallet/contacts': {
@@ -603,6 +635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVectorpayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/rpc/zcu': {
+      id: '/api/public/rpc/zcu'
+      path: '/api/public/rpc/zcu'
+      fullPath: '/api/public/rpc/zcu'
+      preLoaderRoute: typeof ApiPublicRpcZcuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/rpc/alchemy/$chain': {
       id: '/api/public/rpc/alchemy/$chain'
       path: '/api/public/rpc/alchemy/$chain'
@@ -632,6 +671,7 @@ const ExtensionRouteWithChildren = ExtensionRoute._addFileChildren(
 interface WalletRouteChildren {
   WalletCashoutRoute: typeof WalletCashoutRoute
   WalletContactsRoute: typeof WalletContactsRoute
+  WalletImportKeyRoute: typeof WalletImportKeyRoute
   WalletMultisendRoute: typeof WalletMultisendRoute
   WalletSecurityRoute: typeof WalletSecurityRoute
   WalletSettingsRoute: typeof WalletSettingsRoute
@@ -652,6 +692,7 @@ interface WalletRouteChildren {
 const WalletRouteChildren: WalletRouteChildren = {
   WalletCashoutRoute: WalletCashoutRoute,
   WalletContactsRoute: WalletContactsRoute,
+  WalletImportKeyRoute: WalletImportKeyRoute,
   WalletMultisendRoute: WalletMultisendRoute,
   WalletSecurityRoute: WalletSecurityRoute,
   WalletSettingsRoute: WalletSettingsRoute,
@@ -681,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   WalletRoute: WalletRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
   ApiPublicApkRoute: ApiPublicApkRoute,
+  ApiPublicRpcZcuRoute: ApiPublicRpcZcuRoute,
   ApiPublicVectorpayWebhookRoute: ApiPublicVectorpayWebhookRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
