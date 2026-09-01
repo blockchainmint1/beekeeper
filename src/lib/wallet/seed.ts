@@ -6,18 +6,17 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import {
   encryptJson,
   decryptJson,
+  isStaleKdf,
   MIN_TRUSTED_PBKDF2_ITERATIONS,
   MAX_PBKDF2_ITERATIONS,
   type EncryptedBlob,
 } from "./crypto";
+import { assertPasswordPolicy, MIN_PASSWORD_LENGTH } from "../security/password-strength";
 
-/** Shortest password we'll encrypt a seed under. */
-export const MIN_PASSWORD_LENGTH = 8;
+export { MIN_PASSWORD_LENGTH };
 
 function assertStrongEnough(password: string): void {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
-  }
+  assertPasswordPolicy(password);
 }
 
 const VAULT_KEY = "lovable-multi-wallet-vault-v1";
@@ -144,8 +143,21 @@ export async function unlockVault(password: string): Promise<string> {
   const payload = await decryptJson<VaultPayload>(blob, password);
   rememberVaultFingerprint(payload.mnemonic);
   cacheMnemonic(payload.mnemonic);
-  return payload.mnemonic;
 
+  // Silently upgrade an older, cheaper vault to the current KDF cost. Runs
+  // after the unlock has already succeeded and never blocks it — a failure here
+  // must not lock anyone out of their own money.
+  if (isStaleKdf(blob)) {
+    void (async () => {
+      try {
+        saveVault(await encryptJson(payload, password));
+      } catch {
+        /* keep the existing vault */
+      }
+    })();
+  }
+
+  return payload.mnemonic;
 }
 
 /** Re-encrypts the existing vault under a new password. */

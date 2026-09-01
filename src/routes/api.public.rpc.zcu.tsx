@@ -7,6 +7,7 @@
 
 import { env } from "@/lib/server-env";
 import { createFileRoute } from "@tanstack/react-router";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 const ALLOWED_METHODS = new Set([
   "eth_chainId",
@@ -51,6 +52,15 @@ export const Route = createFileRoute("/api/public/rpc/zcu")({
         }
 
         const calls = Array.isArray(body) ? body : [body];
+        // Abuse dampening on a metered upstream: a batch of N counts as N.
+        // Fail-open and generous, because carrier NAT shares IPs among users.
+        const limited = rateLimit(request, {
+          key: "rpc-zcu",
+          limit: 300,
+          windowMs: 60_000,
+          cost: calls.length,
+        });
+        if (limited) return limited;
         if (calls.length === 0 || calls.length > 25) {
           return new Response("Batch too large", { status: 413 });
         }

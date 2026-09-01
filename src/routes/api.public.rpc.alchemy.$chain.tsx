@@ -5,6 +5,7 @@
 
 import { env } from "@/lib/server-env";
 import { createFileRoute } from "@tanstack/react-router";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 const ALCHEMY_NETWORK: Record<string, string> = {
   eth: "eth-mainnet",
@@ -70,6 +71,15 @@ export const Route = createFileRoute("/api/public/rpc/alchemy/$chain")({
         }
 
         const calls = Array.isArray(body) ? body : [body];
+        // Abuse dampening on a metered upstream: a batch of N counts as N.
+        // Fail-open and generous, because carrier NAT shares IPs among users.
+        const limited = rateLimit(request, {
+          key: "rpc-alchemy",
+          limit: 300,
+          windowMs: 60_000,
+          cost: calls.length,
+        });
+        if (limited) return limited;
         // Cap batch size so the proxy can't be used to drain the Alchemy quota
         // with one giant request.
         if (calls.length === 0 || calls.length > 25) {

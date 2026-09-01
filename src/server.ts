@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { buildCsp } from "./lib/security/csp";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -40,14 +41,22 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 // A wallet must never be frameable: an overlay on top of an invisible "send"
 // or "approve" control is a straightforward clickjacking theft. These are set
 // as real headers because <meta> can't express framing or transport policy.
+//
+// The CSP's `connect-src` is the one that matters most: even if a script we
+// didn't write somehow runs, it cannot POST the seed to an attacker's domain.
+const IS_PRODUCTION = process.env["NODE_ENV"] === "production";
+
 const SECURITY_HEADERS: Record<string, string> = {
-  "content-security-policy": "frame-ancestors 'none'",
+  "content-security-policy": buildCsp(IS_PRODUCTION),
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
-  "permissions-policy": "geolocation=(), microphone=(), payment=(), usb=()",
+  "permissions-policy":
+    "geolocation=(), microphone=(), payment=(), usb=(), serial=(), midi=(), display-capture=()",
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "same-origin",
+  "origin-agent-cluster": "?1",
 };
 
 function withSecurityHeaders(response: Response): Response {

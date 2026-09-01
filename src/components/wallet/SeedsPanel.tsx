@@ -1,3 +1,4 @@
+import { checkPassword } from "@/lib/security/password-strength";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Check, Loader2, Plus, QrCode, Repeat, Trash2, Pencil } from "lucide-react";
@@ -246,13 +247,13 @@ export function SeedsPanel() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="At least 10 characters"
             />
           </div>
           <div className="flex gap-2">
             <Button
               className="flex-1"
-              disabled={busy || !isValidMnemonic(phrase) || password.length < 8}
+              disabled={busy || !isValidMnemonic(phrase) || !checkPassword(password).ok}
               onClick={handleAdd}
             >
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
