@@ -52,3 +52,13 @@ export const nownodesBroadcast = createServerFn({ method: "POST" })
     const { nnBroadcast } = await import("./nownodes.server");
     return nnBroadcast(data.chain, data.rawHex);
   });
+
+/** Blockbook `estimatefee/{blocks}` → sat/vB (null when unavailable). */
+export const nownodesEstimateFee = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ chain: chainEnum, blocks: z.number().int().min(1).max(50) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { nnEstimateFee } = await import("./nownodes.server");
+    return { satPerVb: await nnEstimateFee(data.chain, data.blocks) };
+  });

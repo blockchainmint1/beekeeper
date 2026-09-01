@@ -136,3 +136,20 @@ export async function nnBroadcast(chainId: string, rawHex: string): Promise<stri
   if (!out.result) throw new Error("NowNodes: broadcast returned no txid");
   return out.result;
 }
+
+/**
+ * Blockbook returns the estimate in whole coins per kilobyte. Convert to
+ * sat/vB: coins * 1e8 / 1000. Returns null when the node has no estimate
+ * (regularly the case on low-traffic chains).
+ */
+export async function nnEstimateFee(chainId: string, blocks: number): Promise<number | null> {
+  try {
+    const out = await nnGet<{ result?: string }>(chainId, `/estimatefee/${blocks}`);
+    const perKb = Number(out?.result ?? "");
+    if (!Number.isFinite(perKb) || perKb <= 0) return null;
+    const satPerVb = (perKb * 1e8) / 1000;
+    return Number.isFinite(satPerVb) && satPerVb > 0 ? satPerVb : null;
+  } catch {
+    return null;
+  }
+}
