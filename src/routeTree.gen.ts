@@ -36,6 +36,7 @@ import { Route as WalletChainReceiveRouteImport } from './routes/wallet.$chain.r
 import { Route as WalletChainQrLoginRouteImport } from './routes/wallet.$chain.qr-login'
 import { Route as WalletChainHistoryRouteImport } from './routes/wallet.$chain.history'
 import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$chain.consolidate'
+import { Route as ApiPublicApkRouteImport } from './routes/api.public.apk'
 import { Route as ApiPublicVectorpayWebhookRouteImport } from './routes/api.public.vectorpay.webhook'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
@@ -174,6 +175,11 @@ const WalletChainConsolidateRoute = WalletChainConsolidateRouteImport.update({
   path: '/$chain/consolidate',
   getParentRoute: () => WalletRoute,
 } as any)
+const ApiPublicApkRoute = ApiPublicApkRouteImport.update({
+  id: '/api/public/apk',
+  path: '/api/public/apk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicVectorpayWebhookRoute =
   ApiPublicVectorpayWebhookRouteImport.update({
     id: '/api/public/vectorpay/webhook',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/api/public/apk': typeof ApiPublicApkRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension': typeof ExtensionIndexRoute
   '/wallet': typeof WalletIndexRoute
+  '/api/public/apk': typeof ApiPublicApkRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/api/public/apk': typeof ApiPublicApkRoute
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
+    | '/api/public/apk'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension'
     | '/wallet'
+    | '/api/public/apk'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/wallet/topup'
     | '/extension/'
     | '/wallet/'
+    | '/api/public/apk'
     | '/wallet/$chain/consolidate'
     | '/wallet/$chain/history'
     | '/wallet/$chain/qr-login'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
+  ApiPublicApkRoute: typeof ApiPublicApkRoute
   ApiPublicVectorpayWebhookRoute: typeof ApiPublicVectorpayWebhookRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
 }
@@ -576,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletChainConsolidateRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/api/public/apk': {
+      id: '/api/public/apk'
+      path: '/api/public/apk'
+      fullPath: '/api/public/apk'
+      preLoaderRoute: typeof ApiPublicApkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/vectorpay/webhook': {
       id: '/api/public/vectorpay/webhook'
       path: '/api/public/vectorpay/webhook'
@@ -660,6 +680,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WalletRoute: WalletRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
+  ApiPublicApkRoute: ApiPublicApkRoute,
   ApiPublicVectorpayWebhookRoute: ApiPublicVectorpayWebhookRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
 }
