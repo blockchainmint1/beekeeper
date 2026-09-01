@@ -14,8 +14,9 @@ export function UpdateCheckCard() {
   const [platform, setPlatform] = useState<string>("web");
   useEffect(() => setPlatform(nativePlatform()), []);
 
-  const latest = apkRelease.version;
-  const behind = platform === "android" && latest !== APP_VERSION;
+  const latest: string = apkRelease.version;
+  const running: string = APP_VERSION;
+  const behind = platform === "android" && latest !== running;
 
   return (
     <Card>

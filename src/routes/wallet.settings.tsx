@@ -10,6 +10,7 @@ import { WalletPage } from "@/components/wallet/WalletPage";
 import { SecurityCheckupCard } from "@/components/wallet/SecurityCheckupCard";
 import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
+import { UpdateCheckCard } from "@/components/wallet/UpdateCheckCard";
 import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import {
@@ -50,6 +51,8 @@ function SettingsPage() {
     <WalletPage title="Settings" subtitle="Everything here stays in this browser">
       <div className="space-y-5">
         <SecurityCheckupCard />
+
+        <UpdateCheckCard />
 
         <SettingsCard icon={Palette} title="Appearance" description="Light, dark, or follow your system.">
           <ThemeToggle />
