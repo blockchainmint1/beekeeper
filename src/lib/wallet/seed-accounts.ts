@@ -6,6 +6,7 @@
    Each entry keeps its own encrypted blob, so seeds can have different
    passwords. Switching locks the wallet: the new seed must be unlocked. */
 import { encryptJson, decryptJson, type EncryptedBlob } from "./crypto";
+import { assertPasswordPolicy } from "../security/password-strength";
 import {
   loadVault,
   saveVault,
