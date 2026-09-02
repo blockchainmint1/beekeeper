@@ -32,8 +32,14 @@ export async function buildAndSignMultiUtxo(args: {
 
   const { account, outputs, feeRate } = args;
   if (outputs.length === 0) throw new Error("No outputs");
-  const utxos = (await esplora.addressUtxos(account.chain, account.address)).filter((u) => u.status.confirmed);
-  if (utxos.length === 0) throw new Error("No confirmed UTXOs");
+  const { filterReserved } = await import("./spent-outpoints");
+  // Skip coins a recent broadcast of ours already consumed; our own unconfirmed
+  // change is fine to chain from.
+  const utxos = filterReserved(
+    account.chain.id,
+    await esplora.addressUtxos(account.chain, account.address),
+  );
+  if (utxos.length === 0) throw new Error("No spendable coins on this address");
 
   const isSegwit = account.type === "segwit";
   const payment = isSegwit
