@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Upload, Wallet as WalletIcon, Fingerprint } from "lucide-react";
+import { Lock, Upload, Wallet as WalletIcon, Fingerprint, Repeat } from "lucide-react";
 import { unlockVault, wipeVault, importVaultBlob, cacheMnemonic } from "@/lib/wallet/seed";
-import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
+import {
+  listSeedAccounts,
+  getActiveSeedAccountId,
+  switchSeedAccount,
+  wipeSeedRegistry,
+  type SeedAccount,
+} from "@/lib/wallet/seed-accounts";
 import { useSecurityPrefs } from "@/lib/wallet/security";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
@@ -14,7 +21,28 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   const [busy, setBusy] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [accounts, setAccounts] = useState<SeedAccount[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const prefs = useSecurityPrefs();
+
+  useEffect(() => {
+    setAccounts(listSeedAccounts());
+    setActiveId(getActiveSeedAccountId());
+  }, []);
+
+  /** Each wallet has its own password, so a forgotten one must never trap the
+   *  others — switching the active vault here needs no password at all. */
+  function handleSwitch(id: string) {
+    try {
+      switchSeedAccount(id);
+      setPass("");
+      setAccounts(listSeedAccounts());
+      setActiveId(getActiveSeedAccountId());
+      toast.success("Switched wallet — enter that wallet's password");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not switch wallet");
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
