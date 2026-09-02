@@ -56,9 +56,8 @@
 // Nectar SHOULD respond with `{ ok: true, store_id, merchant_name, chains_linked }`.
 
 import { CHAINS, getChain, type ChainConfig, type ChainId, type UtxoChain } from "@/lib/chains";
-import { utxoAccountXpub, chainAccountXpub } from "./xpub";
+import { utxoAccountXpub, chainAccountXpub, tronAccountXpub } from "./xpub";
 import { deriveUtxoAccount } from "./utxo";
-import { deriveTronAccount } from "./tron";
 import { deriveSolanaAccount } from "./solana";
 import { utxoSignMessage } from "./signing";
 
