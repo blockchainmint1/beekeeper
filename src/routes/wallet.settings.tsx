@@ -146,21 +146,6 @@ function SettingsPage() {
           </Card>
         </Link>
 
-        <Link to="/wallet/import-key" className="block">
-          <Card className="transition-colors hover:bg-accent/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Key className="h-5 w-5 text-muted-foreground" />
-              <div className="flex-1">
-                <div className="font-medium">Import a private key</div>
-                <div className="text-xs text-muted-foreground">
-                  Sweep a paper wallet or single key into this wallet.
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </Link>
-
         <Link to="/wallet/contacts" className="block">
 
           <Card className="transition-colors hover:bg-accent/30">
