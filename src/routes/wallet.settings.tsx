@@ -1,15 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, Palette,
-  Share2, ShieldCheck, Trash2,
+  Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
+  QrCode, Share2, ShieldCheck, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { WalletPage } from "@/components/wallet/WalletPage";
 import { SecurityCheckupCard } from "@/components/wallet/SecurityCheckupCard";
 import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
+import { CustomTokensCard } from "@/components/wallet/CustomTokensCard";
+import { WatchOnlyCard } from "@/components/wallet/WatchOnlyCard";
 import { UpdateCheckCard } from "@/components/wallet/UpdateCheckCard";
 import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
@@ -22,7 +23,6 @@ import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
 import { SeedsPanel } from "@/components/wallet/SeedsPanel";
 import { KeyRound } from "lucide-react";
 import { useWalletSession } from "@/components/wallet/session";
-import { APP_VERSION } from "@/lib/version";
 
 export const Route = createFileRoute("/wallet/settings")({
   head: () => ({
@@ -54,10 +54,6 @@ function SettingsPage() {
 
         <UpdateCheckCard />
 
-        <SettingsCard icon={Palette} title="Appearance" description="Light, dark, or follow your system.">
-          <ThemeToggle />
-        </SettingsCard>
-
         <SettingsCard
           icon={KeyRound}
           title="Seeds"
@@ -83,6 +79,10 @@ function SettingsPage() {
         </SettingsCard>
 
         <FeaturesCard />
+
+        <CustomTokensCard />
+
+        <WatchOnlyCard />
 
         {exchangeAllowed && <TsdCashoutKeyCard />}
 
@@ -120,6 +120,36 @@ function SettingsPage() {
           <XpubPanel />
         </SettingsCard>
 
+        <Link to="/wallet/sign" className="block">
+          <Card className="transition-colors hover:bg-accent/30">
+            <CardContent className="flex items-center gap-3 py-4">
+              <PenLine className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="font-medium">Sign &amp; verify a message</div>
+                <div className="text-xs text-muted-foreground">
+                  Prove you control an address without spending anything.
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} className="block">
+          <Card className="transition-colors hover:bg-accent/30">
+            <CardContent className="flex items-center gap-3 py-4">
+              <QrCode className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="font-medium">Sign in with a QR code</div>
+                <div className="text-xs text-muted-foreground">
+                  Scan a login QR from Nectar Pay or any site that accepts your wallet key.
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link to="/wallet/import-key" className="block">
           <Card className="transition-colors hover:bg-accent/30">
             <CardContent className="flex items-center gap-3 py-4">
@@ -150,23 +180,6 @@ function SettingsPage() {
             </CardContent>
           </Card>
         </Link>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Wallet info</CardTitle>
-            <CardDescription>Build details for support requests.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Version</span>
-              <span className="tabular">{APP_VERSION}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Key storage</span>
-              <span>Encrypted vault, this device only</span>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card className="border-destructive/40">
           <CardHeader>
