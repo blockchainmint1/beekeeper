@@ -3,7 +3,7 @@ import { Coins, ExternalLink, RefreshCw } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getOmniBalancesForAddress, type OmniBalanceEntry } from "@/lib/wallet/omni.functions";
 import type { UtxoChain } from "@/lib/chains";
-import { chainOmniPropertyIds, useCustomOmni } from "@/lib/wallet/custom-tokens";
+import { useCustomOmni } from "@/lib/wallet/custom-tokens";
 
 function fmt(n: string) {
   const num = Number(n);
