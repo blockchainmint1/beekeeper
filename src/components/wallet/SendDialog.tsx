@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, ExternalLink, BookUser, ScanLine } from "lucide-react";
-import type { ChainConfig, EvmChain, Erc20Token } from "@/lib/chains";
+import type { ChainConfig, EvmChain, Erc20Token, UtxoChain } from "@/lib/chains";
 import {
   validateUtxoAddress,
   esplora,
@@ -50,6 +50,17 @@ import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import { useCashoutApiKey } from "@/lib/cashout/api-key";
 import { TsdCashoutPanel, type CashoutPlan } from "./TsdCashoutPanel";
 import { estimateFeeRate, useUtxoFeeRate } from "@/lib/wallet/fees";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getOmniBalancesForAddress, type OmniBalanceEntry } from "@/lib/wallet/omni.functions";
+import {
+  useOmniTokens,
+  parseOmniAmount,
+  formatOmniAmount,
+  isOmniCompatibleAddress,
+  buildSimpleSendPayload,
+  type OmniTokenMeta,
+} from "@/lib/wallet/omni-tokens";
 
 type Account =
   | { kind: "utxo"; account: UtxoAccount }
@@ -98,6 +109,37 @@ export function SendDialog({
   const token: Erc20Token | null =
     evmChain && asset !== "native" ? (evmTokenList.find((t) => t.symbol === asset) ?? null) : null;
 
+  // ── Omni Layer (TXC-family) token sends ──
+  const omniChain: UtxoChain | null =
+    chain.kind === "utxo" && chain.supportsOmni ? (chain as UtxoChain) : null;
+  const { tokens: omniTokens } = useOmniTokens(
+    (omniChain ?? chain) as UtxoChain,
+  );
+  const omniToken: OmniTokenMeta | null = omniChain
+    ? (omniTokens.find(
+        (t) => asset === `omni:${t.id}` || asset.toUpperCase() === t.symbol.toUpperCase(),
+      ) ?? null)
+    : null;
+  const fetchOmniBalances = useServerFn(getOmniBalancesForAddress);
+  const omniBalances = useQuery<OmniBalanceEntry[]>({
+    queryKey: ["omni-balances", chain.id, account.account.address, omniTokens.map((t) => t.id).join(",")],
+    enabled: !!omniChain && omniTokens.length > 0,
+    queryFn: async () => {
+      const res = (await fetchOmniBalances({
+        data: {
+          address: account.account.address,
+          includePropertyIds: omniTokens.map((t) => t.id),
+        },
+      })) as unknown;
+      if (Array.isArray(res)) return res as OmniBalanceEntry[];
+      const inner = (res as { result?: unknown } | null)?.result;
+      return Array.isArray(inner) ? (inner as OmniBalanceEntry[]) : [];
+    },
+  });
+  const omniBalance = omniToken
+    ? (omniBalances.data?.find((b) => b.propertyid === omniToken.id)?.balance ?? null)
+    : null;
+
   const contacts = useContacts(chain.id);
   const securityPrefs = useSecurityPrefs();
   const [pendingConfirmation, setPendingConfirmation] = useState(false);
@@ -114,7 +156,7 @@ export function SendDialog({
 
   const utxoFeeRate = useUtxoFeeRate(chain);
 
-  const ticker = token?.symbol ?? chain.ticker;
+  const ticker = omniToken?.symbol ?? token?.symbol ?? chain.ticker;
 
   function reset() {
     setTo(initialTo ?? "");
@@ -125,7 +167,9 @@ export function SendDialog({
 
   async function handleMax() {
     try {
-      if (chain.kind === "utxo" && account.kind === "utxo") {
+      if (omniToken) {
+        if (omniBalance != null) setAmount(omniBalance);
+      } else if (chain.kind === "utxo" && account.kind === "utxo") {
         const utxos = await esplora.addressUtxos(chain, account.account.address);
         const confirmed = utxos.filter((u) => u.status.confirmed);
         const totalSats = confirmed.reduce((s, u) => s + u.value, 0);
@@ -179,7 +223,49 @@ export function SendDialog({
     setPendingConfirmation(false);
     setBusy(true);
     try {
-      if (chain.kind === "utxo" && account.kind === "utxo") {
+      if (omniChain && omniToken && account.kind === "utxo") {
+        const dest = to.trim();
+        const valid = await validateUtxoAddress(dest, omniChain);
+        if (!valid) throw new Error(`Not a valid ${omniChain.ticker} address`);
+        if (!isOmniCompatibleAddress(dest, omniChain)) {
+          throw new Error(
+            `${omniToken.symbol} can't be sent to a bech32 (${omniChain.network.bech32}1…) address — ` +
+              `the token layer only reads legacy addresses, so the tokens would not move. ` +
+              `Ask the recipient for their legacy address.`,
+          );
+        }
+        const units = parseOmniAmount(amount, omniToken.divisible);
+        if (omniBalance != null) {
+          const have = parseOmniAmount(omniBalance || "0", omniToken.divisible);
+          if (units > have) {
+            throw new Error(
+              `Not enough ${omniToken.symbol}. Available ${formatOmniAmount(have, omniToken.divisible)}.`,
+            );
+          }
+        }
+        // The token layer takes the sender from the first input, so the tokens
+        // and the fee-paying coins must come from this same address.
+        const utxos = await esplora.addressUtxos(omniChain, account.account.address);
+        const confirmed = utxos.filter((u) => u.status.confirmed);
+        if (confirmed.length === 0) {
+          throw new Error(
+            `This address needs a little ${omniChain.ticker} to pay the network fee and the dust output that carries the ${omniToken.symbol} transfer.`,
+          );
+        }
+        const { hex } = await buildAndSign({
+          account: account.account,
+          utxos: confirmed,
+          toAddress: dest,
+          // Omni reference output: dust to the recipient carries the transfer.
+          amountSats: omniChain.dustSats,
+          feeRate: await estimateFeeRate(omniChain),
+          opReturnData: buildSimpleSendPayload(omniToken.id, units),
+        });
+        const id = await esplora.broadcast(omniChain, hex);
+        setTxid(id);
+        rememberAddress(dest);
+        toast.success(`${omniToken.symbol} transfer broadcast`);
+      } else if (chain.kind === "utxo" && account.kind === "utxo") {
         const valid = await validateUtxoAddress(to.trim(), chain);
         if (!valid) throw new Error(`Not a valid ${chain.ticker} address`);
         const amountSats = coinToSats(amount, chain.decimals);
@@ -274,6 +360,10 @@ export function SendDialog({
       // Match — fill fields. Optionally switch ERC20 asset if symbol matches.
       setTo(parsed.address);
       if (parsed.amount) setAmount(parsed.amount);
+      if (parsed.omniPropertyId && omniChain) {
+        const match = omniTokens.find((t) => t.id === parsed.omniPropertyId);
+        if (match) setAsset(`omni:${match.id}`);
+      }
       if (parsed.tokenSymbol && evmChain) {
         const match = evmTokenList.find(
           (t) => t.symbol.toLowerCase() === parsed.tokenSymbol!.toLowerCase(),
@@ -316,6 +406,30 @@ export function SendDialog({
           </div>
         ) : (
           <div className="space-y-3">
+            {omniChain && omniTokens.length > 0 && (
+              <div>
+                <Label className="mb-1.5 block text-xs">Asset</Label>
+                <Select value={asset} onValueChange={setAsset}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="native">{omniChain.ticker} (native)</SelectItem>
+                    {omniTokens.map((t) => (
+                      <SelectItem key={t.id} value={`omni:${t.id}`}>
+                        {t.symbol} — {t.name ?? `Property #${t.id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {omniToken && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Balance {omniBalances.isLoading ? "…" : (omniBalance ?? "0")} {omniToken.symbol}.
+                    Uses ~{satsToCoin(omniChain.dustSats, omniChain.decimals)} {omniChain.ticker} plus
+                    the network fee to carry the transfer. Recipient must use a legacy address.
+                  </p>
+                )}
+              </div>
+            )}
+
             {evmChain && evmTokenList.length > 0 && (
               <div>
                 <Label className="mb-1.5 block text-xs">Asset</Label>
