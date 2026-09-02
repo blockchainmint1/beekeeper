@@ -360,7 +360,7 @@ function ImportSeedForm({ onDone, onCancel }: { onDone: () => void; onCancel: ()
 
   async function handleImport() {
     if (!valid) { toast.error("That phrase doesn't check out"); return; }
-    if (!passwordCheck.ok) { toast.error(passwordCheck.reason); return; }
+    if (!passwordCheck.ok) { toast.error(passwordCheck.problems.join("; ")); return; }
     setBusy(true);
     try {
       await addSeedAccount({ mnemonic: phrase, password, label });
