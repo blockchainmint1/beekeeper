@@ -246,43 +246,74 @@ export function SendDialog({
           }
         }
         // The token layer takes the sender from the first input, so the tokens
-        // and the fee-paying coins must come from this same address.
+        // and the fee-paying coins must come from this same address. Skip coins
+        // a recent broadcast of ours already spent, and accept our own
+        // unconfirmed change so back-to-back sends work.
         const utxos = await esplora.addressUtxos(omniChain, account.account.address);
-        const confirmed = utxos.filter((u) => u.status.confirmed);
-        if (confirmed.length === 0) {
+        const fundable = filterReserved(omniChain.id, utxos ?? []);
+        if (fundable.length === 0) {
           throw new Error(
             `This address needs a little ${omniChain.ticker} to pay the network fee and the dust output that carries the ${omniToken.symbol} transfer.`,
           );
         }
         const { hex } = await buildAndSign({
           account: account.account,
-          utxos: confirmed,
+          utxos: fundable,
           toAddress: dest,
           // Omni reference output: dust to the recipient carries the transfer.
           amountSats: omniChain.dustSats,
           feeRate: await estimateFeeRate(omniChain),
           opReturnData: buildSimpleSendPayload(omniToken.id, units),
         });
-        const id = await esplora.broadcast(omniChain, hex);
-        setTxid(id);
+        try {
+          const id = await esplora.broadcast(omniChain, hex);
+          reserveOutpoints(
+            omniChain.id,
+            fundable.map((u) => ({ txid: u.txid, vout: u.vout })),
+          );
+          setTxid(id);
+        } catch (e) {
+          throw e;
+        }
         rememberAddress(dest);
         toast.success(`${omniToken.symbol} transfer broadcast`);
       } else if (chain.kind === "utxo" && account.kind === "utxo") {
-        const valid = await validateUtxoAddress(to.trim(), chain);
+        const utxoChain = chain as UtxoChain;
+        const valid = await validateUtxoAddress(to.trim(), utxoChain);
         if (!valid) throw new Error(`Not a valid ${chain.ticker} address`);
         const amountSats = coinToSats(amount, chain.decimals);
-        const utxos = await esplora.addressUtxos(chain, account.account.address);
-        const confirmed = utxos.filter((u) => u.status.confirmed);
-        if (confirmed.length === 0) throw new Error("No confirmed UTXOs to spend");
-        const { hex } = await buildAndSign({
-          account: account.account,
-          utxos: confirmed,
+        // Spend from anywhere in the HD wallet — rotating receive addresses and
+        // change included — so a funded wallet is never "empty" at send time.
+        const { coins, totalSats } = await collectSpendableCoins(mnemonic, utxoChain);
+        if (coins.length === 0) {
+          throw new Error(
+            `No spendable ${chain.ticker} found in this wallet yet. If you just received a payment, give it a moment to appear on the network.`,
+          );
+        }
+        const feeRate = await estimateFeeRate(utxoChain);
+        const { picked, feeSats } = selectCoins(coins, amountSats, feeRate);
+        if (picked.reduce((s, c) => s + c.value, 0) < amountSats + feeSats) {
+          throw new Error(
+            `Not enough ${chain.ticker}. Available ${satsToCoin(totalSats, chain.decimals)}, need ${satsToCoin(amountSats + feeSats, chain.decimals)} including fee.`,
+          );
+        }
+        const { hex, inputs } = await buildAndSignCoins({
+          chain: utxoChain,
+          coins: picked,
           toAddress: to.trim(),
           amountSats,
-          feeRate: await estimateFeeRate(chain),
+          feeSats,
+          changeAddress: account.account.address,
         });
-        const id = await esplora.broadcast(chain, hex);
-        setTxid(id);
+        reserveOutpoints(utxoChain.id, inputs);
+        try {
+          const id = await esplora.broadcast(utxoChain, hex);
+          setTxid(id);
+        } catch (e) {
+          // Broadcast failed — the coins were never spent, put them back.
+          releaseOutpoints(utxoChain.id, inputs);
+          throw e;
+        }
         rememberAddress(to.trim());
         toast.success("Transaction broadcast");
       } else if (evmChain && account.kind === "evm") {
