@@ -198,6 +198,7 @@ export async function scanUtxoHd(
     const branchBase = `${accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
 
+    let startIndex = 0;
     if (batched) {
       let i = 0;
       let batchOk = true;
@@ -222,8 +223,9 @@ export async function scanUtxoHd(
           infos = null;
         }
         if (!infos) {
-          // Indexer unavailable — fall through to the sequential path.
+          // Indexer unavailable — resume with the sequential path from here.
           batchOk = false;
+          startIndex = i;
           break;
         }
         for (let k = 0; k < addrs.length; k++) {
@@ -240,10 +242,10 @@ export async function scanUtxoHd(
         if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
       }
       if (batchOk) continue;
-      consecutiveEmpty = 0;
     }
 
-    for (let i = 0; i < maxIndex; i++) {
+    for (let i = startIndex; i < maxIndex; i++) {
+
       if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
       const address = deriveAt(branchBase, i);
       if (!address) {
