@@ -144,6 +144,10 @@ export interface HdScanResult {
  *  using rotating receive addresses can burst without us missing payments.
  *  `minIndex` forces the walker to scan at least that many addresses on each
  *  branch even when empty — callers pass the persisted watermark + gap. */
+/** Chains where NowNodes Blockbook can serve batched address lookups. */
+const NN_BATCH_CHAINS = new Set(["btc", "ltc", "bch", "doge", "dash"]);
+type NnBatchChain = "btc" | "ltc" | "bch" | "doge" | "dash";
+
 export async function scanUtxoHd(
   mnemonic: string,
   chain: UtxoChain,
@@ -193,7 +197,7 @@ export async function scanUtxoHd(
   // of one per address. TXC/ISK use their Esplora indexers; BTC/LTC/BCH/DOGE/DASH
   // use NowNodes Blockbook.
   const indexerBatch = INDEXED.has(chain.id);
-  const nnBatch = !indexerBatch && nownodesSupports(chain);
+  const nnBatch = !indexerBatch && NN_BATCH_CHAINS.has(chain.id);
   const batched = indexerBatch || nnBatch;
   const WINDOW = 25;
 
