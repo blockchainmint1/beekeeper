@@ -167,19 +167,88 @@ export async function scanUtxoHd(
   let scanned = 0;
   let highestUsedIndex = -1;
 
+  const deriveAt = (branchBase: string, i: number): string | null => {
+    const node = root.derive(`${branchBase}/${i}`);
+    if (!node.publicKey) return null;
+    let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
+    if (chain.cashAddrPrefix) {
+      try { address = toCashAddr(address); } catch { /* keep legacy */ }
+    }
+    return address;
+  };
+
+  const record = (address: string, i: number, change: boolean, info: AddressInfo) => {
+    const sats = addressBalanceSats(info).total;
+    const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
+    if (txCount > 0 || sats > 0) {
+      active.push({ address, index: i, change, type: effectiveType, sats, txCount });
+      totalSats += sats;
+      if (!change && i > highestUsedIndex) highestUsedIndex = i;
+      return true;
+    }
+    return false;
+  };
+
+  // Indexed chains (TXC/ISK) support a batched server-side lookup: one round
+  // trip per window of addresses instead of one per address.
+  const batched = INDEXED.has(chain.id);
+  const WINDOW = 25;
+
   for (const change of [false, true]) {
     const branchBase = `${accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
+
+    if (batched) {
+      let i = 0;
+      let batchOk = true;
+      while (i < maxIndex && batchOk) {
+        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+        const idxs: number[] = [];
+        const addrs: string[] = [];
+        for (let k = 0; k < WINDOW && i + k < maxIndex; k++) {
+          const a = deriveAt(branchBase, i + k);
+          if (!a) continue;
+          idxs.push(i + k);
+          addrs.push(a);
+        }
+        if (addrs.length === 0) break;
+        const { mempoolAddressInfoBatch } = await import("./mempool.functions");
+        let infos: (AddressInfo | null)[] | null = null;
+        try {
+          infos = await mempoolAddressInfoBatch({
+            data: { chainId: chain.id as IndexedChainId, addresses: addrs },
+          });
+        } catch {
+          infos = null;
+        }
+        if (!infos) {
+          // Indexer unavailable — fall through to the sequential path.
+          batchOk = false;
+          break;
+        }
+        for (let k = 0; k < addrs.length; k++) {
+          scanned++;
+          const info = infos[k];
+          if (!info) {
+            consecutiveEmpty++;
+            continue;
+          }
+          if (record(addrs[k]!, idxs[k]!, change, info)) consecutiveEmpty = 0;
+          else consecutiveEmpty++;
+        }
+        i += WINDOW;
+        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+      }
+      if (batchOk) continue;
+      consecutiveEmpty = 0;
+    }
+
     for (let i = 0; i < maxIndex; i++) {
       if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
-      const node = root.derive(`${branchBase}/${i}`);
-      if (!node.publicKey) {
+      const address = deriveAt(branchBase, i);
+      if (!address) {
         consecutiveEmpty++;
         continue;
-      }
-      let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
-      if (chain.cashAddrPrefix) {
-        try { address = toCashAddr(address); } catch { /* keep legacy */ }
       }
       scanned++;
       let info: AddressInfo;
@@ -189,21 +258,14 @@ export async function scanUtxoHd(
         consecutiveEmpty++;
         continue;
       }
-      const sats = addressBalanceSats(info).total;
-      const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
-      if (txCount > 0 || sats > 0) {
-        active.push({ address, index: i, change, type: effectiveType, sats, txCount });
-        totalSats += sats;
-        consecutiveEmpty = 0;
-        if (!change && i > highestUsedIndex) highestUsedIndex = i;
-      } else {
-        consecutiveEmpty++;
-      }
+      if (record(address, i, change, info)) consecutiveEmpty = 0;
+      else consecutiveEmpty++;
     }
   }
 
   return { totalSats, active, scanned, highestUsedIndex };
 }
+
 
 
 export async function validateUtxoAddress(addr: string, chain: UtxoChain): Promise<boolean> {
