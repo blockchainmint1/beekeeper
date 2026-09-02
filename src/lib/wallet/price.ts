@@ -86,6 +86,18 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     } catch { /* try next */ }
   }
 
+  // ZCU / wZCU price from the wZCU wrap site (on-chain Uniswap V3 wZCU/USDC).
+  try {
+    const r = await fetch("https://wzcu.zerochill.com/api/public/price");
+    if (r.ok) {
+      const j = (await r.json()) as { ok?: boolean; usd?: number };
+      if (j?.ok && typeof j.usd === "number" && isFinite(j.usd) && j.usd > 0) {
+        out["zcu"] = j.usd;
+      }
+    }
+  } catch { /* ignore */ }
+
+
   // TXC price from its own mempool.
   try {
     const r = await fetch("https://mempool.texitcoin.org/api/v1/prices");
