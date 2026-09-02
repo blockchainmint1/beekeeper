@@ -432,23 +432,34 @@ function ImportSeedForm({ onDone, onCancel }: { onDone: () => void; onCancel: ()
 
 function WatchOnlyBlock({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   const entries = useWatchOnly();
-  const [chainId, setChainId] = useState<ChainId>(watchChains[0]?.id ?? "btc");
-  const [address, setAddress] = useState("");
-  const [label, setLabel] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function add() {
+  async function handleScan(text: string) {
+    setScanOpen(false);
     setBusy(true);
     try {
-      const ok = await validateWatchAddress(chainId, address);
-      if (!ok) {
-        toast.error(`That isn't a valid ${getChain(chainId).ticker} address`);
-        return;
+      let addr = text.trim();
+      let hinted: ChainId | null = null;
+      try {
+        const { parsePaymentUri } = await import("@/lib/wallet/payment-uri");
+        const parsed = parsePaymentUri(text);
+        if (parsed.address) addr = parsed.address.trim();
+        if (parsed.chain && watchableChain(parsed.chain)) hinted = parsed.chain.id;
+      } catch {
+        /* raw scan */
       }
-      addWatchOnly({ chainId, address, label });
-      setAddress("");
-      setLabel("");
-      toast.success("Watch-only address added");
+      const order = hinted
+        ? [hinted, ...watchChains.map((c) => c.id).filter((id) => id !== hinted)]
+        : watchChains.map((c) => c.id);
+      for (const id of order) {
+        if (await validateWatchAddress(id, addr)) {
+          addWatchOnly({ chainId: id, address: addr, label: `${getChain(id).ticker} cold storage` });
+          toast.success(`Watching this ${getChain(id).ticker} address`);
+          return;
+        }
+      }
+      toast.error("That QR doesn't contain an address we can watch");
     } finally {
       setBusy(false);
     }
@@ -463,29 +474,14 @@ function WatchOnlyBlock({ expanded, onToggle }: { expanded: boolean; onToggle: (
         </Button>
       </div>
       {expanded && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Select value={chainId} onValueChange={(v) => setChainId(v as ChainId)}>
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {watchChains.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.ticker}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input value={address} placeholder="Public address" spellCheck={false} onChange={(e) => setAddress(e.target.value)} />
-          </div>
-          <div className="flex gap-2">
-            <Input value={label} placeholder="Label (e.g. Copper coin #4)" onChange={(e) => setLabel(e.target.value)} />
-            <Button onClick={add} disabled={busy || !address.trim()} size="icon" aria-label="Add watch-only address">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <Button className="w-full" disabled={busy} onClick={() => setScanOpen(true)}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+          Scan address QR
+        </Button>
       )}
       {entries.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">
-          Nothing watched yet. Paste the address printed on a coin to keep an eye on it.
+          Nothing watched yet. Scan the public address QR printed on a coin to keep an eye on it.
         </p>
       ) : (
         <div className="space-y-1.5">
@@ -494,6 +490,14 @@ function WatchOnlyBlock({ expanded, onToggle }: { expanded: boolean; onToggle: (
           ))}
         </div>
       )}
+
+      <QrScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        title="Scan a public address"
+        description="Point your camera at the public address QR on the outside of the coin or paper wallet."
+        onResult={(text) => void handleScan(text)}
+      />
     </div>
   );
 }
