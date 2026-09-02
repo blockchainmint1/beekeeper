@@ -395,8 +395,9 @@ function deriveXpubFor(mnemonic: string, key: NectarChainKey): string {
     return utxoAccountXpub(mnemonic, chain as UtxoChain).xpub;
   }
   if (chain.kind === "tron") {
-    // TRON has no BIP32 xpub Nectar can watch — hand over the account address.
-    return deriveTronAccount(mnemonic, chain, 0).address;
+    // Account-level xpub (m/44'/195'/0') — Nectar derives a unique m/0/n
+    // receive address per invoice. Never the raw hex pubkey: rejected upstream.
+    return tronAccountXpub(mnemonic, chain).xpub;
   }
   if (chain.kind === "solana") {
     // Solana likewise: the account address is the watchable identifier.
