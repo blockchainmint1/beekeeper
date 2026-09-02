@@ -41,6 +41,7 @@ import {
   type SolanaAccount,
 } from "@/lib/wallet/solana";
 import { useContacts } from "@/lib/wallet/contacts";
+import { useCustomErc20 } from "@/lib/wallet/custom-tokens";
 import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/security";
 import type { Address } from "viem";
 import { QrScanDialog } from "./QrScanDialog";
@@ -84,9 +85,18 @@ export function SendDialog({
   const [scanOpen, setScanOpen] = useState(false);
   // EVM-only: which asset to send — "native" or one of chain.tokens
   const evmChain = chain.kind === "evm" ? (chain as EvmChain) : null;
+  const customErc20 = useCustomErc20(chain.id);
+  const evmTokenList: Erc20Token[] = evmChain
+    ? [
+        ...evmChain.tokens,
+        ...customErc20.filter(
+          (c) => !evmChain.tokens.some((t) => t.address.toLowerCase() === c.address.toLowerCase()),
+        ),
+      ]
+    : [];
   const [asset, setAsset] = useState<string>(initialTokenSymbol ?? "native");
   const token: Erc20Token | null =
-    evmChain && asset !== "native" ? (evmChain.tokens.find((t) => t.symbol === asset) ?? null) : null;
+    evmChain && asset !== "native" ? (evmTokenList.find((t) => t.symbol === asset) ?? null) : null;
 
   const contacts = useContacts(chain.id);
   const securityPrefs = useSecurityPrefs();
@@ -265,7 +275,7 @@ export function SendDialog({
       setTo(parsed.address);
       if (parsed.amount) setAmount(parsed.amount);
       if (parsed.tokenSymbol && evmChain) {
-        const match = evmChain.tokens.find(
+        const match = evmTokenList.find(
           (t) => t.symbol.toLowerCase() === parsed.tokenSymbol!.toLowerCase(),
         );
         if (match) setAsset(match.symbol);
@@ -306,14 +316,14 @@ export function SendDialog({
           </div>
         ) : (
           <div className="space-y-3">
-            {evmChain && evmChain.tokens.length > 0 && (
+            {evmChain && evmTokenList.length > 0 && (
               <div>
                 <Label className="mb-1.5 block text-xs">Asset</Label>
                 <Select value={asset} onValueChange={setAsset}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="native">{evmChain.nativeSymbol} (native)</SelectItem>
-                    {evmChain.tokens.map((t) => (
+                    {evmTokenList.map((t) => (
                       <SelectItem key={t.symbol} value={t.symbol}>{t.symbol} — {t.name}</SelectItem>
                     ))}
                   </SelectContent>

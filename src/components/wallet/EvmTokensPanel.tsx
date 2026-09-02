@@ -4,6 +4,7 @@ import type { EvmChain } from "@/lib/chains";
 import { scanEvmHd } from "@/lib/wallet/evm-sweep";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
+import { useCustomErc20, chainErc20Tokens } from "@/lib/wallet/custom-tokens";
 import { fetchAllPrices, priceForCoingeckoId, formatUsd } from "@/lib/wallet/price";
 
 function fmtAmount(n: number) {
@@ -21,10 +22,12 @@ export function EvmTokensPanel({
   address: string | null;
 }) {
   const gap = useScanGap();
+  const custom = useCustomErc20(chain.id);
+  const tokenCount = chainErc20Tokens(chain).length;
 
   const scan = useQuery({
-    queryKey: ["evm-tokens-panel", chain.id, gap],
-    enabled: !!mnemonic && chain.tokens.length > 0,
+    queryKey: ["evm-tokens-panel", chain.id, gap, custom.length],
+    enabled: !!mnemonic && tokenCount > 0,
     refetchInterval: 90_000,
     staleTime: 30_000,
     queryFn: async () => {
@@ -42,7 +45,7 @@ export function EvmTokensPanel({
     staleTime: 60_000,
   });
 
-  if (chain.tokens.length === 0) return null;
+  if (tokenCount === 0) return null;
 
   const totals = Array.isArray(scan.data?.tokenTotals) ? scan.data!.tokenTotals : [];
   const hasBalances = totals.some((t) => t.raw > 0n);

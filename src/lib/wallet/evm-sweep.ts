@@ -15,6 +15,7 @@ import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { EvmChain, Erc20Token } from "@/lib/chains";
 import { chainRpcUrls, deriveEvmAccount, evmPrivateKey, evmWalletClient } from "./evm";
+import { chainErc20Tokens } from "./custom-tokens";
 
 function chainDef(chain: EvmChain) {
   return {
@@ -123,9 +124,10 @@ export async function scanEvmHd(
       try {
         const nativeWei = await withFallback(chain, (c) => c.getBalance({ address: job.address }));
         const tokens: EvmTokenBalance[] = [];
-        if (includeTokens && chain.tokens.length > 0) {
+        const walkTokens = chainErc20Tokens(chain);
+        if (includeTokens && walkTokens.length > 0) {
           await Promise.all(
-            chain.tokens.map(async (t) => {
+            walkTokens.map(async (t) => {
               try {
                 const raw = (await withFallback(chain, (c) =>
                   c.readContract({
@@ -174,7 +176,7 @@ async function scanViaMulticall(
   addresses: { index: number; address: Address }[],
   includeTokens: boolean,
 ): Promise<EvmHdScanResult> {
-  const tokens = includeTokens ? chain.tokens : [];
+  const tokens = includeTokens ? chainErc20Tokens(chain) : [];
   const perAddr = 1 + tokens.length;
 
   const contracts = addresses.flatMap((a) => {
