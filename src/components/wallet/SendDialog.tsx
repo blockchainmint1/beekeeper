@@ -11,10 +11,16 @@ import {
   validateUtxoAddress,
   esplora,
   buildAndSign,
+  buildAndSignCoins,
+  collectSpendableCoins,
+  selectCoins,
+  maxSpendableSats,
   coinToSats,
   satsToCoin,
   type UtxoAccount,
 } from "@/lib/wallet/utxo";
+import { filterReserved, releaseOutpoints, reserveOutpoints } from "@/lib/wallet/spent-outpoints";
+import { useWalletSession } from "./session";
 import {
   isValidEvmAddress,
   evmBalance,
