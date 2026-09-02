@@ -119,14 +119,13 @@ function SeedList() {
 
   function handleRemove(id: string) {
     try {
-      const wasActive = id === activeId;
       removeSeedAccount(id);
       toast.success("Seed removed from this device");
       setPendingRemove(null);
-      if (wasActive) window.location.reload();
-      else refresh();
+      refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not remove");
+      setPendingRemove(null);
     }
   }
 
