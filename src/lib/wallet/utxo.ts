@@ -144,6 +144,10 @@ export interface HdScanResult {
  *  using rotating receive addresses can burst without us missing payments.
  *  `minIndex` forces the walker to scan at least that many addresses on each
  *  branch even when empty — callers pass the persisted watermark + gap. */
+/** Chains where NowNodes Blockbook can serve batched address lookups. */
+const NN_BATCH_CHAINS = new Set(["btc", "ltc", "bch", "doge", "dash"]);
+type NnBatchChain = "btc" | "ltc" | "bch" | "doge" | "dash";
+
 export async function scanUtxoHd(
   mnemonic: string,
   chain: UtxoChain,
@@ -189,9 +193,12 @@ export async function scanUtxoHd(
     return false;
   };
 
-  // Indexed chains (TXC/ISK) support a batched server-side lookup: one round
-  // trip per window of addresses instead of one per address.
-  const batched = INDEXED.has(chain.id);
+  // Batched server-side lookups: one round trip per window of addresses instead
+  // of one per address. TXC/ISK use their Esplora indexers; BTC/LTC/BCH/DOGE/DASH
+  // use NowNodes Blockbook.
+  const indexerBatch = INDEXED.has(chain.id);
+  const nnBatch = !indexerBatch && NN_BATCH_CHAINS.has(chain.id);
+  const batched = indexerBatch || nnBatch;
   const WINDOW = 25;
 
   for (const change of [false, true]) {
@@ -213,15 +220,23 @@ export async function scanUtxoHd(
           addrs.push(a);
         }
         if (addrs.length === 0) break;
-        const { mempoolAddressInfoBatch } = await import("./mempool.functions");
         let infos: (AddressInfo | null)[] | null = null;
         try {
-          infos = await mempoolAddressInfoBatch({
-            data: { chainId: chain.id as IndexedChainId, addresses: addrs },
-          });
+          if (indexerBatch) {
+            const { mempoolAddressInfoBatch } = await import("./mempool.functions");
+            infos = await mempoolAddressInfoBatch({
+              data: { chainId: chain.id as IndexedChainId, addresses: addrs },
+            });
+          } else {
+            const { nownodesAddressInfoBatch } = await import("./nownodes.functions");
+            infos = (await nownodesAddressInfoBatch({
+              data: { chain: chain.id as NnBatchChain, addresses: addrs },
+            })) as (AddressInfo | null)[] | null;
+          }
         } catch {
           infos = null;
         }
+
         if (!infos) {
           // Indexer unavailable — resume with the sequential path from here.
           batchOk = false;
