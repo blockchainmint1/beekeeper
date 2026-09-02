@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Upload, Wallet as WalletIcon, Fingerprint } from "lucide-react";
+import { Lock, Upload, Wallet as WalletIcon, Fingerprint, Repeat } from "lucide-react";
 import { unlockVault, wipeVault, importVaultBlob, cacheMnemonic } from "@/lib/wallet/seed";
-import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
+import {
+  listSeedAccounts,
+  getActiveSeedAccountId,
+  switchSeedAccount,
+  wipeSeedRegistry,
+  type SeedAccount,
+} from "@/lib/wallet/seed-accounts";
 import { useSecurityPrefs } from "@/lib/wallet/security";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
@@ -14,7 +21,28 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   const [busy, setBusy] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [accounts, setAccounts] = useState<SeedAccount[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const prefs = useSecurityPrefs();
+
+  useEffect(() => {
+    setAccounts(listSeedAccounts());
+    setActiveId(getActiveSeedAccountId());
+  }, []);
+
+  /** Each wallet has its own password, so a forgotten one must never trap the
+   *  others — switching the active vault here needs no password at all. */
+  function handleSwitch(id: string) {
+    try {
+      switchSeedAccount(id);
+      setPass("");
+      setAccounts(listSeedAccounts());
+      setActiveId(getActiveSeedAccountId());
+      toast.success("Switched wallet — enter that wallet's password");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not switch wallet");
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +86,13 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   }
 
   function handleReset() {
-    if (!confirm("This will erase the encrypted wallet from this browser. Continue?")) return;
+    const count = listSeedAccounts().length;
+    const what =
+      count > 1
+        ? `This erases ALL ${count} wallets stored in this browser, not just this one.`
+        : "This will erase the encrypted wallet from this browser.";
+    if (!confirm(`${what} You'll need your copper coin or recovery phrase to get back in. Continue?`))
+      return;
     wipeVault();
     wipeSeedRegistry();
     onReset();
@@ -96,6 +130,46 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
               <p className="mt-0.5 font-mono text-sm text-emerald-200">{prefs.antiPhishingPhrase}</p>
               <p className="mt-1 text-[10px] text-muted-foreground">
                 If you don't see this, you may be on a fake site — don't enter your password.
+              </p>
+            </div>
+          )}
+          {accounts.length > 1 && (
+            <div className="space-y-1.5 rounded-md border bg-muted/30 p-2.5">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Which wallet?
+              </p>
+              {accounts.map((a) => {
+                const isActive = a.id === activeId;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => !isActive && handleSwitch(a.id)}
+                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                      isActive
+                        ? "bg-primary/10 text-foreground"
+                        : "hover:bg-muted/60 text-muted-foreground"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      {a.label}
+                      {a.assetId ? (
+                        <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
+                          {a.assetId}
+                        </span>
+                      ) : null}
+                    </span>
+                    {isActive ? (
+                      <Badge className="h-4 px-1.5 text-[10px]">Unlocking</Badge>
+                    ) : (
+                      <Repeat className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+              <p className="text-[10px] text-muted-foreground">
+                Each wallet has its own password. Forgot one? Pick another wallet — the
+                rest still open normally.
               </p>
             </div>
           )}
