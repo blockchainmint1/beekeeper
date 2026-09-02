@@ -434,6 +434,7 @@ export const ZCHL: EvmChain = {
   coinType: 60,
   derivationBase: "m/44'/60'/0'/0",
   decimals: 18,
+  coingeckoId: "zcu",
   rpcUrls: ["https://rpc.zerochill.com"],
   explorerTx: (h) => `https://scan.zerochill.com/tx/${h}`,
   explorerAddr: (a) => `https://scan.zerochill.com/address/${a}`,
