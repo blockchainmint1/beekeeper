@@ -144,6 +144,10 @@ export interface HdScanResult {
  *  using rotating receive addresses can burst without us missing payments.
  *  `minIndex` forces the walker to scan at least that many addresses on each
  *  branch even when empty — callers pass the persisted watermark + gap. */
+/** Chains where NowNodes Blockbook can serve batched address lookups. */
+const NN_BATCH_CHAINS = new Set(["btc", "ltc", "bch", "doge", "dash"]);
+type NnBatchChain = "btc" | "ltc" | "bch" | "doge" | "dash";
+
 export async function scanUtxoHd(
   mnemonic: string,
   chain: UtxoChain,
@@ -167,19 +171,101 @@ export async function scanUtxoHd(
   let scanned = 0;
   let highestUsedIndex = -1;
 
+  const deriveAt = (branchBase: string, i: number): string | null => {
+    const node = root.derive(`${branchBase}/${i}`);
+    if (!node.publicKey) return null;
+    let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
+    if (chain.cashAddrPrefix) {
+      try { address = toCashAddr(address); } catch { /* keep legacy */ }
+    }
+    return address;
+  };
+
+  const record = (address: string, i: number, change: boolean, info: AddressInfo) => {
+    const sats = addressBalanceSats(info).total;
+    const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
+    if (txCount > 0 || sats > 0) {
+      active.push({ address, index: i, change, type: effectiveType, sats, txCount });
+      totalSats += sats;
+      if (!change && i > highestUsedIndex) highestUsedIndex = i;
+      return true;
+    }
+    return false;
+  };
+
+  // Batched server-side lookups: one round trip per window of addresses instead
+  // of one per address. TXC/ISK use their Esplora indexers; BTC/LTC/BCH/DOGE/DASH
+  // use NowNodes Blockbook.
+  const indexerBatch = INDEXED.has(chain.id);
+  const nnBatch = !indexerBatch && NN_BATCH_CHAINS.has(chain.id);
+  const batched = indexerBatch || nnBatch;
+  const WINDOW = 25;
+
   for (const change of [false, true]) {
     const branchBase = `${accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
-    for (let i = 0; i < maxIndex; i++) {
+
+    let startIndex = 0;
+    if (batched) {
+      let i = 0;
+      let batchOk = true;
+      while (i < maxIndex && batchOk) {
+        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+        const idxs: number[] = [];
+        const addrs: string[] = [];
+        for (let k = 0; k < WINDOW && i + k < maxIndex; k++) {
+          const a = deriveAt(branchBase, i + k);
+          if (!a) continue;
+          idxs.push(i + k);
+          addrs.push(a);
+        }
+        if (addrs.length === 0) break;
+        let infos: (AddressInfo | null)[] | null = null;
+        try {
+          if (indexerBatch) {
+            const { mempoolAddressInfoBatch } = await import("./mempool.functions");
+            infos = await mempoolAddressInfoBatch({
+              data: { chainId: chain.id as IndexedChainId, addresses: addrs },
+            });
+          } else {
+            const { nownodesAddressInfoBatch } = await import("./nownodes.functions");
+            infos = (await nownodesAddressInfoBatch({
+              data: { chain: chain.id as NnBatchChain, addresses: addrs },
+            })) as (AddressInfo | null)[] | null;
+          }
+        } catch {
+          infos = null;
+        }
+
+        if (!infos) {
+          // Indexer unavailable — resume with the sequential path from here.
+          batchOk = false;
+          startIndex = i;
+          break;
+        }
+        for (let k = 0; k < addrs.length; k++) {
+          scanned++;
+          const info = infos[k];
+          if (!info) {
+            consecutiveEmpty++;
+            continue;
+          }
+          if (record(addrs[k]!, idxs[k]!, change, info)) consecutiveEmpty = 0;
+          else consecutiveEmpty++;
+        }
+        i += WINDOW;
+        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+      }
+      if (batchOk) continue;
+    }
+
+    for (let i = startIndex; i < maxIndex; i++) {
+
       if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
-      const node = root.derive(`${branchBase}/${i}`);
-      if (!node.publicKey) {
+      const address = deriveAt(branchBase, i);
+      if (!address) {
         consecutiveEmpty++;
         continue;
-      }
-      let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
-      if (chain.cashAddrPrefix) {
-        try { address = toCashAddr(address); } catch { /* keep legacy */ }
       }
       scanned++;
       let info: AddressInfo;
@@ -189,21 +275,14 @@ export async function scanUtxoHd(
         consecutiveEmpty++;
         continue;
       }
-      const sats = addressBalanceSats(info).total;
-      const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
-      if (txCount > 0 || sats > 0) {
-        active.push({ address, index: i, change, type: effectiveType, sats, txCount });
-        totalSats += sats;
-        consecutiveEmpty = 0;
-        if (!change && i > highestUsedIndex) highestUsedIndex = i;
-      } else {
-        consecutiveEmpty++;
-      }
+      if (record(address, i, change, info)) consecutiveEmpty = 0;
+      else consecutiveEmpty++;
     }
   }
 
   return { totalSats, active, scanned, highestUsedIndex };
 }
+
 
 
 export async function validateUtxoAddress(addr: string, chain: UtxoChain): Promise<boolean> {

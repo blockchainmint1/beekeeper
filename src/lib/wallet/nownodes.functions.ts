@@ -62,3 +62,36 @@ export const nownodesEstimateFee = createServerFn({ method: "GET" })
     const { nnEstimateFee } = await import("./nownodes.server");
     return { satPerVb: await nnEstimateFee(data.chain, data.blocks) };
   });
+
+/** Batched address lookup (BTC/LTC/BCH/DOGE/DASH): one round trip for up to 50
+ *  addresses, fanned out server-side. Returns null when NowNodes is unavailable
+ *  so HD scans fall back to the per-address provider chain. */
+export const nownodesAddressInfoBatch = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        chain: chainEnum,
+        addresses: z.array(z.string().min(20).max(120)).min(1).max(50),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { nnAddressInfoShaped, nownodesEnabled, nownodesHost } = await import(
+      "./nownodes.server"
+    );
+    if (!nownodesEnabled() || !nownodesHost(data.chain)) return null;
+    type Shaped = Awaited<ReturnType<typeof nnAddressInfoShaped>>;
+    const one = async (address: string): Promise<Shaped | null> => {
+      try {
+        return await nnAddressInfoShaped(data.chain, address);
+      } catch {
+        return null;
+      }
+    };
+    const out: (Shaped | null)[] = [];
+    const size = 8; // keep well inside NowNodes rate limits
+    for (let i = 0; i < data.addresses.length; i += size) {
+      out.push(...(await Promise.all(data.addresses.slice(i, i + size).map(one))));
+    }
+    return out;
+  });
