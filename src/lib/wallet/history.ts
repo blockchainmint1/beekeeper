@@ -42,7 +42,6 @@ export async function fetchUtxoHistory(chain: UtxoChain, address: string): Promi
   }
 
 
-  const txs = (await res.json()) as UtxoEsploraTx[];
   return txs.map((tx) => {
     const inSelf = tx.vin.reduce(
       (s, v) => s + (v.prevout?.scriptpubkey_address === address ? v.prevout.value : 0),
