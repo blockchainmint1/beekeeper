@@ -84,6 +84,15 @@ export function SendDialog({
   const [scanOpen, setScanOpen] = useState(false);
   // EVM-only: which asset to send — "native" or one of chain.tokens
   const evmChain = chain.kind === "evm" ? (chain as EvmChain) : null;
+  const customErc20 = useCustomErc20(chain.id);
+  const evmTokenList: Erc20Token[] = evmChain
+    ? [
+        ...evmChain.tokens,
+        ...customErc20.filter(
+          (c) => !evmChain.tokens.some((t) => t.address.toLowerCase() === c.address.toLowerCase()),
+        ),
+      ]
+    : [];
   const [asset, setAsset] = useState<string>(initialTokenSymbol ?? "native");
   const token: Erc20Token | null =
     evmChain && asset !== "native" ? (evmTokenList.find((t) => t.symbol === asset) ?? null) : null;
