@@ -3,6 +3,7 @@ import { Coins, ExternalLink, RefreshCw } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getOmniBalancesForAddress, type OmniBalanceEntry } from "@/lib/wallet/omni.functions";
 import type { UtxoChain } from "@/lib/chains";
+import { chainOmniPropertyIds, useCustomOmni } from "@/lib/wallet/custom-tokens";
 
 function fmt(n: string) {
   const num = Number(n);
@@ -12,7 +13,8 @@ function fmt(n: string) {
 
 export function OmniTokensPanel({ chain, address }: { chain: UtxoChain; address: string | null }) {
   const fetchBalances = useServerFn(getOmniBalancesForAddress);
-  const defaultIds = chain.defaultOmniPropertyIds;
+  const custom = useCustomOmni(chain.id);
+  const defaultIds = [...(chain.defaultOmniPropertyIds ?? []), ...custom.filter((id) => !(chain.defaultOmniPropertyIds ?? []).includes(id))];
   const q = useQuery<OmniBalanceEntry[]>({
     queryKey: ["omni-balances", chain.id, address, defaultIds?.join(",") ?? ""],
     enabled: !!address && chain.supportsOmni,
