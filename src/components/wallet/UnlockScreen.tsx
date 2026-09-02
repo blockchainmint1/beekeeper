@@ -86,7 +86,13 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   }
 
   function handleReset() {
-    if (!confirm("This will erase the encrypted wallet from this browser. Continue?")) return;
+    const count = listSeedAccounts().length;
+    const what =
+      count > 1
+        ? `This erases ALL ${count} wallets stored in this browser, not just this one.`
+        : "This will erase the encrypted wallet from this browser.";
+    if (!confirm(`${what} You'll need your copper coin or recovery phrase to get back in. Continue?`))
+      return;
     wipeVault();
     wipeSeedRegistry();
     onReset();
