@@ -53,11 +53,11 @@ function SettingsPage() {
         <UpdateCheckCard />
 
         <SettingsCard
-          icon={KeyRound}
-          title="Seeds"
-          description="Store more than one recovery phrase and switch between them."
+          icon={Wallet}
+          title="Your wallets"
+          description="Each wallet is a separate seed with its own chains, keys and contacts. One password unlocks them all."
         >
-          <SeedsPanel />
+          <YourWalletsSection />
         </SettingsCard>
 
         <SettingsCard
@@ -79,8 +79,6 @@ function SettingsPage() {
         <FeaturesCard />
 
         <CustomTokensCard />
-
-        <WatchOnlyCard />
 
         {exchangeAllowed && <TsdCashoutKeyCard />}
 
