@@ -384,9 +384,11 @@ export async function buildAndSign(args: {
   toAddress: string;
   amountSats: number;
   feeRate: number;
+  /** Raw OP_RETURN payload (e.g. an Omni Simple Send). Adds a data output. */
+  opReturnData?: Uint8Array;
 }): Promise<{ hex: string; feeSats: number }> {
   const { bitcoin, ecc } = await getLibs();
-  const { account, utxos, toAddress, amountSats, feeRate } = args;
+  const { account, utxos, toAddress, amountSats, feeRate, opReturnData } = args;
   if (utxos.length === 0) throw new Error("No UTXOs available");
 
   // BCH and other SIGHASH_FORKID chains need a custom BIP143 signer
@@ -426,13 +428,23 @@ export async function buildAndSign(args: {
     }
   });
 
-  const estVBytes = 11 + inputVBytes(account.type) * utxos.length + 34 * 2;
+  // OP_RETURN output: opcode + pushdata + payload, plus the 8-byte value and
+  // varint script length the serializer adds for every output.
+  const dataVBytes = opReturnData ? opReturnData.length + 12 : 0;
+  const estVBytes = 11 + inputVBytes(account.type) * utxos.length + 34 * 2 + dataVBytes;
   const fee = Math.max(estVBytes * feeRate, 250);
 
   const totalIn = utxos.reduce((s, u) => s + u.value, 0);
   const change = totalIn - amountSats - fee;
   if (change < 0) throw new Error("Insufficient funds for amount + fee");
 
+  // Omni reads the payload before the reference output, so the data output
+  // goes first — the order the token layer expects for Class C sends.
+  if (opReturnData) {
+    const embed = bitcoin.payments.embed({ data: [opReturnData] });
+    if (!embed.output) throw new Error("Failed to build OP_RETURN output");
+    psbt.addOutput({ script: embed.output, value: 0n });
+  }
   psbt.addOutput({ address: normalizedTo, value: BigInt(amountSats) });
   if (change >= account.chain.dustSats) {
     const changeAddr = account.chain.cashAddrPrefix ? toLegacyBch(account.address) : account.address;

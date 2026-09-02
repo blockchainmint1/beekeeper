@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, ExternalLink, Loader2, RefreshCw, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { ChainConfig } from "@/lib/chains";
+import type { ChainConfig, UtxoChain } from "@/lib/chains";
+import { OmniActivity } from "./OmniActivity";
 import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
 
 export function HistoryDialog({
@@ -34,6 +35,10 @@ export function HistoryDialog({
             {native ? "Most recent transactions for this address." : "EVM history opens in the block explorer."}
           </DialogDescription>
         </DialogHeader>
+
+        {chain.kind === "utxo" && (chain as UtxoChain).supportsOmni && (
+          <OmniActivity chain={chain as UtxoChain} address={address} enabled={open} />
+        )}
 
         {!native ? (
           <div className="space-y-3">
