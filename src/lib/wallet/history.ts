@@ -20,16 +20,27 @@ interface UtxoEsploraTx {
 }
 
 export async function fetchUtxoHistory(chain: UtxoChain, address: string): Promise<HistoryItem[]> {
-  // NowNodes Blockbook is the primary indexer wherever it's available.
-  const { nownodesHistoryOrNull } = await import("./nownodes");
-  const nn = await nownodesHistoryOrNull(chain, address);
-  if (nn) return nn;
-  if (chain.api === "blockchair") {
-    const { blockchairHistory } = await import("./blockchair");
-    return blockchairHistory(chain, address);
+  // TXC/ISK: dedicated Esplora indexers, fetched server-side.
+  let txs: UtxoEsploraTx[] | null = null;
+  if (chain.id === "txc" || chain.id === "isk") {
+    const { mempoolAddressTxs } = await import("./mempool.functions");
+    const idx = await mempoolAddressTxs({ data: { chainId: chain.id, address } });
+    if (idx) txs = idx as unknown as UtxoEsploraTx[];
   }
-  const res = await fetch(`${chain.apiBase}/address/${address}/txs`);
-  if (!res.ok) throw new Error(`${chain.ticker} history ${res.status}`);
+  if (!txs) {
+    // NowNodes Blockbook is the primary indexer wherever it's available.
+    const { nownodesHistoryOrNull } = await import("./nownodes");
+    const nn = await nownodesHistoryOrNull(chain, address);
+    if (nn) return nn;
+    if (chain.api === "blockchair") {
+      const { blockchairHistory } = await import("./blockchair");
+      return blockchairHistory(chain, address);
+    }
+    const res = await fetch(`${chain.apiBase}/address/${address}/txs`);
+    if (!res.ok) throw new Error(`${chain.ticker} history ${res.status}`);
+    txs = (await res.json()) as UtxoEsploraTx[];
+  }
+
 
   const txs = (await res.json()) as UtxoEsploraTx[];
   return txs.map((tx) => {
