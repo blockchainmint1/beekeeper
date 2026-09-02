@@ -69,6 +69,23 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     } catch { /* ignore */ }
   }
 
+  // ISK / wISK price from the wISK Wrap site (on-chain Uniswap V3 wISK/USDC).
+  // No CEX lists ISK, so this pool read is the canonical source.
+  for (const base of [
+    "https://wrap.iskandercoin.com",
+    "https://project--3c367caa-8e24-4dc8-88e7-68ee6b6ac8cf.lovable.app",
+  ]) {
+    try {
+      const r = await fetch(`${base}/api/public/price`);
+      if (!r.ok) continue;
+      const j = (await r.json()) as { ok?: boolean; usd?: number };
+      if (j?.ok && typeof j.usd === "number" && isFinite(j.usd) && j.usd > 0) {
+        out["isk"] = j.usd;
+        break;
+      }
+    } catch { /* try next */ }
+  }
+
   // TXC price from its own mempool.
   try {
     const r = await fetch("https://mempool.texitcoin.org/api/v1/prices");
