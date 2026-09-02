@@ -265,16 +265,12 @@ export function SendDialog({
           feeRate: await estimateFeeRate(omniChain),
           opReturnData: buildSimpleSendPayload(omniToken.id, units),
         });
-        try {
-          const id = await esplora.broadcast(omniChain, hex);
-          reserveOutpoints(
-            omniChain.id,
-            fundable.map((u) => ({ txid: u.txid, vout: u.vout })),
-          );
-          setTxid(id);
-        } catch (e) {
-          throw e;
-        }
+        const omniId = await esplora.broadcast(omniChain, hex);
+        reserveOutpoints(
+          omniChain.id,
+          fundable.map((u) => ({ txid: u.txid, vout: u.vout })),
+        );
+        setTxid(omniId);
         rememberAddress(dest);
         toast.success(`${omniToken.symbol} transfer broadcast`);
       } else if (chain.kind === "utxo" && account.kind === "utxo") {
