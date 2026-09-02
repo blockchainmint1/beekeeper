@@ -119,14 +119,13 @@ function SeedList() {
 
   function handleRemove(id: string) {
     try {
-      const wasActive = id === activeId;
       removeSeedAccount(id);
       toast.success("Seed removed from this device");
       setPendingRemove(null);
-      if (wasActive) window.location.reload();
-      else refresh();
+      refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not remove");
+      setPendingRemove(null);
     }
   }
 
@@ -215,7 +214,21 @@ function SeedList() {
                   className="h-7 w-7 text-destructive"
                   aria-label="Remove seed"
                   disabled={accounts.length <= 1}
-                  onClick={() => setPendingRemove(a.id)}
+                  title={
+                    isActive
+                      ? "Switch to another wallet before removing this one"
+                      : "Remove seed"
+                  }
+                  onClick={() => {
+                    if (isActive) {
+                      toast.error("That's your active wallet", {
+                        description:
+                          "Switch to another wallet first, then remove this one.",
+                      });
+                      return;
+                    }
+                    setPendingRemove(a.id);
+                  }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
