@@ -1,6 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -210,6 +211,16 @@ export function NectarPanel() {
           </Button>
         )}
       </div>
+      <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} search={{ q: undefined }} className="block">
+        <div className="flex items-center gap-3 rounded-md border p-3 transition hover:bg-muted/50">
+          <QrCode className="h-5 w-5 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Sign in with Nectar Pay QR</p>
+            <p className="text-[11px] text-muted-foreground">Scan a website login QR from the Nectar Pay app.</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </Link>
       <p className="text-[11px] text-muted-foreground">
         "Unlink" only forgets the connection on this device. To stop Nectar Pay from watching these xpubs, also remove this wallet inside the Nectar Pay merchant dashboard.
       </p>
