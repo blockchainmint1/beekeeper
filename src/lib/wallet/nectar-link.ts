@@ -61,7 +61,19 @@ import { deriveUtxoAccount } from "./utxo";
 import { utxoSignMessage } from "./signing";
 
 // Stable order — used by canonicalJson and by Nectar's verifier.
-export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE", "DASH"] as const;
+export const NECTAR_CHAINS = [
+  "BTC",
+  "TXC",
+  "EVM",
+  "LTC",
+  "BCH",
+  "TRX",
+  "DOGE",
+  "DASH",
+  "ISK",
+  "SOL",
+  "ZCU",
+] as const;
 export type NectarChainKey = (typeof NECTAR_CHAINS)[number];
 
 /** Maps a Nectar chain key to the wallet's local ChainConfig id, or null when
@@ -75,6 +87,11 @@ export const NECTAR_TO_LOCAL: Record<NectarChainKey, ChainId | null> = {
   TRX: "trx",
   DOGE: "doge",
   DASH: "dash",
+  ISK: "isk",
+  SOL: "sol",
+  // Zero Chill is EVM — same m/44'/60' account key as EVM, sent separately so
+  // Nectar can enable it per-chain without inferring from the EVM key.
+  ZCU: "zchl",
 };
 
 export interface NectarLinkRequest {
