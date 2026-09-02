@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
-  QrCode, Share2, ShieldCheck, Trash2,
+  Bell, BookUser, ChevronRight, Link2, Lock, PenLine,
+  QrCode, Share2, ShieldCheck, Trash2, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +10,9 @@ import { SecurityCheckupCard } from "@/components/wallet/SecurityCheckupCard";
 import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
 import { CustomTokensCard } from "@/components/wallet/CustomTokensCard";
-import { WatchOnlyCard } from "@/components/wallet/WatchOnlyCard";
 import { UpdateCheckCard } from "@/components/wallet/UpdateCheckCard";
 import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
+import { YourWalletsSection } from "@/components/wallet/YourWalletsSection";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import {
   SecurityPanel, WalletsPanel, AlertsPanel, NectarPanel,
@@ -20,8 +20,6 @@ import {
 } from "@/components/wallet/SettingsDialog";
 import { wipeVault } from "@/lib/wallet/seed";
 import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
-import { SeedsPanel } from "@/components/wallet/SeedsPanel";
-import { KeyRound } from "lucide-react";
 import { useWalletSession } from "@/components/wallet/session";
 
 export const Route = createFileRoute("/wallet/settings")({
