@@ -239,16 +239,9 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
     [loadedRows],
   );
 
-  // TSD is the dominant stable on our system — it gets its own top-level row.
-  // Its $1 peg is still folded into the TXC row's usd for the total, but we
-  // subtract it from the displayed TXC headline so the breakdown doesn't look
-  // like extra TXC.
-  const tsdRow = useMemo(() => {
-    const txc = loadedRows.find((r) => r.chain.id === "txc");
-    const line = txc?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID);
-    if (!line) return null;
-    return { formatted: line.formatted, usd: line.usd ?? 0 };
-  }, [loadedRows]);
+  // TSD shows as a token line nested under TXC (like USDC/USDT under ETH), so
+  // its $1 peg is simply part of the TXC row's usd value.
+
 
 
   const visiblePrimaryCount = PRIMARY_CHAIN_IDS.filter((id) => visibleIds.includes(id)).length;
@@ -422,39 +415,12 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
 
             {expanded && (
               <>
-                {tsdRow && (
-                  <div className="glass-card flex items-center gap-3 rounded-xl p-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold"
-                      style={{
-                        background: "color-mix(in oklab, var(--primary) 22%, transparent)",
-                        color: "var(--primary)",
-                      }}
-                    >
-                      TSD
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-sm">TSD</span>
-                        <span className="text-sm font-semibold tabular">{formatUsd(tsdRow.usd)}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                        <span className="truncate">Texas Dollar · TXC layer 2</span>
-                        <span className="tabular">{tsdRow.formatted} TSD</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 {primaryRows.map((item) => {
 
                   const r = item.row;
                   const chain = item.chain;
-                  // TSD has its own top-level row; don't double-count it inside TXC's headline value.
-                  const tsdInRow =
-                    chain.id === "txc"
-                      ? (r?.tokens.find((t) => t.propertyId === TSD_PROPERTY_ID)?.usd ?? 0)
-                      : 0;
-                  const displayUsd = r ? r.usd - tsdInRow : 0;
+                  const displayUsd = r ? r.usd : 0;
+
                   return (
                     <div key={chain.id} className="glass-card flex flex-col gap-2 rounded-xl p-3">
                       <div className="flex items-center gap-3">
