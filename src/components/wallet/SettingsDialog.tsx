@@ -169,9 +169,6 @@ export function NectarPanel() {
   }, [link]);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Link this wallet to a Nectar Pay merchant account. We send your BTC, TEXITcoin, and EVM extended public keys — never your seed or private keys.
-      </p>
       {link ? (
         <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
           <div className="font-medium text-emerald-200">
@@ -282,8 +279,6 @@ export function WalletsPanel() {
 
   return (
     <div className="space-y-4">
-      <ScanDepthRow />
-
       <p className="text-xs text-muted-foreground">
         Reorder to control swipe order. Hidden chains stay derived from your seed — they just don't render.
       </p>
