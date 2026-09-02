@@ -68,6 +68,8 @@ function SettingsPage() {
           <WalletsPanel />
         </SettingsCard>
 
+        <CustomTokensCard />
+
         <SettingsCard
           icon={ShieldCheck}
           title="Security"
@@ -77,8 +79,6 @@ function SettingsPage() {
         </SettingsCard>
 
         <FeaturesCard />
-
-        <CustomTokensCard />
 
         {exchangeAllowed && <TsdCashoutKeyCard />}
 
@@ -124,21 +124,6 @@ function SettingsPage() {
                 <div className="font-medium">Sign &amp; verify a message</div>
                 <div className="text-xs text-muted-foreground">
                   Prove you control an address without spending anything.
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} search={{ q: undefined }} className="block">
-          <Card className="transition-colors hover:bg-accent/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <QrCode className="h-5 w-5 text-muted-foreground" />
-              <div className="flex-1">
-                <div className="font-medium">Sign in with a QR code</div>
-                <div className="text-xs text-muted-foreground">
-                  Scan a login QR from Nectar Pay or any site that accepts your wallet key.
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
