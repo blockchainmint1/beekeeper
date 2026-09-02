@@ -384,9 +384,11 @@ export async function buildAndSign(args: {
   toAddress: string;
   amountSats: number;
   feeRate: number;
+  /** Raw OP_RETURN payload (e.g. an Omni Simple Send). Adds a data output. */
+  opReturnData?: Uint8Array;
 }): Promise<{ hex: string; feeSats: number }> {
   const { bitcoin, ecc } = await getLibs();
-  const { account, utxos, toAddress, amountSats, feeRate } = args;
+  const { account, utxos, toAddress, amountSats, feeRate, opReturnData } = args;
   if (utxos.length === 0) throw new Error("No UTXOs available");
 
   // BCH and other SIGHASH_FORKID chains need a custom BIP143 signer
