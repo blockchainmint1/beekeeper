@@ -135,7 +135,7 @@ function SettingsPage() {
           </Card>
         </Link>
 
-        <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} className="block">
+        <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} search={{ q: undefined }} className="block">
           <Card className="transition-colors hover:bg-accent/30">
             <CardContent className="flex items-center gap-3 py-4">
               <QrCode className="h-5 w-5 text-muted-foreground" />
