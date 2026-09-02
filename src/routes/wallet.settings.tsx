@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Bell, BookUser, ChevronRight, Key, KeyRound, Layers, Link2, Lock, PenLine,
+  Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
   QrCode, Share2, ShieldCheck, Trash2, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
