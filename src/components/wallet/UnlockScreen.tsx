@@ -127,6 +127,46 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
               </p>
             </div>
           )}
+          {accounts.length > 1 && (
+            <div className="space-y-1.5 rounded-md border bg-muted/30 p-2.5">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Which wallet?
+              </p>
+              {accounts.map((a) => {
+                const isActive = a.id === activeId;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => !isActive && handleSwitch(a.id)}
+                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                      isActive
+                        ? "bg-primary/10 text-foreground"
+                        : "hover:bg-muted/60 text-muted-foreground"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      {a.label}
+                      {a.assetId ? (
+                        <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
+                          {a.assetId}
+                        </span>
+                      ) : null}
+                    </span>
+                    {isActive ? (
+                      <Badge className="h-4 px-1.5 text-[10px]">Unlocking</Badge>
+                    ) : (
+                      <Repeat className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+              <p className="text-[10px] text-muted-foreground">
+                Each wallet has its own password. Forgot one? Pick another wallet — the
+                rest still open normally.
+              </p>
+            </div>
+          )}
           {bioEnabled && (
             <Button
               variant="outline"
