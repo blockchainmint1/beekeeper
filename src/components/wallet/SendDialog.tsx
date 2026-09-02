@@ -41,6 +41,7 @@ import {
   type SolanaAccount,
 } from "@/lib/wallet/solana";
 import { useContacts } from "@/lib/wallet/contacts";
+import { useCustomErc20 } from "@/lib/wallet/custom-tokens";
 import { useSecurityPrefs, isKnownAddress, rememberAddress } from "@/lib/wallet/security";
 import type { Address } from "viem";
 import { QrScanDialog } from "./QrScanDialog";

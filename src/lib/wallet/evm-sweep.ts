@@ -15,6 +15,7 @@ import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { EvmChain, Erc20Token } from "@/lib/chains";
 import { chainRpcUrls, deriveEvmAccount, evmPrivateKey, evmWalletClient } from "./evm";
+import { chainErc20Tokens } from "./custom-tokens";
 
 function chainDef(chain: EvmChain) {
   return {
