@@ -46,7 +46,7 @@ export function SignDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
 function SignTab() {
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
-  const [chainId, setChainId] = useState<string>(CHAIN_LIST[0].id);
+  const [chainId, setChainId] = useState<string>("txc");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ address: string; signature: string } | null>(null);
@@ -130,7 +130,7 @@ function SignTab() {
 }
 
 function VerifyTab() {
-  const [chainId, setChainId] = useState<string>(CHAIN_LIST[0].id);
+  const [chainId, setChainId] = useState<string>("txc");
   const [address, setAddress] = useState("");
   const [message, setMessage] = useState("");
   const [signature, setSignature] = useState("");

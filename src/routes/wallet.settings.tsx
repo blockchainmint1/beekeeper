@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
-  QrCode, Share2, ShieldCheck, Trash2,
+  Share2, ShieldCheck, Trash2, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +10,9 @@ import { SecurityCheckupCard } from "@/components/wallet/SecurityCheckupCard";
 import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
 import { CustomTokensCard } from "@/components/wallet/CustomTokensCard";
-import { WatchOnlyCard } from "@/components/wallet/WatchOnlyCard";
 import { UpdateCheckCard } from "@/components/wallet/UpdateCheckCard";
 import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
+import { YourWalletsSection } from "@/components/wallet/YourWalletsSection";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import {
   SecurityPanel, WalletsPanel, AlertsPanel, NectarPanel,
@@ -20,8 +20,6 @@ import {
 } from "@/components/wallet/SettingsDialog";
 import { wipeVault } from "@/lib/wallet/seed";
 import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
-import { SeedsPanel } from "@/components/wallet/SeedsPanel";
-import { KeyRound } from "lucide-react";
 import { useWalletSession } from "@/components/wallet/session";
 
 export const Route = createFileRoute("/wallet/settings")({
@@ -55,11 +53,11 @@ function SettingsPage() {
         <UpdateCheckCard />
 
         <SettingsCard
-          icon={KeyRound}
-          title="Seeds"
-          description="Store more than one recovery phrase and switch between them."
+          icon={Wallet}
+          title="Your wallets"
+          description="Each wallet is a separate seed with its own chains, keys and contacts. One password unlocks them all."
         >
-          <SeedsPanel />
+          <YourWalletsSection />
         </SettingsCard>
 
         <SettingsCard
@@ -70,6 +68,8 @@ function SettingsPage() {
           <WalletsPanel />
         </SettingsCard>
 
+        <CustomTokensCard />
+
         <SettingsCard
           icon={ShieldCheck}
           title="Security"
@@ -79,10 +79,6 @@ function SettingsPage() {
         </SettingsCard>
 
         <FeaturesCard />
-
-        <CustomTokensCard />
-
-        <WatchOnlyCard />
 
         {exchangeAllowed && <TsdCashoutKeyCard />}
 
@@ -128,36 +124,6 @@ function SettingsPage() {
                 <div className="font-medium">Sign &amp; verify a message</div>
                 <div className="text-xs text-muted-foreground">
                   Prove you control an address without spending anything.
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/wallet/$chain/qr-login" params={{ chain: "txc" }} search={{ q: undefined }} className="block">
-          <Card className="transition-colors hover:bg-accent/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <QrCode className="h-5 w-5 text-muted-foreground" />
-              <div className="flex-1">
-                <div className="font-medium">Sign in with a QR code</div>
-                <div className="text-xs text-muted-foreground">
-                  Scan a login QR from Nectar Pay or any site that accepts your wallet key.
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/wallet/import-key" className="block">
-          <Card className="transition-colors hover:bg-accent/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Key className="h-5 w-5 text-muted-foreground" />
-              <div className="flex-1">
-                <div className="font-medium">Import a private key</div>
-                <div className="text-xs text-muted-foreground">
-                  Sweep a paper wallet or single key into this wallet.
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />

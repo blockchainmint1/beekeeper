@@ -254,8 +254,19 @@ async function esploraGet<T>(chain: UtxoChain, path: string): Promise<T> {
 }
 
 
+/** TXC/ISK Esplora indexer first — orders of magnitude faster than node RPC. */
+const INDEXED = new Set(["txc", "isk"]);
+type IndexedChainId = "txc" | "isk";
+
 export const esplora = {
   addressInfo: async (chain: UtxoChain, a: string): Promise<AddressInfo> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressInfo } = await import("./mempool.functions");
+      const idx = await mempoolAddressInfo({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressInfo } = await import("./isk.functions");
       return iskAddressInfo({ data: { address: a } });
@@ -285,6 +296,13 @@ export const esplora = {
     return esploraGet<AddressInfo>(chain, `/address/${a}`);
   },
   addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressUtxos } = await import("./mempool.functions");
+      const idx = await mempoolAddressUtxos({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressUtxos } = await import("./isk.functions");
       return iskAddressUtxos({ data: { address: a } });
@@ -303,6 +321,13 @@ export const esplora = {
     return esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`);
   },
   addressTxs: async (chain: UtxoChain, a: string): Promise<unknown[]> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressTxs } = await import("./mempool.functions");
+      const idx = await mempoolAddressTxs({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressTxs } = await import("./isk.functions");
       return iskAddressTxs({ data: { address: a } });
@@ -321,6 +346,11 @@ export const esplora = {
     return esploraGet<unknown[]>(chain, `/address/${a}/txs`);
   },
   txHex: async (chain: UtxoChain, txid: string): Promise<string> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolTxHex } = await import("./mempool.functions");
+      const idx = await mempoolTxHex({ data: { chainId: chain.id as IndexedChainId, txid } });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskTxHex } = await import("./isk.functions");
       return iskTxHex({ data: { txid } });
@@ -338,6 +368,7 @@ export const esplora = {
     }
     return esploraGet<string>(chain, `/tx/${txid}/hex`);
   },
+
   async broadcast(chain: UtxoChain, rawHex: string): Promise<string> {
     if (chain.id === "isk") {
       const { iskBroadcast } = await import("./isk.functions");
@@ -384,9 +415,11 @@ export async function buildAndSign(args: {
   toAddress: string;
   amountSats: number;
   feeRate: number;
+  /** Raw OP_RETURN payload (e.g. an Omni Simple Send). Adds a data output. */
+  opReturnData?: Uint8Array;
 }): Promise<{ hex: string; feeSats: number }> {
   const { bitcoin, ecc } = await getLibs();
-  const { account, utxos, toAddress, amountSats, feeRate } = args;
+  const { account, utxos, toAddress, amountSats, feeRate, opReturnData } = args;
   if (utxos.length === 0) throw new Error("No UTXOs available");
 
   // BCH and other SIGHASH_FORKID chains need a custom BIP143 signer
@@ -426,13 +459,23 @@ export async function buildAndSign(args: {
     }
   });
 
-  const estVBytes = 11 + inputVBytes(account.type) * utxos.length + 34 * 2;
+  // OP_RETURN output: opcode + pushdata + payload, plus the 8-byte value and
+  // varint script length the serializer adds for every output.
+  const dataVBytes = opReturnData ? opReturnData.length + 12 : 0;
+  const estVBytes = 11 + inputVBytes(account.type) * utxos.length + 34 * 2 + dataVBytes;
   const fee = Math.max(estVBytes * feeRate, 250);
 
   const totalIn = utxos.reduce((s, u) => s + u.value, 0);
   const change = totalIn - amountSats - fee;
   if (change < 0) throw new Error("Insufficient funds for amount + fee");
 
+  // Omni reads the payload before the reference output, so the data output
+  // goes first — the order the token layer expects for Class C sends.
+  if (opReturnData) {
+    const embed = bitcoin.payments.embed({ data: [opReturnData] });
+    if (!embed.output) throw new Error("Failed to build OP_RETURN output");
+    psbt.addOutput({ script: embed.output, value: 0n });
+  }
   psbt.addOutput({ address: normalizedTo, value: BigInt(amountSats) });
   if (change >= account.chain.dustSats) {
     const changeAddr = account.chain.cashAddrPrefix ? toLegacyBch(account.address) : account.address;

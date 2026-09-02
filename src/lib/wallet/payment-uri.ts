@@ -39,6 +39,8 @@ export interface ParsedPaymentUri {
   amount: string | null;
   /** Optional token symbol the URI targets (e.g. EIP-681 contract calls, ?token=USDC). */
   tokenSymbol: string | null;
+  /** Omni Layer property id when the URI requests a token like TSD (?omni=39). */
+  omniPropertyId: number | null;
   label: string | null;
   message: string | null;
   /** Any extra query params for advanced consumers. */
@@ -55,7 +57,7 @@ export function parsePaymentUri(raw: string): ParsedPaymentUri {
   if (!schemeMatch) {
     return {
       scheme: null, chain: null, address: text, amount: null,
-      tokenSymbol: null, label: null, message: null, extras: {},
+      tokenSymbol: null, omniPropertyId: null, label: null, message: null, extras: {},
     };
   }
 
@@ -82,6 +84,15 @@ export function parsePaymentUri(raw: string): ParsedPaymentUri {
   const label = params.get("label");
   const message = params.get("message");
   const tokenSymbol = params.get("token") ?? params.get("symbol");
+  // Omni token requests: ?omni=39 (also accept property/propertyid/tokenid).
+  const omniRaw =
+    params.get("omni") ??
+    params.get("property") ??
+    params.get("propertyid") ??
+    params.get("tokenid");
+  const omniParsed = omniRaw != null ? Number(omniRaw) : NaN;
+  const omniPropertyId =
+    Number.isInteger(omniParsed) && omniParsed > 0 ? omniParsed : null;
 
   let chain: ChainConfig | null = null;
   const mappedId = SCHEME_TO_CHAIN[scheme];
@@ -108,7 +119,7 @@ export function parsePaymentUri(raw: string): ParsedPaymentUri {
     }
   }
 
-  return { scheme, chain, address, amount, tokenSymbol, label, message, extras };
+  return { scheme, chain, address, amount, tokenSymbol, omniPropertyId, label, message, extras };
 }
 
 function formatBaseUnits(value: bigint, decimals: number): string {
