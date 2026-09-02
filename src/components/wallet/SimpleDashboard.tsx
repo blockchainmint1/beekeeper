@@ -488,9 +488,10 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
                           </div>
                         </div>
                       </div>
-                      {r && r.tokens.some((t) => t.propertyId !== TSD_PROPERTY_ID) && (
+                      {r && r.tokens.length > 0 && (
                         <div className="pl-12 -mt-0.5 flex flex-col gap-1 border-l border-border/40 ml-4">
-                          {r.tokens.filter((t) => t.propertyId !== TSD_PROPERTY_ID).map((t) => (
+                          {r.tokens.map((t) => (
+
                             <div
                               key={t.symbol}
                               className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pl-3"
