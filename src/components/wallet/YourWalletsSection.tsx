@@ -296,7 +296,7 @@ function GenerateSeedForm({ onDone, onCancel }: { onDone: () => void; onCancel: 
 
   async function handleCreate() {
     if (!saved) { toast.error("Confirm you have written the seed down"); return; }
-    if (!passwordCheck.ok) { toast.error(passwordCheck.reason); return; }
+    if (!passwordCheck.ok) { toast.error(passwordCheck.problems.join("; ")); return; }
     setBusy(true);
     try {
       await addSeedAccount({ mnemonic: phrase, password, label });
