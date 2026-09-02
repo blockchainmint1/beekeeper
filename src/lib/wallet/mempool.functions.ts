@@ -46,6 +46,41 @@ export const mempoolAddressInfo = createServerFn({ method: "POST" })
     }
   });
 
+/** Batched address lookup: one round trip for up to 50 addresses. The indexer
+ *  calls are fanned out server-side (close to the indexer, no browser waterfall),
+ *  which is what makes the HD scan fast. Returns null when unconfigured/unhealthy
+ *  so callers fall back to the per-address path. */
+export const mempoolAddressInfoBatch = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      chainId: z.enum(["txc", "isk"]),
+      addresses: z.array(z.string().min(20).max(120)).min(1).max(50),
+    }),
+  )
+  .handler(async ({ data }): Promise<(MempoolAddressInfo | null)[] | null> => {
+    const { mempoolGet, mempoolApiBase } = await import("./mempool.server");
+    if (!mempoolApiBase(data.chainId)) return null;
+    const one = async (address: string): Promise<MempoolAddressInfo | null> => {
+      try {
+        const r = await mempoolGet<MempoolAddressInfo>(data.chainId, `/address/${address}`);
+        if (!r || typeof r !== "object" || !r.chain_stats) return null;
+        return r;
+      } catch {
+        return null;
+      }
+    };
+    // Modest concurrency so we never hammer the indexer.
+    const out: (MempoolAddressInfo | null)[] = [];
+    const size = 10;
+    for (let i = 0; i < data.addresses.length; i += size) {
+      const slice = data.addresses.slice(i, i + size);
+      out.push(...(await Promise.all(slice.map(one))));
+    }
+    return out;
+  });
+
+
+
 export const mempoolAddressUtxos = createServerFn({ method: "POST" })
   .inputValidator(chainInput)
   .handler(async ({ data }): Promise<MempoolUtxo[] | null> => {
