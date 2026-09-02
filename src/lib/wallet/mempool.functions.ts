@@ -20,6 +20,12 @@ export interface MempoolAddressInfo {
   chain_stats: AddressStats;
   mempool_stats: AddressStats;
 }
+export interface MempoolTx {
+  txid: string;
+  status: { confirmed: boolean; block_height?: number; block_time?: number };
+  vin: Array<{ prevout?: { scriptpubkey_address?: string; value: number } | null }>;
+  vout: Array<{ scriptpubkey_address?: string; scriptpubkey?: string; value: number }>;
+}
 export interface MempoolUtxo {
   txid: string;
   vout: number;
@@ -54,10 +60,10 @@ export const mempoolAddressUtxos = createServerFn({ method: "POST" })
 
 export const mempoolAddressTxs = createServerFn({ method: "POST" })
   .inputValidator(chainInput)
-  .handler(async ({ data }): Promise<unknown[] | null> => {
+  .handler(async ({ data }): Promise<MempoolTx[] | null> => {
     const { mempoolGet } = await import("./mempool.server");
     try {
-      const r = await mempoolGet<unknown[]>(data.chainId, `/address/${data.address}/txs`);
+      const r = await mempoolGet<MempoolTx[]>(data.chainId, `/address/${data.address}/txs`);
       return Array.isArray(r) ? r : null;
     } catch {
       return null;
