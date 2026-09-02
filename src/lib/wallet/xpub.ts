@@ -1,10 +1,9 @@
 // Extended public key derivation for every chain.
 // Safe to share — only derives addresses, never spends.
 import { HDKey } from "@scure/bip32";
-import type { ChainConfig, UtxoChain } from "@/lib/chains";
+import type { ChainConfig, TronChain, UtxoChain } from "@/lib/chains";
 import { mnemonicToSeed } from "./seed";
 import { evmAccountXpub } from "./evm";
-import { deriveTronAccount } from "./tron";
 import { deriveSolanaAccount } from "./solana";
 
 /** Strip trailing `/0` (change chain) from the BIP44/84 base to get the account path. */
