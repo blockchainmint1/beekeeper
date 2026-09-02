@@ -177,15 +177,10 @@ export function SendDialog({
       if (omniToken) {
         if (omniBalance != null) setAmount(omniBalance);
       } else if (chain.kind === "utxo" && account.kind === "utxo") {
-        const utxos = await esplora.addressUtxos(chain, account.account.address);
-        const confirmed = utxos.filter((u) => u.status.confirmed);
-        const totalSats = confirmed.reduce((s, u) => s + u.value, 0);
-        // crude fee estimate: 11 + 68*nIn + 34*2
-        const est = 11 + 68 * confirmed.length + 34 * 2;
+        // Max across the whole HD wallet, not just the first address.
+        const { coins } = await collectSpendableCoins(mnemonic, chain as UtxoChain);
         const rate = await estimateFeeRate(chain);
-        const fee = Math.max(est * rate, 250);
-        const max = Math.max(0, totalSats - fee);
-        setAmount(satsToCoin(max, chain.decimals));
+        setAmount(satsToCoin(maxSpendableSats(coins, rate), chain.decimals));
       } else if (evmChain && account.kind === "evm") {
         if (token) {
           const raw = await erc20Balance(evmChain, token, account.account.address);
