@@ -5,15 +5,13 @@
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Eye, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Eye, QrCode, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { CHAIN_LIST, getChain, type ChainId } from "@/lib/chains";
+import { QrScanDialog } from "@/components/wallet/QrScanDialog";
+import { parsePaymentUri } from "@/lib/wallet/payment-uri";
 import {
   addWatchOnly, removeWatchOnly, useWatchOnly, validateWatchAddress,
   watchOnlyBalance, watchableChain, type WatchOnlyEntry,
@@ -24,23 +22,36 @@ const chains = CHAIN_LIST.filter(watchableChain);
 
 export function WatchOnlyCard() {
   const entries = useWatchOnly();
-  const [chainId, setChainId] = useState<ChainId>(chains[0]?.id ?? "btc");
-  const [address, setAddress] = useState("");
-  const [label, setLabel] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function add() {
+  /** Figure out which chain a scanned address belongs to, then store it. */
+  async function handleScan(text: string) {
+    setScanOpen(false);
     setBusy(true);
     try {
-      const ok = await validateWatchAddress(chainId, address);
-      if (!ok) {
-        toast.error(`That isn't a valid ${getChain(chainId).ticker} address`);
-        return;
+      let address = text.trim();
+      let hinted: ChainId | null = null;
+      try {
+        const parsed = parsePaymentUri(text);
+        if (parsed.address) address = parsed.address.trim();
+        if (parsed.chain && watchableChain(parsed.chain)) hinted = parsed.chain.id;
+      } catch {
+        /* fall back to the raw scan */
       }
-      addWatchOnly({ chainId, address, label });
-      setAddress("");
-      setLabel("");
-      toast.success("Watch-only address added");
+
+      const order = hinted
+        ? [hinted, ...chains.map((c) => c.id).filter((id) => id !== hinted)]
+        : chains.map((c) => c.id);
+
+      for (const id of order) {
+        if (await validateWatchAddress(id, address)) {
+          addWatchOnly({ chainId: id, address, label: `${getChain(id).ticker} cold storage` });
+          toast.success(`Watching this ${getChain(id).ticker} address`);
+          return;
+        }
+      }
+      toast.error("That QR doesn't contain an address we can watch");
     } finally {
       setBusy(false);
     }
@@ -53,41 +64,19 @@ export function WatchOnlyCard() {
           <Eye className="h-5 w-5" /> Watch-only addresses
         </CardTitle>
         <CardDescription>
-          Track a cold storage coin or paper wallet by address. Read-only — no key ever leaves the
-          coin, and these balances cannot be spent from here.
+          Scan the public address QR on a cold storage coin or paper wallet to track it. Read-only —
+          no key ever leaves the coin, and these balances cannot be spent from here.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <Select value={chainId} onValueChange={(v) => setChainId(v as ChainId)}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {chains.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.ticker}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={address}
-            placeholder="Public address"
-            spellCheck={false}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={label}
-            placeholder="Label (e.g. Copper coin #4)"
-            onChange={(e) => setLabel(e.target.value)}
-          />
-          <Button onClick={add} disabled={busy || !address.trim()} size="icon" aria-label="Add watch-only address">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button onClick={() => setScanOpen(true)} disabled={busy} className="w-full">
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+          Scan address QR
+        </Button>
 
         {entries.length === 0 ? (
           <p className="text-[11px] text-muted-foreground">
-            Nothing watched yet. Paste the address printed on a coin to keep an eye on it.
+            Nothing watched yet. Scan the address printed on a coin to keep an eye on it.
           </p>
         ) : (
           <div className="space-y-1.5">
@@ -97,9 +86,18 @@ export function WatchOnlyCard() {
           </div>
         )}
       </CardContent>
+
+      <QrScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        title="Scan a public address"
+        description="Point your camera at the public address QR on the outside of the coin or paper wallet."
+        onResult={(text) => void handleScan(text)}
+      />
     </Card>
   );
 }
+
 
 function WatchRow({ entry }: { entry: WatchOnlyEntry }) {
   const chain = getChain(entry.chainId);
