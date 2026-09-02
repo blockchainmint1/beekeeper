@@ -58,6 +58,8 @@
 import { CHAINS, getChain, type ChainConfig, type ChainId, type UtxoChain } from "@/lib/chains";
 import { utxoAccountXpub, chainAccountXpub } from "./xpub";
 import { deriveUtxoAccount } from "./utxo";
+import { deriveTronAccount } from "./tron";
+import { deriveSolanaAccount } from "./solana";
 import { utxoSignMessage } from "./signing";
 
 // Stable order — used by canonicalJson and by Nectar's verifier.
