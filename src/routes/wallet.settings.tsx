@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
-  QrCode, Share2, ShieldCheck, Trash2, Wallet,
+  Share2, ShieldCheck, Trash2, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
