@@ -58,10 +58,24 @@
 import { CHAINS, getChain, type ChainConfig, type ChainId, type UtxoChain } from "@/lib/chains";
 import { utxoAccountXpub, chainAccountXpub } from "./xpub";
 import { deriveUtxoAccount } from "./utxo";
+import { deriveTronAccount } from "./tron";
+import { deriveSolanaAccount } from "./solana";
 import { utxoSignMessage } from "./signing";
 
 // Stable order — used by canonicalJson and by Nectar's verifier.
-export const NECTAR_CHAINS = ["BTC", "TXC", "EVM", "LTC", "BCH", "TRX", "DOGE", "DASH"] as const;
+export const NECTAR_CHAINS = [
+  "BTC",
+  "TXC",
+  "EVM",
+  "LTC",
+  "BCH",
+  "TRX",
+  "DOGE",
+  "DASH",
+  "ISK",
+  "SOL",
+  "ZCU",
+] as const;
 export type NectarChainKey = (typeof NECTAR_CHAINS)[number];
 
 /** Maps a Nectar chain key to the wallet's local ChainConfig id, or null when
@@ -75,6 +89,11 @@ export const NECTAR_TO_LOCAL: Record<NectarChainKey, ChainId | null> = {
   TRX: "trx",
   DOGE: "doge",
   DASH: "dash",
+  ISK: "isk",
+  SOL: "sol",
+  // Zero Chill is EVM — same m/44'/60' account key as EVM, sent separately so
+  // Nectar can enable it per-chain without inferring from the EVM key.
+  ZCU: "zchl",
 };
 
 export interface NectarLinkRequest {
@@ -374,6 +393,14 @@ function deriveXpubFor(mnemonic: string, key: NectarChainKey): string {
   const chain = getChain(localId);
   if (chain.kind === "utxo") {
     return utxoAccountXpub(mnemonic, chain as UtxoChain).xpub;
+  }
+  if (chain.kind === "tron") {
+    // TRON has no BIP32 xpub Nectar can watch — hand over the account address.
+    return deriveTronAccount(mnemonic, chain, 0).address;
+  }
+  if (chain.kind === "solana") {
+    // Solana likewise: the account address is the watchable identifier.
+    return deriveSolanaAccount(mnemonic, chain, 0).address;
   }
   return chainAccountXpub(mnemonic, chain as ChainConfig).xpub;
 }
