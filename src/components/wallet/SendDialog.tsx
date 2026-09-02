@@ -96,6 +96,7 @@ export function SendDialog({
 }) {
   const [to, setTo] = useState(initialTo ?? "");
   const [amount, setAmount] = useState(initialAmount ?? "");
+  const { mnemonic } = useWalletSession();
 
   const [busy, setBusy] = useState(false);
   const [txid, setTxid] = useState<string | null>(null);
