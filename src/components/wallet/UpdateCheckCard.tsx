@@ -51,6 +51,10 @@ export function UpdateCheckCard() {
             Download APK
           </a>
         </Button>
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className="text-muted-foreground">Key storage</span>
+          <span>Encrypted vault, this device only</span>
+        </div>
         <p className="break-all text-[11px] leading-relaxed text-muted-foreground">
           SHA-256 {apkRelease.sha256}
         </p>

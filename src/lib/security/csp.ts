@@ -53,6 +53,10 @@ const CONNECT_HOSTS = [
   // Price feeds used client-side as a fallback.
   "https://api.coingecko.com",
   "https://api.coinbase.com",
+  // ISK / wISK on-chain price feed (Uniswap V3 wISK/USDC pool).
+  "https://wrap.iskandercoin.com",
+  "https://wzcu.zerochill.com",
+  "https://project--3c367caa-8e24-4dc8-88e7-68ee6b6ac8cf.lovable.app",
 ];
 
 /** Hosts allowed to serve fonts/styles. */
