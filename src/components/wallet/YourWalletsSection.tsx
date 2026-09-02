@@ -12,7 +12,6 @@ import {
   Repeat,
   Trash2,
   QrCode,
-  ChevronRight,
   ExternalLink,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -66,6 +65,7 @@ const watchChains = CHAIN_LIST.filter(watchableChain);
 type SeedMode = "idle" | "generate" | "import";
 
 export function YourWalletsSection() {
+  const [watchExpanded, setWatchExpanded] = useState(false);
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
@@ -73,8 +73,8 @@ export function YourWalletsSection() {
         password unlocks them all.
       </p>
       <SeedList />
-      <SeedActions />
-      <WatchOnlyBlock />
+      <SeedActions onToggleWatch={() => setWatchExpanded((v) => !v)} />
+      <WatchOnlyBlock expanded={watchExpanded} onToggle={() => setWatchExpanded((v) => !v)} />
       <p className="text-[11px] text-muted-foreground">
         Private keys and watch-only addresses are added to your active wallet as their own tiles.
         Removing a wallet here only forgets it on this device — your seed phrase or coin is still the backup.
@@ -259,7 +259,7 @@ function SeedList() {
   );
 }
 
-function SeedActions() {
+function SeedActions({ onToggleWatch }: { onToggleWatch: () => void }) {
   const [mode, setMode] = useState<SeedMode>("idle");
 
   return (
@@ -276,7 +276,7 @@ function SeedActions() {
             <KeyRound className="mr-2 h-4 w-4" /> Import private key
           </Button>
         </Link>
-        <Button variant="outline" className="w-full" onClick={() => { /* watch-only is inline below */ }}>
+        <Button variant="outline" className="w-full" onClick={onToggleWatch}>
           <Eye className="mr-2 h-4 w-4" /> Watch-only address
         </Button>
       </div>
@@ -430,13 +430,12 @@ function ImportSeedForm({ onDone, onCancel }: { onDone: () => void; onCancel: ()
   );
 }
 
-function WatchOnlyBlock() {
+function WatchOnlyBlock({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   const entries = useWatchOnly();
   const [chainId, setChainId] = useState<ChainId>(watchChains[0]?.id ?? "btc");
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
-  const [expanded, setExpanded] = useState(entries.length === 0);
 
   async function add() {
     setBusy(true);
@@ -459,11 +458,9 @@ function WatchOnlyBlock() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Watch-only addresses</p>
-        {entries.length > 0 && (
-          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setExpanded((v) => !v)}>
-            {expanded ? "Hide" : "Manage"}
-          </Button>
-        )}
+        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={onToggle}>
+          {expanded ? "Hide" : "Manage"}
+        </Button>
       </div>
       {expanded && (
         <div className="space-y-2">
