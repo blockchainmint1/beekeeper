@@ -130,7 +130,7 @@ function SignTab() {
 }
 
 function VerifyTab() {
-  const [chainId, setChainId] = useState<string>(CHAIN_LIST[0].id);
+  const [chainId, setChainId] = useState<string>("txc");
   const [address, setAddress] = useState("");
   const [message, setMessage] = useState("");
   const [signature, setSignature] = useState("");
