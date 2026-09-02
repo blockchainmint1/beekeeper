@@ -254,8 +254,19 @@ async function esploraGet<T>(chain: UtxoChain, path: string): Promise<T> {
 }
 
 
+/** TXC/ISK Esplora indexer first — orders of magnitude faster than node RPC. */
+const INDEXED = new Set(["txc", "isk"]);
+type IndexedChainId = "txc" | "isk";
+
 export const esplora = {
   addressInfo: async (chain: UtxoChain, a: string): Promise<AddressInfo> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressInfo } = await import("./mempool.functions");
+      const idx = await mempoolAddressInfo({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressInfo } = await import("./isk.functions");
       return iskAddressInfo({ data: { address: a } });
@@ -285,6 +296,13 @@ export const esplora = {
     return esploraGet<AddressInfo>(chain, `/address/${a}`);
   },
   addressUtxos: async (chain: UtxoChain, a: string): Promise<EsploraUtxo[]> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressUtxos } = await import("./mempool.functions");
+      const idx = await mempoolAddressUtxos({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressUtxos } = await import("./isk.functions");
       return iskAddressUtxos({ data: { address: a } });
@@ -303,6 +321,13 @@ export const esplora = {
     return esploraGet<EsploraUtxo[]>(chain, `/address/${a}/utxo`);
   },
   addressTxs: async (chain: UtxoChain, a: string): Promise<unknown[]> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolAddressTxs } = await import("./mempool.functions");
+      const idx = await mempoolAddressTxs({
+        data: { chainId: chain.id as IndexedChainId, address: a },
+      });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskAddressTxs } = await import("./isk.functions");
       return iskAddressTxs({ data: { address: a } });
@@ -321,6 +346,11 @@ export const esplora = {
     return esploraGet<unknown[]>(chain, `/address/${a}/txs`);
   },
   txHex: async (chain: UtxoChain, txid: string): Promise<string> => {
+    if (INDEXED.has(chain.id)) {
+      const { mempoolTxHex } = await import("./mempool.functions");
+      const idx = await mempoolTxHex({ data: { chainId: chain.id as IndexedChainId, txid } });
+      if (idx) return idx;
+    }
     if (chain.id === "isk") {
       const { iskTxHex } = await import("./isk.functions");
       return iskTxHex({ data: { txid } });
@@ -338,6 +368,7 @@ export const esplora = {
     }
     return esploraGet<string>(chain, `/tx/${txid}/hex`);
   },
+
   async broadcast(chain: UtxoChain, rawHex: string): Promise<string> {
     if (chain.id === "isk") {
       const { iskBroadcast } = await import("./isk.functions");
