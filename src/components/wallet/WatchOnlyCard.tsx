@@ -130,7 +130,7 @@ function WatchRow({ entry }: { entry: WatchOnlyEntry }) {
       </div>
       <div className="shrink-0 text-right">
         <div className="tabular text-sm font-semibold">
-          {hidden ? maskAmount() : amount} {chain.ticker}
+          {maskAmount(amount, hidden)} {chain.ticker}
         </div>
       </div>
       <a
