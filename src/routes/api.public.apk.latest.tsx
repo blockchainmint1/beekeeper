@@ -19,14 +19,13 @@ export const Route = createFileRoute("/api/public/apk/latest")({
             sha256: apkRelease.sha256,
             sizeBytes: apkRelease.sizeBytes,
             sizeLabel: apkSizeLabel(),
-            downloadUrl: "https://beekeeper.money/api/public/apk",
+            downloadUrl: `https://beekeeper.money/api/public/apk?v=${encodeURIComponent(apkRelease.version)}`,
           }),
           {
             status: 200,
             headers: {
               "content-type": "application/json",
-              // Short cache: new pins must show up quickly.
-              "cache-control": "public, max-age=60",
+              "cache-control": "no-store, max-age=0",
               "access-control-allow-origin": "*",
             },
           },
