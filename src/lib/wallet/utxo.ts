@@ -184,7 +184,8 @@ export async function scanUtxoHd(
 
   const record = (address: string, i: number, change: boolean, info: AddressInfo) => {
     const sats = addressBalanceSats(info).total;
-    const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
+    const st = addressStats(info);
+    const txCount = st.chain.tx_count + st.mempool.tx_count;
     if (txCount > 0 || sats > 0) {
       active.push({ address, index: i, change, type: effectiveType, sats, txCount });
       totalSats += sats;
@@ -487,9 +488,28 @@ export const esplora = {
 };
 
 
-export function addressBalanceSats(info: AddressInfo) {
-  const confirmed = info.chain_stats.funded_txo_sum - info.chain_stats.spent_txo_sum;
-  const unconfirmed = info.mempool_stats.funded_txo_sum - info.mempool_stats.spent_txo_sum;
+/** Providers vary in shape and occasionally omit a stats block entirely. Treat a
+ *  missing block as zeros rather than throwing — a single odd reply must never
+ *  take down a whole HD scan and leave every chain looking empty. */
+function statsOf(s: unknown): { funded_txo_sum: number; spent_txo_sum: number; tx_count: number } {
+  const o = (s ?? {}) as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    funded_txo_sum: n(o["funded_txo_sum"]),
+    spent_txo_sum: n(o["spent_txo_sum"]),
+    tx_count: n(o["tx_count"]),
+  };
+}
+
+export function addressStats(info: AddressInfo | null | undefined) {
+  const i = (info ?? {}) as Partial<AddressInfo>;
+  return { chain: statsOf(i.chain_stats), mempool: statsOf(i.mempool_stats) };
+}
+
+export function addressBalanceSats(info: AddressInfo | null | undefined) {
+  const { chain, mempool } = addressStats(info);
+  const confirmed = chain.funded_txo_sum - chain.spent_txo_sum;
+  const unconfirmed = mempool.funded_txo_sum - mempool.spent_txo_sum;
   return { confirmed, unconfirmed, total: confirmed + unconfirmed };
 }
 

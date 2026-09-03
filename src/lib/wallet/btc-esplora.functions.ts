@@ -14,17 +14,14 @@ export interface AddressInfoOut {
   mempool_stats: AddressStatsOut;
 }
 
-const EMPTY = (address: string): AddressInfoOut => ({
-  address,
-  chain_stats: { funded_txo_sum: 0, spent_txo_sum: 0, tx_count: 0 },
-  mempool_stats: { funded_txo_sum: 0, spent_txo_sum: 0, tx_count: 0 },
-});
-
 /**
  * Bitcoin address stats fetched server-side so browsers never hit
  * mempool.space CORS and so a rate-limited fallback can't blank the page.
- * mempool.space (keyless) is primary; BlockCypher is a last resort; an
- * all-providers-failed result degrades to zeros instead of throwing.
+ * mempool.space (keyless) is primary, then blockstream.info, then BlockCypher.
+ *
+ * If every provider fails this THROWS. Never return zeros here: a zero is
+ * indistinguishable from an empty address, so an outage would look like a
+ * drained wallet and would also let the HD scan's gap counter run out early.
  */
 export const btcEsploraAddressInfo = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) => addressInput.parse(data))
@@ -65,6 +62,6 @@ export const btcEsploraAddressInfo = createServerFn({ method: "GET" })
         },
       };
     } catch {
-      return EMPTY(address);
+      throw new Error("BTC balance providers are unavailable");
     }
   });
