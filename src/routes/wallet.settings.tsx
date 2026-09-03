@@ -11,6 +11,7 @@ import { DeepRescanCard } from "@/components/wallet/DeepRescanCard";
 import { FeaturesCard } from "@/components/wallet/FeaturesCard";
 import { CustomTokensCard } from "@/components/wallet/CustomTokensCard";
 import { UpdateCheckCard } from "@/components/wallet/UpdateCheckCard";
+import { ConnectionDiagnosticsCard } from "@/components/wallet/ConnectionDiagnosticsCard";
 import { TsdCashoutKeyCard } from "@/components/wallet/TsdCashoutKeyCard";
 import { YourWalletsSection } from "@/components/wallet/YourWalletsSection";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
@@ -51,6 +52,8 @@ function SettingsPage() {
         <SecurityCheckupCard />
 
         <UpdateCheckCard />
+
+        <ConnectionDiagnosticsCard />
 
         <SettingsCard
           icon={Wallet}
