@@ -156,6 +156,18 @@ export async function fetchHistory(chain: ChainConfig, address: string): Promise
   return [];
 }
 
+/** Like `fetchHistory`, but UTXO chains aggregate across every owned HD address. */
+export async function fetchHistoryMulti(
+  chain: ChainConfig,
+  addresses: string[],
+): Promise<HistoryItem[]> {
+  if (chain.kind === "utxo") return fetchUtxoHistoryMulti(chain as UtxoChain, addresses);
+  const first = addresses.find(Boolean);
+  if (!first) return [];
+  return fetchHistory(chain, first);
+}
+
+
 export function hasNativeHistory(chain: ChainConfig): boolean {
   if (chain.kind === "utxo" || chain.kind === "tron" || chain.kind === "solana") return true;
   // EVM chains covered by Alchemy get in-app history too.
