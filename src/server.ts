@@ -75,7 +75,10 @@ function withSecurityHeaders(response: Response): Response {
  */
 const NATIVE_ORIGINS = new Set([
   "https://beekeeper.honest.money",
+  "https://beekeeper.money",
+  "https://www.beekeeper.money",
   "https://localhost",
+  "http://localhost",
   "capacitor://localhost",
   "ionic://localhost",
 ]);
