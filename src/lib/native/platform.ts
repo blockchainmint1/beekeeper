@@ -29,7 +29,12 @@ export async function installedAppVersion(fallback: string): Promise<string> {
   try {
     const { App } = await import("@capacitor/app");
     const info = await App.getInfo();
-    return info.version || fallback;
+    // Older Beekeeper workflows stamped every shell as Capacitor's default
+    // 1.0.0 even though the bundled release metadata was correct.
+    if (!info.version || (info.version === "1.0.0" && fallback !== "1.0.0")) {
+      return fallback;
+    }
+    return info.version;
   } catch {
     return fallback;
   }
