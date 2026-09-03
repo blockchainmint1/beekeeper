@@ -62,6 +62,6 @@ export const btcEsploraAddressInfo = createServerFn({ method: "GET" })
         },
       };
     } catch {
-      return EMPTY(address);
+      throw new Error("BTC balance providers are unavailable");
     }
   });
