@@ -195,6 +195,9 @@ async function loadChainAsset(
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
+  // Every cache key is seed-scoped: switching wallets must never serve the
+  // previous seed's derived addresses or balances from cache.
+  const seedKey = useMemo(() => (mnemonic ? vaultFingerprint(mnemonic) : ""), [mnemonic]);
   const visibleIds = useVisibleChainIds();
   const scanGap = useScanGap();
   const visibleChains = useMemo(
