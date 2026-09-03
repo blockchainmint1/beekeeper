@@ -72,9 +72,11 @@ export const iskAddressInfo = createServerFn({ method: "POST" })
   .inputValidator(addressInput)
   .handler(async ({ data }): Promise<AddressInfoOut> => {
     const bal = (await tryGetAddressBalance(data.address)) ?? (await tryScanTxOutSet(data.address));
+    // Fail loudly rather than reporting a zero balance we didn't actually verify.
+    if (!bal) throw new Error("ISK balance providers are unavailable");
     const txCount = await tryGetAddressTxCount(data.address);
-    const funded = bal?.received ?? 0;
-    const balance = bal?.balance ?? 0;
+    const funded = bal.received;
+    const balance = bal.balance;
     const spent = Math.max(0, funded - balance);
     return {
       address: data.address,
