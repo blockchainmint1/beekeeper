@@ -26,3 +26,7 @@
 - [ ] H3: bind biometric unlock to an OS access-control flag (keychain / Keystore) instead of app-gated secure storage
 - [ ] Argon2id KDF migration (envelope already versioned)
 - [ ] L1: render seed words only on explicit reveal, clear from React state on unmount
+
+## Native APK
+- [x] Fix CORS preflight so server functions work in the Android/iOS shell (missing x-tss-*/x-tsr-server allow-headers)
+- [ ] Ship new APK and verify balances + history on device
