@@ -16,7 +16,7 @@ import {
 import { useSecurityPrefs } from "@/lib/wallet/security";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
-export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; onReset: () => void }) {
+export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: (mnemonic: string) => void; onReset: () => void }) {
   const [pass, setPass] = useState("");
   const [busy, setBusy] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
@@ -60,8 +60,8 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   async function handle() {
     setBusy(true);
     try {
-      await unlockVault(pass);
-      onUnlocked();
+      const mnemonic = await unlockVault(pass);
+      onUnlocked(mnemonic);
     } catch {
       toast.error("Incorrect password");
     } finally {
@@ -76,7 +76,7 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
       if (!pw) return;
       const mnemonic = await unlockVault(pw);
       cacheMnemonic(mnemonic);
-      onUnlocked();
+      onUnlocked(mnemonic);
     } catch {
       toast.error("Biometric unlock failed — use your password");
     } finally {

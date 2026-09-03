@@ -10,6 +10,7 @@
 - [ ] Scribble pad
 - [ ] Deep-rescan reservation release
 - [x] Fix new-seed balance discovery plus TXC price and transaction-history failures
+- [x] Fix active seed handoff into the unlocked wallet session
 
 ## Security hardening (parity with HME SECURITY-AUDIT.md)
 - [x] Full CSP with an explicit `connect-src` host allowlist (`src/lib/security/csp.ts`, served from `src/server.ts`)
