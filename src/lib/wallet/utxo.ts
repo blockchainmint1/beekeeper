@@ -600,3 +600,228 @@ export function coinToSats(amount: string, decimals = 8): number {
   if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Amount too large");
   return Number(total);
 }
+/* ─────────── wallet-wide spendable coins (never "no UTXOs" again) ─────────── */
+
+export interface SpendableCoin extends EsploraUtxo {
+  address: string;
+  index: number;
+  change: boolean;
+  type: AddressType;
+  publicKey: Uint8Array;
+  privateKey: Uint8Array;
+}
+
+/** Derive the key material for one HD leaf of a UTXO chain. */
+export async function deriveUtxoLeaf(
+  mnemonic: string,
+  chain: UtxoChain,
+  opts: { change: boolean; index: number; type?: AddressType },
+): Promise<{ address: string; publicKey: Uint8Array; privateKey: Uint8Array; type: AddressType }> {
+  const { bitcoin } = await getLibs();
+  const requested = opts.type ?? chain.defaultAddressType;
+  const type: AddressType = chain.cashAddrPrefix ? "legacy" : requested;
+  const baseWithChain = type === "segwit" ? chain.bip84Base : chain.bip44Base;
+  const accountBase = baseWithChain.replace(/\/0$/, "");
+  const seed = mnemonicToSeed(mnemonic);
+  const root = HDKey.fromMasterSeed(seed);
+  const node = root.derive(`${accountBase}/${opts.change ? 1 : 0}/${opts.index}`);
+  if (!node.privateKey || !node.publicKey) throw new Error("No private key derived");
+  let address = addressFor(bitcoin, node.publicKey, type, chain);
+  if (chain.cashAddrPrefix) {
+    try { address = toCashAddr(address); } catch { /* keep legacy */ }
+  }
+  return { address, publicKey: node.publicKey, privateKey: node.privateKey, type };
+}
+
+/**
+ * Every coin this seed can spend on `chain`, across the whole HD tree
+ * (receive + change, both address kinds where the chain supports them),
+ * minus coins a recent broadcast of ours already consumed.
+ *
+ * This is what removes the "no confirmed UTXOs to spend" class of problem:
+ * funds that landed on a rotating receive address, or change that came back to
+ * an internal address, are spendable like anything else.
+ */
+export async function collectSpendableCoins(
+  mnemonic: string,
+  chain: UtxoChain,
+  opts: {
+    type?: AddressType;
+    /** Include our own unconfirmed coins (change from a tx we just made). */
+    includeUnconfirmed?: boolean;
+    gapLimit?: number;
+    maxIndex?: number;
+    minIndex?: number;
+  } = {},
+): Promise<{ coins: SpendableCoin[]; totalSats: number; confirmedSats: number }> {
+  const { filterReserved } = await import("./spent-outpoints");
+  const includeUnconfirmed = opts.includeUnconfirmed ?? true;
+  const scan = await scanUtxoHd(mnemonic, chain, {
+    type: opts.type,
+    gapLimit: opts.gapLimit,
+    maxIndex: opts.maxIndex,
+    minIndex: opts.minIndex,
+  });
+  const funded = scan.active.filter((a) => a.sats > 0);
+
+  const coins: SpendableCoin[] = [];
+  const CONCURRENCY = 6;
+  for (let i = 0; i < funded.length; i += CONCURRENCY) {
+    const slice = funded.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      slice.map(async (a) => {
+        try {
+          const [utxos, leaf] = await Promise.all([
+            esplora.addressUtxos(chain, a.address),
+            deriveUtxoLeaf(mnemonic, chain, { change: a.change, index: a.index, type: a.type }),
+          ]);
+          return { a, utxos: utxos ?? [], leaf };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const r of results) {
+      if (!r) continue;
+      for (const u of r.utxos) {
+        coins.push({
+          ...u,
+          address: r.a.address,
+          index: r.a.index,
+          change: r.a.change,
+          type: r.leaf.type,
+          publicKey: r.leaf.publicKey,
+          privateKey: r.leaf.privateKey,
+        });
+      }
+    }
+  }
+
+  const usable = filterReserved(chain.id, coins).filter(
+    (c) => c.status.confirmed || includeUnconfirmed,
+  );
+  const totalSats = usable.reduce((s, c) => s + c.value, 0);
+  const confirmedSats = usable
+    .filter((c) => c.status.confirmed)
+    .reduce((s, c) => s + c.value, 0);
+  return { coins: usable, totalSats, confirmedSats };
+}
+
+function coinVBytes(coins: { type: AddressType }[], extraOutputs = 0, dataBytes = 0): number {
+  const inputs = coins.reduce((s, c) => s + inputVBytes(c.type), 0);
+  return 11 + inputs + 34 * (2 + extraOutputs) + (dataBytes ? dataBytes + 12 : 0);
+}
+
+/** Largest-first selection that accounts for the fee each extra input adds. */
+export function selectCoins(
+  coins: SpendableCoin[],
+  amountSats: number,
+  feeRate: number,
+  dataBytes = 0,
+): { picked: SpendableCoin[]; feeSats: number } {
+  // Confirmed first (safer), then unconfirmed; largest value first inside each.
+  const sorted = [...coins].sort((a, b) => {
+    if (a.status.confirmed !== b.status.confirmed) return a.status.confirmed ? -1 : 1;
+    return b.value - a.value;
+  });
+  const picked: SpendableCoin[] = [];
+  let total = 0;
+  for (const c of sorted) {
+    picked.push(c);
+    total += c.value;
+    const fee = Math.max(coinVBytes(picked, 0, dataBytes) * feeRate, 250);
+    if (total >= amountSats + fee) return { picked, feeSats: fee };
+  }
+  const fee = Math.max(coinVBytes(picked, 0, dataBytes) * feeRate, 250);
+  return { picked, feeSats: fee };
+}
+
+/** Total spendable after fees if everything were swept to one output. */
+export function maxSpendableSats(coins: SpendableCoin[], feeRate: number): number {
+  if (coins.length === 0) return 0;
+  const fee = Math.max(coinVBytes(coins) * feeRate, 250);
+  const total = coins.reduce((s, c) => s + c.value, 0);
+  return Math.max(0, total - fee);
+}
+
+/**
+ * Build and sign from coins spread across many HD addresses, each with its own
+ * key. Change goes back to `changeAddress`.
+ */
+export async function buildAndSignCoins(args: {
+  chain: UtxoChain;
+  coins: SpendableCoin[];
+  toAddress: string;
+  amountSats: number;
+  feeSats: number;
+  changeAddress: string;
+  opReturnData?: Uint8Array;
+}): Promise<{ hex: string; feeSats: number; inputs: { txid: string; vout: number }[] }> {
+  const { bitcoin, ecc } = await getLibs();
+  const { chain, coins, toAddress, amountSats, feeSats, changeAddress, opReturnData } = args;
+  if (coins.length === 0) throw new Error("No coins available to spend");
+  if (chain.forkId !== undefined) {
+    throw new Error(
+      `${chain.ticker} send is not yet supported in this build. ` +
+        `Receive, balance, history, and message signing all work.`,
+    );
+  }
+
+  const normalizedTo = chain.cashAddrPrefix ? toLegacyBch(toAddress) : toAddress;
+  const normalizedChange = chain.cashAddrPrefix ? toLegacyBch(changeAddress) : changeAddress;
+
+  const prevHexes = await Promise.all(
+    coins.map(async (c) =>
+      c.type === "segwit" ? null : esplora.txHex(chain, c.txid),
+    ),
+  );
+
+  const psbt = new bitcoin.Psbt({ network: chain.network });
+  coins.forEach((c, i) => {
+    if (c.type === "segwit") {
+      psbt.addInput({
+        hash: c.txid,
+        index: c.vout,
+        witnessUtxo: {
+          script: scriptFor(bitcoin, c.publicKey, "segwit", chain),
+          value: BigInt(c.value),
+        },
+      });
+    } else {
+      psbt.addInput({
+        hash: c.txid,
+        index: c.vout,
+        nonWitnessUtxo: hexToBytes(prevHexes[i]!),
+      });
+    }
+  });
+
+  const totalIn = coins.reduce((s, c) => s + c.value, 0);
+  const change = totalIn - amountSats - feeSats;
+  if (change < 0) throw new Error("Insufficient funds for amount + fee");
+
+  if (opReturnData) {
+    const embed = bitcoin.payments.embed({ data: [opReturnData] });
+    if (!embed.output) throw new Error("Failed to build OP_RETURN output");
+    psbt.addOutput({ script: embed.output, value: 0n });
+  }
+  psbt.addOutput({ address: normalizedTo, value: BigInt(amountSats) });
+  if (change >= chain.dustSats) {
+    psbt.addOutput({ address: normalizedChange, value: BigInt(change) });
+  }
+
+  for (let i = 0; i < coins.length; i++) {
+    const c = coins[i]!;
+    psbt.signInput(i, {
+      publicKey: c.publicKey,
+      sign: (hash: Uint8Array) => new Uint8Array(ecc.sign(hash, c.privateKey)),
+    } as never);
+  }
+  psbt.finalizeAllInputs();
+  const tx = psbt.extractTransaction();
+  return {
+    hex: tx.toHex(),
+    feeSats,
+    inputs: coins.map((c) => ({ txid: c.txid, vout: c.vout })),
+  };
+}

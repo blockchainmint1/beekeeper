@@ -230,21 +230,23 @@ export function switchSeedAccount(id: string): void {
   localStorage.removeItem(NECTAR_LINK_KEY);
 }
 
-/** Removes a stored seed. Cannot remove the last one — use the danger zone. */
+/**
+ * Removes a stored seed. Cannot remove the last one — use the danger zone —
+ * and cannot remove the seed that's currently active: switch to another wallet
+ * first, so you never get locked out of an unlocked session.
+ */
 export function removeSeedAccount(id: string): void {
   const reg = ensureRegistry();
   if (reg.accounts.length <= 1) {
     throw new Error("This is your only seed — use Danger zone to erase the wallet");
   }
-  const remaining = reg.accounts.filter((a) => a.id !== id);
-  const wasActive = reg.activeId === id;
-  write({ accounts: remaining, activeId: wasActive ? remaining[0].id : reg.activeId });
-  if (wasActive) {
-    saveVault(remaining[0].blob);
-    clearCachedMnemonic();
-    localStorage.removeItem(FP_KEY);
-    localStorage.removeItem(NECTAR_LINK_KEY);
+  if (reg.activeId === id) {
+    throw new Error(
+      "This is your active wallet — switch to another wallet first, then remove this one",
+    );
   }
+  const remaining = reg.accounts.filter((a) => a.id !== id);
+  write({ accounts: remaining, activeId: reg.activeId });
 }
 
 /** Verifies a password unlocks a stored seed without switching to it. */
