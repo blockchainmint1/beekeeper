@@ -10,6 +10,7 @@ import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { MetalWalletCard, type CardAction } from "./MetalWalletCard";
 import { getChainLabel, useChainLabelVersion } from "@/lib/wallet/chain-labels";
+import { vaultFingerprint } from "@/lib/wallet/seed";
 import { Send, ArrowDownToLine, History as HistoryIcon } from "lucide-react";
 
 export function MetalWalletCardConnected({
@@ -34,9 +35,11 @@ export function MetalWalletCardConnected({
   void labelVersion;
 
   const gap = useScanGap();
+  // Seed-scoped keys: a wallet switch must not reuse the old seed's cache.
+  const seedKey = mnemonic ? vaultFingerprint(mnemonic) : "";
 
   const accountQuery = useQuery({
-    queryKey: ["account", chain.id],
+    queryKey: ["account", seedKey, chain.id],
     queryFn: async () => {
       if (chain.kind === "utxo") {
         return { kind: "utxo" as const, account: await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType) };
@@ -54,7 +57,7 @@ export function MetalWalletCardConnected({
   });
 
   const balQuery = useQuery({
-    queryKey: ["balance", chain.id, accountQuery.data?.account.address, gap],
+    queryKey: ["balance", seedKey, chain.id, accountQuery.data?.account.address, gap],
     enabled: !!accountQuery.data,
     refetchInterval: 60_000,
     retry: 1,

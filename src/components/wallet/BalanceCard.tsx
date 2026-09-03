@@ -9,6 +9,7 @@ import { deriveEvmAccount, evmBalance, formatEvm } from "@/lib/wallet/evm";
 import { erc20Balance, formatToken } from "@/lib/wallet/erc20";
 import { fetchAllPrices, priceForChain, priceForCoingeckoId, formatUsd } from "@/lib/wallet/price";
 import type { Address } from "viem";
+import { vaultFingerprint } from "@/lib/wallet/seed";
 
 export function BalanceCard({
   chain,
@@ -25,8 +26,9 @@ export function BalanceCard({
   onHistory: () => void;
   onSendToken?: (tokenSymbol: string) => void;
 }) {
+  const seedKey = mnemonic ? vaultFingerprint(mnemonic) : "";
   const accountQuery = useQuery({
-    queryKey: ["account", chain.id],
+    queryKey: ["account", seedKey, chain.id],
     queryFn: async () => {
       if (chain.kind === "utxo") {
         return { kind: "utxo" as const, account: await deriveUtxoAccount(mnemonic, chain, 0, chain.defaultAddressType) };
@@ -40,7 +42,7 @@ export function BalanceCard({
   });
 
   const balQuery = useQuery({
-    queryKey: ["balance", chain.id, accountQuery.data?.account.address],
+    queryKey: ["balance", seedKey, chain.id, accountQuery.data?.account.address],
     enabled: !!accountQuery.data,
     refetchInterval: 30_000,
     queryFn: async () => {
@@ -57,7 +59,7 @@ export function BalanceCard({
   const evmChain = chain.kind === "evm" ? (chain as EvmChain) : null;
   const evmAddress = (accountQuery.data?.kind === "evm" ? accountQuery.data.account.address : null) as Address | null;
   const tokensQuery = useQuery({
-    queryKey: ["tokens", chain.id, evmAddress],
+    queryKey: ["tokens", seedKey, chain.id, evmAddress],
     enabled: !!evmChain && !!evmAddress && (evmChain?.tokens.length ?? 0) > 0,
     refetchInterval: 60_000,
     queryFn: async () => {
