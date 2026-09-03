@@ -12,6 +12,7 @@ import { deriveSolanaAccount } from "@/lib/wallet/solana";
 import { getScanGap, useScanGap } from "@/lib/wallet/scan-prefs";
 import { scanCeiling, bumpWatermark } from "@/lib/wallet/hd-watermark";
 import { useVisibleChainIds } from "@/lib/wallet/visible-chains";
+import { vaultFingerprint } from "@/lib/wallet/seed";
 
 export function usePrices() {
   return useQuery({
@@ -57,9 +58,10 @@ export function usePortfolioTotal(mnemonic: string) {
   const prices = usePrices();
   const visibleIds = useVisibleChainIds();
   const scanGap = useScanGap();
+  const seedKey = mnemonic ? vaultFingerprint(mnemonic) : "";
 
   return useQuery({
-    queryKey: ["portfolio-total", visibleIds.join(","), scanGap],
+    queryKey: ["portfolio-total", seedKey, visibleIds.join(","), scanGap],
     enabled: !!mnemonic && !!prices.data,
     refetchInterval: 60_000,
     queryFn: async () => {

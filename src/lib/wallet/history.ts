@@ -38,10 +38,16 @@ export async function fetchUtxoHistory(chain: UtxoChain, address: string): Promi
     }
     const res = await fetch(`${chain.apiBase}/address/${address}/txs`);
     if (!res.ok) throw new Error(`${chain.ticker} history ${res.status}`);
-    txs = (await res.json()) as UtxoEsploraTx[];
+    const payload = (await res.json()) as unknown;
+    if (!Array.isArray(payload)) {
+      throw new Error(`${chain.ticker} history returned an invalid response`);
+    }
+    txs = payload as UtxoEsploraTx[];
   }
 
-
+  if (!Array.isArray(txs)) {
+    throw new Error(`${chain.ticker} history is temporarily unavailable`);
+  }
   return txs.map((tx) => {
     const inSelf = tx.vin.reduce(
       (s, v) => s + (v.prevout?.scriptpubkey_address === address ? v.prevout.value : 0),
