@@ -215,7 +215,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   // One query PER chain — rows appear independently as each chain finishes.
   const chainQueries = useQueries({
     queries: visibleChains.map((c) => ({
-      queryKey: ["simple-asset", c.id, !!pricesQuery.data, scanGap],
+      queryKey: ["simple-asset", seedKey, c.id, !!pricesQuery.data, scanGap],
       enabled: !!mnemonic && !!pricesQuery.data,
       refetchInterval: 60_000,
       staleTime: 30_000,
