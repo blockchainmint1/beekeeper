@@ -13,7 +13,7 @@ const KEY = "lovable-multi-wallet-hd-watermark-v1";
 function seedPrefix(): string {
   if (typeof window === "undefined") return "";
   try {
-    return localStorage.getItem("lovable-multi-wallet-fingerprint-v1") ?? "";
+    return localStorage.getItem("lovable-multi-wallet-vault-fp-v1") ?? "";
   } catch {
     return "";
   }
