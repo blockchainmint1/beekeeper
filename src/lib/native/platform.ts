@@ -22,3 +22,15 @@ export function nativePlatform(): "ios" | "android" | "web" {
   }
   return "web";
 }
+
+/** The package version installed on the device, not a value baked into JS. */
+export async function installedAppVersion(fallback: string): Promise<string> {
+  if (!isNative()) return fallback;
+  try {
+    const { App } = await import("@capacitor/app");
+    const info = await App.getInfo();
+    return info.version || fallback;
+  } catch {
+    return fallback;
+  }
+}

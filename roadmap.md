@@ -11,6 +11,9 @@
 - [ ] Deep-rescan reservation release
 - [x] Fix new-seed balance discovery plus TXC price and transaction-history failures
 - [x] Fix active seed handoff into the unlocked wallet session
+- [ ] Read the installed native APK version for update checks
+- [ ] Scan imported UTXO seeds across modern and legacy derivation families
+- [ ] Remove the generic EVM extended-key section from Settings
 
 ## Security hardening (parity with HME SECURITY-AUDIT.md)
 - [x] Full CSP with an explicit `connect-src` host allowlist (`src/lib/security/csp.ts`, served from `src/server.ts`)

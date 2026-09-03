@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell, BookUser, ChevronRight, Key, Layers, Link2, Lock, PenLine,
-  Share2, ShieldCheck, Trash2, Wallet,
+  ShieldCheck, Trash2, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { YourWalletsSection } from "@/components/wallet/YourWalletsSection";
 import { useExchangeFeaturesAllowed } from "@/lib/native/capabilities";
 import {
   SecurityPanel, WalletsPanel, AlertsPanel, NectarPanel,
-  PasswordPanel, RevealPanel, XpubPanel, DangerPanel,
+  PasswordPanel, RevealPanel, DangerPanel,
 } from "@/components/wallet/SettingsDialog";
 import { wipeVault } from "@/lib/wallet/seed";
 import { wipeSeedRegistry } from "@/lib/wallet/seed-accounts";
@@ -110,10 +110,6 @@ function SettingsPage() {
           description="Export a per-chain private key or WIF. Handle with care."
         >
           <RevealPanel />
-        </SettingsCard>
-
-        <SettingsCard icon={Share2} title="Extended keys" description="Share an account xpub for watch-only tracking.">
-          <XpubPanel />
         </SettingsCard>
 
         <Link to="/wallet/sign" className="block">
