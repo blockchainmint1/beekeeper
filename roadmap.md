@@ -9,7 +9,7 @@
 - [ ] Key-rotation policy card
 - [ ] Scribble pad
 - [ ] Deep-rescan reservation release
-- [ ] Fix new-seed balance discovery plus TXC price and transaction-history failures
+- [x] Fix new-seed balance discovery plus TXC price and transaction-history failures
 
 ## Security hardening (parity with HME SECURITY-AUDIT.md)
 - [x] Full CSP with an explicit `connect-src` host allowlist (`src/lib/security/csp.ts`, served from `src/server.ts`)
