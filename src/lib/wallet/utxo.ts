@@ -169,6 +169,7 @@ export async function scanUtxoHd(
   const active: HdScanAddress[] = [];
   let totalSats = 0;
   let scanned = 0;
+  let successfulLookups = 0;
   let highestUsedIndex = -1;
 
   const deriveAt = (branchBase: string, i: number): string | null => {
@@ -244,12 +245,19 @@ export async function scanUtxoHd(
           break;
         }
         for (let k = 0; k < addrs.length; k++) {
-          scanned++;
-          const info = infos[k];
+          let info = infos[k];
           if (!info) {
-            consecutiveEmpty++;
-            continue;
+            // A null batch item means that lookup failed, not that the address
+            // is unused. Retry it through the normal provider fallback chain;
+            // otherwise a temporary indexer outage can become a false zero.
+            try {
+              info = await esplora.addressInfo(chain, addrs[k]!);
+            } catch {
+              continue;
+            }
           }
+          scanned++;
+          successfulLookups++;
           if (record(addrs[k]!, idxs[k]!, change, info)) consecutiveEmpty = 0;
           else consecutiveEmpty++;
         }
@@ -272,14 +280,17 @@ export async function scanUtxoHd(
       try {
         info = await esplora.addressInfo(chain, address);
       } catch {
-        consecutiveEmpty++;
         continue;
       }
+      successfulLookups++;
       if (record(address, i, change, info)) consecutiveEmpty = 0;
       else consecutiveEmpty++;
     }
   }
 
+  if (successfulLookups === 0) {
+    throw new Error(`${chain.ticker} balance providers are unavailable`);
+  }
   return { totalSats, active, scanned, highestUsedIndex };
 }
 

@@ -66,17 +66,13 @@ export function MetalWalletCardConnected({
       const a = accountQuery.data!;
       if (a.kind === "utxo") {
         // Sum across all HD-derived addresses (receive + change), not just index 0.
-        try {
-          const gapNow = getScanGap();
-          const res = await scanUtxoHd(mnemonic, chain as UtxoChain, {
-            gapLimit: gapNow,
-            minIndex: gapNow,
-          });
-          if (res.highestUsedIndex >= 0) bumpWatermark(chain.id, res.highestUsedIndex);
-          return res.totalSats / 10 ** chain.decimals;
-        } catch {
-          return 0;
-        }
+        const gapNow = getScanGap();
+        const res = await scanUtxoHd(mnemonic, chain as UtxoChain, {
+          gapLimit: gapNow,
+          minIndex: scanCeiling(chain.id, gapNow),
+        });
+        if (res.highestUsedIndex >= 0) bumpWatermark(chain.id, res.highestUsedIndex);
+        return res.totalSats / 10 ** chain.decimals;
       }
       if (a.kind === "evm") {
         // Sum native balance across derived addresses via Multicall3.
