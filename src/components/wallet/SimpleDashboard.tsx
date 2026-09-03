@@ -15,7 +15,7 @@ import { CHAINS, CHAIN_LIST, type ChainConfig, type ChainId } from "@/lib/chains
 import { Button } from "@/components/ui/button";
 import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
-import { clearCachedMnemonic, getCachedMnemonic } from "@/lib/wallet/seed";
+import { clearCachedMnemonic, getCachedMnemonic, vaultFingerprint } from "@/lib/wallet/seed";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
@@ -195,6 +195,9 @@ async function loadChainAsset(
 export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const mnemonic = useMemo(() => getCachedMnemonic() ?? "", []);
+  // Every cache key is seed-scoped: switching wallets must never serve the
+  // previous seed's derived addresses or balances from cache.
+  const seedKey = useMemo(() => (mnemonic ? vaultFingerprint(mnemonic) : ""), [mnemonic]);
   const visibleIds = useVisibleChainIds();
   const scanGap = useScanGap();
   const visibleChains = useMemo(
@@ -212,7 +215,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   // One query PER chain — rows appear independently as each chain finishes.
   const chainQueries = useQueries({
     queries: visibleChains.map((c) => ({
-      queryKey: ["simple-asset", c.id, !!pricesQuery.data, scanGap],
+      queryKey: ["simple-asset", seedKey, c.id, !!pricesQuery.data, scanGap],
       enabled: !!mnemonic && !!pricesQuery.data,
       refetchInterval: 60_000,
       staleTime: 30_000,
@@ -256,6 +259,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const historyQuery = useQuery({
     queryKey: [
       "simple-history",
+      seedKey,
       loadedRows.map((a) => `${a.chain.id}:${a.address}`).join(","),
     ],
     enabled: loadedRows.length > 0,

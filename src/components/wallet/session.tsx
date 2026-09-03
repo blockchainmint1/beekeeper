@@ -5,6 +5,7 @@ import { deriveUtxoAccount, type UtxoAccount } from "@/lib/wallet/utxo";
 import { deriveEvmAccount, type EvmAccount } from "@/lib/wallet/evm";
 import { deriveTronAccount, type TronAccount } from "@/lib/wallet/tron";
 import { deriveSolanaAccount, type SolanaAccount } from "@/lib/wallet/solana";
+import { vaultFingerprint } from "@/lib/wallet/seed";
 
 export type AccountUnion =
   | { kind: "utxo"; account: UtxoAccount }
@@ -31,8 +32,9 @@ export function useWalletSession(): WalletSession {
 /** Derive (and cache) the index-0 account for one chain. */
 export function useChainAccount(chain: ChainConfig | undefined) {
   const { mnemonic } = useWalletSession();
+  const seedKey = mnemonic ? vaultFingerprint(mnemonic) : "";
   return useQuery({
-    queryKey: ["account", chain?.id],
+    queryKey: ["account", seedKey, chain?.id],
     enabled: !!chain && !!mnemonic,
     staleTime: Infinity,
     queryFn: async (): Promise<AccountUnion> => {

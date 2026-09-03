@@ -8,6 +8,17 @@
 
 const KEY = "lovable-multi-wallet-hd-watermark-v1";
 
+// Watermarks are per-seed: another wallet's scan depth must never shadow the
+// active seed's own discovery.
+function seedPrefix(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return localStorage.getItem("lovable-multi-wallet-vault-fp-v1") ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export type HdBranch = "recv" | "evm"; // utxo receive/change collapsed under "recv"
 
 interface Store {
@@ -25,13 +36,13 @@ function save(s: Store): void {
 }
 
 export function getWatermark(chainId: string, branch: HdBranch = "recv"): number {
-  return load()[`${chainId}:${branch}`] ?? -1;
+  return load()[`${seedPrefix()}:${chainId}:${branch}`] ?? -1;
 }
 
 /** Update only if `index` exceeds the stored value. Returns the new mark. */
 export function bumpWatermark(chainId: string, index: number, branch: HdBranch = "recv"): number {
   const s = load();
-  const k = `${chainId}:${branch}`;
+  const k = `${seedPrefix()}:${chainId}:${branch}`;
   const cur = s[k] ?? -1;
   if (index > cur) {
     s[k] = index;
