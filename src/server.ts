@@ -75,7 +75,10 @@ function withSecurityHeaders(response: Response): Response {
  */
 const NATIVE_ORIGINS = new Set([
   "https://beekeeper.honest.money",
+  "https://beekeeper.money",
+  "https://www.beekeeper.money",
   "https://localhost",
+  "http://localhost",
   "capacitor://localhost",
   "ionic://localhost",
 ]);
@@ -84,16 +87,35 @@ function isApiPath(pathname: string): boolean {
   return pathname.startsWith("/_serverFn/") || pathname.startsWith("/api/");
 }
 
+// The server-function client sends framework headers (x-tsr-server,
+// x-tss-serialized, x-tss-raw, x-tss-framed, …). If any one of them is missing
+// from access-control-allow-headers the PREFLIGHT fails and EVERY server
+// function call dies in the native shell — balances, history and prices all
+// break at once while the web build (same-origin, no preflight) looks fine.
+// So we reflect whatever the browser asked for instead of maintaining a list.
+const DEFAULT_ALLOW_HEADERS =
+  "content-type, accept, x-tsr-redirect, x-tsr-server, x-tss-serialized, x-tss-raw, x-tss-framed";
+
 function withNativeCors(request: Request, response: Response): Response {
   const origin = request.headers.get("origin");
   if (!origin || !NATIVE_ORIGINS.has(origin)) return response;
   if (!isApiPath(new URL(request.url).pathname)) return response;
+  const requested = request.headers.get("access-control-request-headers");
   const out = new Response(response.body, response);
   out.headers.set("access-control-allow-origin", origin);
-  out.headers.set("vary", "origin");
-  out.headers.set("access-control-allow-headers", "content-type, x-tsr-redirect, accept");
+  out.headers.set("vary", "origin, access-control-request-headers");
+  out.headers.set(
+    "access-control-allow-headers",
+    requested ? `${DEFAULT_ALLOW_HEADERS}, ${requested}` : DEFAULT_ALLOW_HEADERS,
+  );
   out.headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+  out.headers.set(
+    "access-control-expose-headers",
+    "content-type, x-tsr-redirect, x-tsr-server, x-tss-serialized, x-tss-raw, x-tss-framed",
+  );
   out.headers.set("access-control-max-age", "86400");
+  // CORP: same-origin would make the native shell's cross-origin reads fail.
+  out.headers.set("cross-origin-resource-policy", "cross-origin");
   return out;
 }
 
