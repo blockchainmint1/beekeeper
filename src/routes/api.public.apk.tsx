@@ -32,9 +32,11 @@ function downloadHeaders(upstream: Response): Headers {
   const h = new Headers();
   h.set("content-type", APK_MIME);
   h.set("content-disposition", `attachment; filename="${apkRelease.fileName}"`);
-  // Content-addressed: safe to cache hard.
-  h.set("cache-control", "public, max-age=31536000, immutable");
+  // This route is stable while its backing CID changes between releases.
+  // Never let a browser or CDN pin an older APK at this URL.
+  h.set("cache-control", "no-store, max-age=0");
   h.set("x-content-type-options", "nosniff");
+  h.set("content-digest", `sha-256=:${Buffer.from(apkRelease.sha256, "hex").toString("base64")}:`);
   const len = upstream.headers.get("content-length");
   if (len) h.set("content-length", len);
   const ranges = upstream.headers.get("accept-ranges");
