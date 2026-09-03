@@ -330,6 +330,13 @@ export async function scanUtxoHd(
   if (successfulLookups === 0) {
     throw new Error(`${chain.ticker} balance providers are unavailable`);
   }
+  // Remember which addresses are in play so history views can aggregate across
+  // the whole wallet instead of just the index-0 address.
+  try {
+    const { rememberActiveAddresses } = await import("./active-addresses");
+    const { vaultFingerprint } = await import("./seed");
+    rememberActiveAddresses(vaultFingerprint(mnemonic), chain.id, active.map((a) => a.address));
+  } catch { /* cache only */ }
   return { totalSats, active, scanned, highestUsedIndex };
 }
 
