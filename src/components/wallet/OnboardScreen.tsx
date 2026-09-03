@@ -21,7 +21,7 @@ const DISCLAIMERS = [
   "I understand this wallet is non-custodial. No one — not Nectar Pay, not the hive — can recover my funds or reverse a transaction.",
 ];
 
-export function OnboardScreen({ onReady }: { onReady: () => void }) {
+export function OnboardScreen({ onReady }: { onReady: (mnemonic: string) => void }) {
   const [step, setStep] = useState<Step>(1);
   const [mnemonic, setMnemonic] = useState<string>("");
   const [scanOpen, setScanOpen] = useState(false);
@@ -85,13 +85,14 @@ export function OnboardScreen({ onReady }: { onReady: () => void }) {
           toast.info("Wallet created — you can turn on biometric unlock in Settings");
         }
       }
-      // Wipe the in-component copy now that the vault is encrypted and cached.
+      // Hand the seed directly to the unlocked session before wiping this
+      // component's copy. The encrypted vault remains the durable source.
+      onReady(mnemonic);
       setMnemonic("");
       setPass1("");
       setPass2("");
       toast.success("Wallet ready");
 
-      onReady();
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

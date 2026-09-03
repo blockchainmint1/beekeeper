@@ -32,11 +32,17 @@ type Stage = "loading" | "onboard" | "unlock" | "dashboard";
 
 function Index() {
   const [stage, setStage] = useState<Stage>("loading");
+  const [mnemonic, setMnemonic] = useState("");
 
   useEffect(() => {
     if (!hasVault()) setStage("onboard");
-    else if (getCachedMnemonic()) setStage("dashboard");
-    else setStage("unlock");
+    else {
+      const cached = getCachedMnemonic();
+      if (cached) {
+        setMnemonic(cached);
+        setStage("dashboard");
+      } else setStage("unlock");
+    }
   }, []);
 
   return (
@@ -47,16 +53,18 @@ function Index() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      {stage === "onboard" && <OnboardScreen onReady={() => setStage("dashboard")} />}
+      {stage === "onboard" && <OnboardScreen onReady={(seed) => { setMnemonic(seed); setStage("dashboard"); }} />}
       {stage === "unlock" && (
         <UnlockScreen
-          onUnlocked={() => setStage("dashboard")}
+          onUnlocked={(seed) => { setMnemonic(seed); setStage("dashboard"); }}
           onReset={() => setStage("onboard")}
         />
       )}
       {stage === "dashboard" && (
         <SimpleDashboard
+          mnemonic={mnemonic}
           onLocked={() => {
+            setMnemonic("");
             setStage(hasVault() ? "unlock" : "onboard");
           }}
         />

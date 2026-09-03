@@ -48,8 +48,8 @@ function WalletLayout() {
     }
   }, []);
 
-  const enter = useCallback(() => {
-    setMnemonic(getCachedMnemonic() ?? "");
+  const enter = useCallback((seed: string) => {
+    setMnemonic(seed);
     setStage("wallet");
   }, []);
 

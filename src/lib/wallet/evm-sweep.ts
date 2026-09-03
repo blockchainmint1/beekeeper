@@ -115,6 +115,7 @@ export async function scanEvmHd(
   let totalNativeWei = 0n;
   const tokenAgg = new Map<string, { token: Erc20Token; raw: bigint }>();
   let scanned = 0;
+  let successfulNativeReads = 0;
   let highestUsedIndex = -1;
   let cursor = 0;
 
@@ -123,6 +124,7 @@ export async function scanEvmHd(
       const job = addresses[cursor++];
       try {
         const nativeWei = await withFallback(chain, (c) => c.getBalance({ address: job.address }));
+        successfulNativeReads++;
         const tokens: EvmTokenBalance[] = [];
         const walkTokens = chainErc20Tokens(chain);
         if (includeTokens && walkTokens.length > 0) {
@@ -162,6 +164,9 @@ export async function scanEvmHd(
   }
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  if (successfulNativeReads === 0) {
+    throw new Error(`${chain.name} balance providers are unavailable`);
+  }
   active.sort((a, b) => a.index - b.index);
   const tokenTotals: EvmTokenTotal[] = Array.from(tokenAgg.values()).map((v) => ({
     token: v.token,
@@ -212,6 +217,13 @@ async function scanViaMulticall(
       allowFailure: true,
     }),
   )) as Array<{ status: string; result?: bigint }>;
+
+  const successfulNativeReads = addresses.reduce((count, _address, i) => {
+    return count + (results[i * perAddr]?.status === "success" ? 1 : 0);
+  }, 0);
+  if (successfulNativeReads === 0) {
+    throw new Error(`${chain.name} balance providers returned no results`);
+  }
 
   const active: EvmHdAddress[] = [];
   let totalNativeWei = 0n;

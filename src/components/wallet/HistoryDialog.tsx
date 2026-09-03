@@ -55,7 +55,12 @@ export function HistoryDialog({
           </div>
         ) : query.error ? (
           <div className="space-y-3 py-2 text-sm">
-            <p className="text-destructive">Couldn't load history.</p>
+            <div>
+              <p className="text-destructive">Couldn't load history.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {query.error instanceof Error ? query.error.message : "The chain indexer is temporarily unavailable."}
+              </p>
+            </div>
             <Button variant="outline" onClick={() => query.refetch()}>
               <RefreshCw className="mr-2 h-4 w-4" /> Retry
             </Button>

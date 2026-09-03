@@ -169,6 +169,7 @@ export async function scanUtxoHd(
   const active: HdScanAddress[] = [];
   let totalSats = 0;
   let scanned = 0;
+  let successfulLookups = 0;
   let highestUsedIndex = -1;
 
   const deriveAt = (branchBase: string, i: number): string | null => {
@@ -183,7 +184,8 @@ export async function scanUtxoHd(
 
   const record = (address: string, i: number, change: boolean, info: AddressInfo) => {
     const sats = addressBalanceSats(info).total;
-    const txCount = info.chain_stats.tx_count + info.mempool_stats.tx_count;
+    const st = addressStats(info);
+    const txCount = st.chain.tx_count + st.mempool.tx_count;
     if (txCount > 0 || sats > 0) {
       active.push({ address, index: i, change, type: effectiveType, sats, txCount });
       totalSats += sats;
@@ -244,12 +246,19 @@ export async function scanUtxoHd(
           break;
         }
         for (let k = 0; k < addrs.length; k++) {
-          scanned++;
-          const info = infos[k];
+          let info = infos[k];
           if (!info) {
-            consecutiveEmpty++;
-            continue;
+            // A null batch item means that lookup failed, not that the address
+            // is unused. Retry it through the normal provider fallback chain;
+            // otherwise a temporary indexer outage can become a false zero.
+            try {
+              info = await esplora.addressInfo(chain, addrs[k]!);
+            } catch {
+              continue;
+            }
           }
+          scanned++;
+          successfulLookups++;
           if (record(addrs[k]!, idxs[k]!, change, info)) consecutiveEmpty = 0;
           else consecutiveEmpty++;
         }
@@ -272,14 +281,17 @@ export async function scanUtxoHd(
       try {
         info = await esplora.addressInfo(chain, address);
       } catch {
-        consecutiveEmpty++;
         continue;
       }
+      successfulLookups++;
       if (record(address, i, change, info)) consecutiveEmpty = 0;
       else consecutiveEmpty++;
     }
   }
 
+  if (successfulLookups === 0) {
+    throw new Error(`${chain.ticker} balance providers are unavailable`);
+  }
   return { totalSats, active, scanned, highestUsedIndex };
 }
 
@@ -476,9 +488,28 @@ export const esplora = {
 };
 
 
-export function addressBalanceSats(info: AddressInfo) {
-  const confirmed = info.chain_stats.funded_txo_sum - info.chain_stats.spent_txo_sum;
-  const unconfirmed = info.mempool_stats.funded_txo_sum - info.mempool_stats.spent_txo_sum;
+/** Providers vary in shape and occasionally omit a stats block entirely. Treat a
+ *  missing block as zeros rather than throwing — a single odd reply must never
+ *  take down a whole HD scan and leave every chain looking empty. */
+function statsOf(s: unknown): { funded_txo_sum: number; spent_txo_sum: number; tx_count: number } {
+  const o = (s ?? {}) as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    funded_txo_sum: n(o["funded_txo_sum"]),
+    spent_txo_sum: n(o["spent_txo_sum"]),
+    tx_count: n(o["tx_count"]),
+  };
+}
+
+export function addressStats(info: AddressInfo | null | undefined) {
+  const i = (info ?? {}) as Partial<AddressInfo>;
+  return { chain: statsOf(i.chain_stats), mempool: statsOf(i.mempool_stats) };
+}
+
+export function addressBalanceSats(info: AddressInfo | null | undefined) {
+  const { chain, mempool } = addressStats(info);
+  const confirmed = chain.funded_txo_sum - chain.spent_txo_sum;
+  const unconfirmed = mempool.funded_txo_sum - mempool.spent_txo_sum;
   return { confirmed, unconfirmed, total: confirmed + unconfirmed };
 }
 
