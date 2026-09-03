@@ -35,10 +35,9 @@ export function UnlockScreen({ onUnlocked, onReset }: { onUnlocked: () => void; 
   function handleSwitch(id: string) {
     try {
       switchSeedAccount(id);
-      setPass("");
-      setAccounts(listSeedAccounts());
-      setActiveId(getActiveSeedAccountId());
-      toast.success("Switched wallet — enter that wallet's password");
+      // Start this vault with a fresh query/session tree so no balance,
+      // history, or token cache from the previously active seed survives.
+      window.location.reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not switch wallet");
     }
