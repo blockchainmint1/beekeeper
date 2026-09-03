@@ -11,6 +11,7 @@ import { formatUsd, priceForChain, type PriceMap } from "@/lib/wallet/price";
 import { useScanGap } from "@/lib/wallet/scan-prefs";
 import { useHideBalances, maskAmount } from "@/lib/wallet/hide-balances";
 import { useWalletSession, useChainAccount } from "@/components/wallet/session";
+import { vaultFingerprint } from "@/lib/wallet/seed";
 import { MetalWalletCardConnected } from "@/components/wallet/MetalWalletCardConnected";
 import { WalletDetailSheet } from "@/components/wallet/WalletDetailSheet";
 import { ReorderTilesSheet } from "@/components/wallet/ReorderTilesSheet";
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/wallet/")({
 
 function WalletHome() {
   const { mnemonic } = useWalletSession();
+  const seedKey = useMemo(() => vaultFingerprint(mnemonic), [mnemonic]);
   const navigate = useNavigate();
   const hidden = useHideBalances();
   const visibleIds = useVisibleChainIds();
@@ -69,7 +71,7 @@ function WalletHome() {
   const qc = useQueryClient();
   const gap = useScanGap();
   const activeNative =
-    (qc.getQueryData<number>(["balance", activeChain?.id, activeAddress, gap]) ?? null);
+    (qc.getQueryData<number>(["balance", seedKey, activeChain?.id, activeAddress, gap]) ?? null);
   const activePrices = qc.getQueryData<PriceMap>(["prices"]) ?? null;
   const activePrice =
     activePrices && activeChain ? priceForChain(activePrices, activeChain) : null;

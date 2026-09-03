@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ChainConfig, UtxoChain } from "@/lib/chains";
 import { OmniActivity } from "./OmniActivity";
-import { fetchHistory, hasNativeHistory } from "@/lib/wallet/history";
+import { fetchHistoryMulti, hasNativeHistory } from "@/lib/wallet/history";
+import { historyAddresses } from "@/lib/wallet/active-addresses";
+import { getVaultFingerprint } from "@/lib/wallet/seed";
 
 export function HistoryDialog({
   open,
@@ -18,13 +20,15 @@ export function HistoryDialog({
   address: string;
 }) {
   const native = hasNativeHistory(chain);
+  const seedKey = getVaultFingerprint() ?? "";
 
   const query = useQuery({
-    queryKey: ["history", chain.id, address],
+    queryKey: ["history", seedKey, chain.id, address],
     enabled: open && native && !!address,
     refetchOnWindowFocus: false,
-    queryFn: () => fetchHistory(chain, address),
+    queryFn: () => fetchHistoryMulti(chain, historyAddresses(seedKey, chain.id, address)),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

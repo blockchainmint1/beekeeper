@@ -22,3 +22,20 @@ export function nativePlatform(): "ios" | "android" | "web" {
   }
   return "web";
 }
+
+/** The package version installed on the device, not a value baked into JS. */
+export async function installedAppVersion(fallback: string): Promise<string> {
+  if (!isNative()) return fallback;
+  try {
+    const { App } = await import("@capacitor/app");
+    const info = await App.getInfo();
+    // Older Beekeeper workflows stamped every shell as Capacitor's default
+    // 1.0.0 even though the bundled release metadata was correct.
+    if (!info.version || (info.version === "1.0.0" && fallback !== "1.0.0")) {
+      return fallback;
+    }
+    return info.version;
+  } catch {
+    return fallback;
+  }
+}

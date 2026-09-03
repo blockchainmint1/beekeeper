@@ -106,8 +106,16 @@ const gradlePath = resolve(androidDir, "app/build.gradle");
 let gradle = readFileSync(gradlePath, "utf8");
 const beforeGradle = gradle;
 
-gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${APP_BUILD}`);
-gradle = gradle.replace(/versionName\s+"[^"]*"/, `versionName "${APP_VERSION}"`);
+// CI supplies release-specific values after the web bundle is built. Read them
+// here so Capacitor App.getInfo() reports the actual installed APK identity.
+gradle = gradle.replace(
+  /versionCode\s+(?:\d+|System\.getenv\("VERSION_CODE"\).*?\n)/,
+  `versionCode (System.getenv("VERSION_CODE") ?: "${APP_BUILD}").toInteger()`,
+);
+gradle = gradle.replace(
+  /versionName\s+(?:"[^"]*"|System\.getenv\("VERSION_NAME"\).*?\n)/,
+  `versionName System.getenv("VERSION_NAME") ?: "${APP_VERSION}"`,
+);
 
 if (!gradle.includes("BEEKEEPER_SIGNING")) {
   const signing = `

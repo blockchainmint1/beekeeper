@@ -215,7 +215,9 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
   const chainQueries = useQueries({
     queries: visibleChains.map((c) => ({
       queryKey: ["simple-asset", seedKey, c.id, !!pricesQuery.data, scanGap],
-      enabled: !!mnemonic && !!pricesQuery.data,
+      // Native balances must never depend on a third-party USD price feed.
+      // If pricing is unavailable, scan now and fill USD values in later.
+      enabled: !!mnemonic,
       refetchInterval: 60_000,
       staleTime: 30_000,
       queryFn: () =>
@@ -234,6 +236,7 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
   const loadedCount = chainQueries.filter((q) => !!q.data).length;
   const allLoaded = visibleChains.length > 0 && loadedCount === visibleChains.length;
   const anyLoading = chainQueries.some((q) => q.isLoading);
+  const failedQueries = chainQueries.filter((q) => q.isError);
 
   const primaryRows: BreakdownItem[] = useMemo(
     () =>
@@ -400,6 +403,21 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
 
 
       <section className="px-5 mt-5">
+        {failedQueries.length > 0 && (
+          <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs">
+            <span>
+              {failedQueries.length} balance {failedQueries.length === 1 ? "scan" : "scans"} failed. Your seed is unlocked; a network provider did not answer.
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0"
+              onClick={() => void Promise.all(failedQueries.map((q) => q.refetch()))}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
         {loadedCount === 0 && anyLoading ? (
           <div className="glass-card rounded-2xl px-4 py-6 flex items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning your wallets…
@@ -441,6 +459,8 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
                             <span className="font-semibold text-sm">{chain.ticker}</span>
                             {r ? (
                               <span className="text-sm font-semibold tabular">{formatUsd(displayUsd)}</span>
+                            ) : chainQueries[visibleChains.findIndex((c) => c.id === chain.id)]?.isError ? (
+                              <span className="text-xs text-destructive">Unavailable</span>
                             ) : (
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                             )}
@@ -451,6 +471,8 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
                               <span className="tabular">
                                 {r.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })} {chain.ticker}
                               </span>
+                            ) : chainQueries[visibleChains.findIndex((c) => c.id === chain.id)]?.isError ? (
+                              <span>Tap retry above</span>
                             ) : (
                               <span>Scanning…</span>
                             )}
