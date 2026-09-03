@@ -239,7 +239,12 @@ export async function scanUtxoHd(
   const batched = indexerBatch || nnBatch;
   const WINDOW = 25;
 
-  for (const plan of uniquePlans) {
+  for (const [planIdx, plan] of uniquePlans.entries()) {
+   // The wallet's own path gets the full gap/watermark treatment. Legacy
+   // compatibility paths (old coin types, other script types) are checked with a
+   // short gap so a scan stays fast enough to finish on mobile networks.
+   const planGap = planIdx === 0 ? gapLimit : Math.min(gapLimit, 10);
+   const planMin = planIdx === 0 ? minIndex : 0;
    for (const change of [false, true]) {
     const branchBase = `${plan.accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
@@ -249,7 +254,7 @@ export async function scanUtxoHd(
       let i = 0;
       let batchOk = true;
       while (i < maxIndex && batchOk) {
-        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+        if (i >= planMin && consecutiveEmpty >= planGap) break;
         const idxs: number[] = [];
         const addrs: string[] = [];
         for (let k = 0; k < WINDOW && i + k < maxIndex; k++) {
@@ -300,14 +305,14 @@ export async function scanUtxoHd(
           else consecutiveEmpty++;
         }
         i += WINDOW;
-        if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+        if (i >= planMin && consecutiveEmpty >= planGap) break;
       }
       if (batchOk) continue;
     }
 
     for (let i = startIndex; i < maxIndex; i++) {
 
-      if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
+      if (i >= planMin && consecutiveEmpty >= planGap) break;
        const address = deriveAt(branchBase, i, plan.type);
       if (!address) {
         consecutiveEmpty++;
@@ -330,6 +335,13 @@ export async function scanUtxoHd(
   if (successfulLookups === 0) {
     throw new Error(`${chain.ticker} balance providers are unavailable`);
   }
+  // Remember which addresses are in play so history views can aggregate across
+  // the whole wallet instead of just the index-0 address.
+  try {
+    const { rememberActiveAddresses } = await import("./active-addresses");
+    const { vaultFingerprint } = await import("./seed");
+    rememberActiveAddresses(vaultFingerprint(mnemonic), chain.id, active.map((a) => a.address));
+  } catch { /* cache only */ }
   return { totalSats, active, scanned, highestUsedIndex };
 }
 

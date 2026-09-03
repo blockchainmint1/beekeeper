@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, ExternalLink, Loader2, RefreshCw, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ChainConfig } from "@/lib/chains";
-import { fetchHistory, explorerHistoryUrl, hasNativeHistory, type HistoryItem } from "@/lib/wallet/history";
+import { fetchHistoryMulti, explorerHistoryUrl, hasNativeHistory, type HistoryItem } from "@/lib/wallet/history";
+import { historyAddresses } from "@/lib/wallet/active-addresses";
+import { getVaultFingerprint } from "@/lib/wallet/seed";
 import { TxDetailSheet } from "@/components/wallet/TxDetailSheet";
 
 export function RecentActivity({
@@ -17,12 +19,14 @@ export function RecentActivity({
 }) {
   const native = chain ? hasNativeHistory(chain) : false;
   const [selected, setSelected] = useState<HistoryItem | null>(null);
+  const seedKey = getVaultFingerprint() ?? "";
   const query = useQuery({
-    queryKey: ["history", chain?.id, address],
+    queryKey: ["history", seedKey, chain?.id, address],
     enabled: native && !!address,
     refetchOnWindowFocus: false,
-    queryFn: () => fetchHistory(chain as never, address!),
+    queryFn: () => fetchHistoryMulti(chain as never, historyAddresses(seedKey, chain!.id, address)),
   });
+
 
   if (!chain) {
     return (

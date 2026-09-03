@@ -55,10 +55,22 @@ export async function fetchAllPrices(): Promise<PriceMap> {
 
   const out: PriceMap = { ...previous };
 
-  // CoinGecko simple/price.
-  if (ids.size > 0) {
+  // PRIMARY: CoinMarketCap (server-side, key stays private). One call covers
+  // every coin/token we track, and it doesn't rate-limit mobile networks the way
+  // CoinGecko does.
+  try {
+    const { fetchCmcPrices } = await import("./price.functions");
+    const cmc = await fetchCmcPrices({ data: { keys: [...ids] } });
+    for (const [k, v] of Object.entries(cmc)) {
+      if (typeof v === "number" && isFinite(v) && v > 0) out[k] = v;
+    }
+  } catch { /* fall through to public feeds */ }
+
+  // CoinGecko simple/price — fills anything CMC didn't return.
+  const cgMissing = [...ids].filter((k) => out[k] == null);
+  if (cgMissing.length > 0) {
     try {
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${[...ids].join(",")}&vs_currencies=usd`;
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${cgMissing.join(",")}&vs_currencies=usd`;
       const res = await fetch(url);
       if (res.ok) {
         const data = (await res.json()) as Record<string, { usd?: number }>;
@@ -70,7 +82,7 @@ export async function fetchAllPrices(): Promise<PriceMap> {
   }
 
   // ISK / wISK price from the wISK Wrap site (on-chain Uniswap V3 wISK/USDC).
-  // No CEX lists ISK, so this pool read is the canonical source.
+  // No CEX lists ISK, so this pool read is the canonical source and overrides CMC.
   for (const base of [
     "https://wrap.iskandercoin.com",
     "https://project--3c367caa-8e24-4dc8-88e7-68ee6b6ac8cf.lovable.app",
@@ -97,20 +109,19 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     }
   } catch { /* ignore */ }
 
+  // TXC price from its own mempool, used only when CMC has no quote. This
+  // endpoint returns a single lowercase `usd` value.
+  if (out["txc"] == null) {
+    try {
+      const r = await fetch("https://mempool.texitcoin.org/api/v1/price");
+      if (r.ok) {
+        const j = (await r.json()) as { usd?: number };
+        if (typeof j?.usd === "number" && isFinite(j.usd) && j.usd > 0) out["txc"] = j.usd;
+      }
+    } catch { /* ignore */ }
+  }
 
-  // TXC price from its own mempool. This endpoint returns a single lowercase
-  // `usd` quote (the old plural endpoint now serves the explorer HTML shell).
-  try {
-    const r = await fetch("https://mempool.texitcoin.org/api/v1/price");
-    if (r.ok) {
-      const j = (await r.json()) as { usd?: number };
-      if (typeof j?.usd === "number" && isFinite(j.usd) && j.usd > 0) out["txc"] = j.usd;
-    }
-  } catch { /* ignore */ }
-
-  // Fallback price feed: Coinbase spot (no auth, no rate-limit for reasonable use).
-  // CoinGecko frequently 429s from mobile networks and residential IPs; without
-  // this fallback USDT/USDC/ETH would be valued at $0 in the dashboard total.
+  // Last resort: Coinbase spot for the majors.
   const missing: Array<{ cg: string; pair: string }> = [];
   if (out["tether"] == null)     missing.push({ cg: "tether",     pair: "USDT-USD" });
   if (out["usd-coin"] == null)   missing.push({ cg: "usd-coin",   pair: "USDC-USD" });
@@ -129,19 +140,6 @@ export async function fetchAllPrices(): Promise<PriceMap> {
     }),
   );
 
-  // CoinMarketCap fallback for anything still missing after CoinGecko + Coinbase.
-  // Runs server-side (CMC_API key stays private) and covers coins Coinbase doesn't
-  // list (POL, TRX, DAI, ISK, etc.).
-  const stillMissing = [...ids].filter((k) => out[k] == null);
-  if (stillMissing.length > 0) {
-    try {
-      const { fetchCmcPrices } = await import("./price.functions");
-      const cmc = await fetchCmcPrices({ data: { keys: stillMissing } });
-      for (const [k, v] of Object.entries(cmc)) {
-        if (typeof v === "number" && isFinite(v) && v > 0) out[k] = v;
-      }
-    } catch { /* ignore */ }
-  }
 
   // Ultimate stablecoin safety net: pin to $1 if every feed failed. USDT/USDC
   // depegs are rare enough that showing "$1" beats showing "$0" for a merchant
