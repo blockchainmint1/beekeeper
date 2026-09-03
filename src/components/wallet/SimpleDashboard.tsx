@@ -15,7 +15,7 @@ import { CHAINS, CHAIN_LIST, type ChainConfig, type ChainId } from "@/lib/chains
 import { Button } from "@/components/ui/button";
 import { AppShell } from "./AppShell";
 import { TopBar } from "./TopBar";
-import { clearCachedMnemonic, getCachedMnemonic } from "@/lib/wallet/seed";
+import { clearCachedMnemonic, getCachedMnemonic, vaultFingerprint } from "@/lib/wallet/seed";
 import { fetchAllPrices, priceForChain, formatUsd } from "@/lib/wallet/price";
 import { deriveUtxoAccount, scanUtxoHd, type HdScanAddress } from "@/lib/wallet/utxo";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
