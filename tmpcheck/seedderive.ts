@@ -2,7 +2,7 @@ import { deriveUtxoAccount } from "@/lib/wallet/utxo";
 import { deriveEvmAccount } from "@/lib/wallet/evm";
 import { CHAINS } from "@/lib/chains";
 const M = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-const get = (id: string) => (CHAINS as any[]).find((c) => c.id === id);
+const get = (id: string) => (CHAINS as any)[id];
 for (const id of ["txc", "btc", "isk"]) {
   const c = get(id);
   const a = await deriveUtxoAccount(M, c, 0, c.defaultAddressType);
