@@ -23,7 +23,7 @@ export function UpdateCheckCard() {
   const [platform, setPlatform] = useState<string>("web");
   const [latest, setLatest] = useState<LatestRelease | null>(null);
   const [failed, setFailed] = useState(false);
-  const [running, setRunning] = useState(apkRelease.version);
+  const [running, setRunning] = useState<string>(apkRelease.version);
 
   useEffect(() => {
     setPlatform(nativePlatform());
