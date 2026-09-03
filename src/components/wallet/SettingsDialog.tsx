@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, Share2, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2, QrCode } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, Loader2, ShieldAlert, ShieldCheck, Layers, ArrowUp, ArrowDown, Plus, X, Link2, Unlink, Bell, Mail, Send, Key, Lock, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ import { SeedsPanel } from "./SeedsPanel";
 
 type SectionId =
   | "security" | "seeds" | "wallets" | "alerts" | "nectar"
-  | "password" | "reveal" | "xpub" | "danger";
+  | "password" | "reveal" | "danger";
 
 interface SectionDef {
   id: SectionId;
@@ -42,7 +42,6 @@ const SECTIONS: SectionDef[] = [
   { id: "nectar",   label: "Nectar Pay",   hint: "Link this vault to a merchant account",   icon: Link2 },
   { id: "password", label: "Password",     hint: "Re-encrypt with a new password",          icon: Lock },
   { id: "reveal",   label: "Private key",  hint: "Export a per-chain private key or WIF",   icon: Key },
-  { id: "xpub",     label: "xpub",         hint: "Share your EVM account xpub",             icon: Share2 },
   { id: "danger",   label: "Danger zone",  hint: "Erase the encrypted vault from this device", icon: Trash2, destructive: true },
 ];
 
@@ -95,7 +94,6 @@ export function SettingsDialog({
               {section.id === "nectar"   && <NectarPanel />}
               {section.id === "password" && <PasswordPanel />}
               {section.id === "reveal"   && <RevealPanel />}
-              {section.id === "xpub"     && <XpubPanel />}
               {section.id === "danger"   && <DangerPanel onWipe={onWipe} />}
             </div>
           </>

@@ -42,10 +42,23 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Derive version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/android-v* ]]; then
+            V="${GITHUB_REF#refs/tags/android-v}"
+          else
+            V="0.1.$(date +%Y%m%d%H%M)"
+          fi
+          echo "version=$V" >> $GITHUB_OUTPUT
+          echo "version_code=$(date +%y%m%d%H)" >> $GITHUB_OUTPUT
+
       - name: Install web deps
         run: bun install --frozen-lockfile
 
       - name: Build web app
+        env:
+          VITE_APP_VERSION: ${{ steps.ver.outputs.version }}
         run: bun run build
 
       - name: Add Android platform
@@ -65,17 +78,6 @@ jobs:
 
       - name: Generate icons / splash
         run: bunx capacitor-assets generate --android --iconBackgroundColor '#0b0f14' --splashBackgroundColor '#0b0f14'
-
-      - name: Derive version
-        id: ver
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/android-v* ]]; then
-            V="${GITHUB_REF#refs/tags/android-v}"
-          else
-            V="0.1.$(date +%Y%m%d%H%M)"
-          fi
-          echo "version=$V" >> $GITHUB_OUTPUT
-          echo "version_code=$(date +%y%m%d%H)" >> $GITHUB_OUTPUT
 
       - name: Decide build type
         id: mode

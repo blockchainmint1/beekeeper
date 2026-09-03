@@ -61,8 +61,10 @@ export function usePortfolioTotal(mnemonic: string) {
   const seedKey = mnemonic ? vaultFingerprint(mnemonic) : "";
 
   return useQuery({
-    queryKey: ["portfolio-total", seedKey, visibleIds.join(","), scanGap],
-    enabled: !!mnemonic && !!prices.data,
+    queryKey: ["portfolio-total", seedKey, visibleIds.join(","), scanGap, prices.dataUpdatedAt],
+    // A missing price feed must not stop wallet scans. The total is recalculated
+    // when price data arrives because dataUpdatedAt is part of this key.
+    enabled: !!mnemonic,
     refetchInterval: 60_000,
     queryFn: async () => {
       let total = 0;

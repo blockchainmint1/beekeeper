@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { versionLabel } from "@/lib/version";
 import { apkRelease, apkDownloadUrl, apkSizeLabel } from "@/lib/apk-release";
-import { nativePlatform } from "@/lib/native/platform";
+import { installedAppVersion, nativePlatform } from "@/lib/native/platform";
 import { useEffect, useState } from "react";
 
 type LatestRelease = {
@@ -23,8 +23,12 @@ export function UpdateCheckCard() {
   const [platform, setPlatform] = useState<string>("web");
   const [latest, setLatest] = useState<LatestRelease | null>(null);
   const [failed, setFailed] = useState(false);
+  const [running, setRunning] = useState<string>(apkRelease.version);
 
-  useEffect(() => setPlatform(nativePlatform()), []);
+  useEffect(() => {
+    setPlatform(nativePlatform());
+    void installedAppVersion(apkRelease.version).then(setRunning);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,10 +49,8 @@ export function UpdateCheckCard() {
     };
   }, []);
 
-  // Installed build identity: the APK version this bundle was pinned with.
-  const running = apkRelease.version;
   const latestVersion = latest?.version ?? apkRelease.version;
-  const behind = Boolean(latest && latest.version !== running);
+  const behind = Boolean(latest && compareVersions(latest.version, running) > 0);
 
   return (
     <Card>
@@ -104,4 +106,15 @@ export function UpdateCheckCard() {
       </CardContent>
     </Card>
   );
+}
+
+function compareVersions(a: string, b: string): number {
+  const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const right = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const count = Math.max(left.length, right.length);
+  for (let i = 0; i < count; i += 1) {
+    const delta = (left[i] ?? 0) - (right[i] ?? 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
 }

@@ -5,7 +5,7 @@ import type { UtxoChain } from "@/lib/chains";
 import { mnemonicToSeed } from "./seed";
 import { toLegacyBch, toCashAddr, isValidBchAddress } from "./cashaddr";
 
-export type AddressType = "segwit" | "legacy";
+export type AddressType = "segwit" | "wrapped-segwit" | "legacy";
 
 let walletLibsPromise: Promise<{
   bitcoin: typeof import("bitcoinjs-lib");
@@ -65,9 +65,13 @@ function addressFor(
   type: AddressType,
   chain: UtxoChain,
 ): string {
-  const payment =
-    type === "segwit"
-      ? bitcoin.payments.p2wpkh({ pubkey, network: chain.network })
+  const payment = type === "segwit"
+    ? bitcoin.payments.p2wpkh({ pubkey, network: chain.network })
+    : type === "wrapped-segwit"
+      ? bitcoin.payments.p2sh({
+          redeem: bitcoin.payments.p2wpkh({ pubkey, network: chain.network }),
+          network: chain.network,
+        })
       : bitcoin.payments.p2pkh({ pubkey, network: chain.network });
   const { address } = payment;
   if (!address) throw new Error("Failed to derive address");
@@ -80,9 +84,13 @@ function scriptFor(
   type: AddressType,
   chain: UtxoChain,
 ): Uint8Array {
-  const payment =
-    type === "segwit"
-      ? bitcoin.payments.p2wpkh({ pubkey, network: chain.network })
+  const payment = type === "segwit"
+    ? bitcoin.payments.p2wpkh({ pubkey, network: chain.network })
+    : type === "wrapped-segwit"
+      ? bitcoin.payments.p2sh({
+          redeem: bitcoin.payments.p2wpkh({ pubkey, network: chain.network }),
+          network: chain.network,
+        })
       : bitcoin.payments.p2pkh({ pubkey, network: chain.network });
   if (!payment.output) throw new Error("Failed to derive output script");
   return payment.output;
@@ -126,6 +134,8 @@ export interface HdScanAddress {
   index: number;
   change: boolean;
   type: AddressType;
+  /** Account-level path, retained so funds found on compatibility paths remain spendable. */
+  derivationBase: string;
   sats: number;
   txCount: number;
 }
@@ -159,10 +169,36 @@ export async function scanUtxoHd(
   const minIndex = opts.minIndex ?? 0;
   const requestedType = opts.type ?? chain.defaultAddressType;
   const effectiveType: AddressType = chain.cashAddrPrefix ? "legacy" : requestedType;
-  const baseWithChain =
-    effectiveType === "segwit" ? chain.bip84Base : chain.bip44Base;
-  // baseWithChain ends in "/0" (receive). Strip to get the account-level base.
-  const accountBase = baseWithChain.replace(/\/0$/, "");
+  const standardAccount = (base: string) => base.replace(/\/0$/, "");
+  const defaultAccount = standardAccount(
+    effectiveType === "segwit" ? chain.bip84Base : chain.bip44Base,
+  );
+  const plans: Array<{ type: AddressType; accountBase: string }> = [
+    { type: effectiveType, accountBase: defaultAccount },
+  ];
+  if (!chain.cashAddrPrefix && chain.network.bech32) {
+    const coin = chain.coinType;
+    plans.push(
+      { type: "legacy", accountBase: `m/44'/${coin}'/0'` },
+      { type: "wrapped-segwit", accountBase: `m/49'/${coin}'/0'` },
+      { type: "segwit", accountBase: `m/84'/${coin}'/0'` },
+    );
+    // The original TXC mobile wallet used Bitcoin's coin type. HME scans these
+    // forever because real copper coins and imported seeds still hold funds there.
+    if (chain.id === "txc") {
+      plans.push(
+        { type: "legacy", accountBase: "m/44'/0'/0'" },
+        { type: "wrapped-segwit", accountBase: "m/49'/0'/0'" },
+        { type: "segwit", accountBase: "m/84'/0'/0'" },
+      );
+    }
+  }
+  const uniquePlans = plans.filter(
+    (plan, index, all) =>
+      all.findIndex((candidate) =>
+        candidate.type === plan.type && candidate.accountBase === plan.accountBase,
+      ) === index,
+  );
   const seed = mnemonicToSeed(mnemonic);
   const root = HDKey.fromMasterSeed(seed);
 
@@ -172,22 +208,22 @@ export async function scanUtxoHd(
   let successfulLookups = 0;
   let highestUsedIndex = -1;
 
-  const deriveAt = (branchBase: string, i: number): string | null => {
+  const deriveAt = (branchBase: string, i: number, type: AddressType): string | null => {
     const node = root.derive(`${branchBase}/${i}`);
     if (!node.publicKey) return null;
-    let address = addressFor(bitcoin, node.publicKey, effectiveType, chain);
+    let address = addressFor(bitcoin, node.publicKey, type, chain);
     if (chain.cashAddrPrefix) {
       try { address = toCashAddr(address); } catch { /* keep legacy */ }
     }
     return address;
   };
 
-  const record = (address: string, i: number, change: boolean, info: AddressInfo) => {
+  const record = (address: string, i: number, change: boolean, type: AddressType, derivationBase: string, info: AddressInfo) => {
     const sats = addressBalanceSats(info).total;
     const st = addressStats(info);
     const txCount = st.chain.tx_count + st.mempool.tx_count;
     if (txCount > 0 || sats > 0) {
-      active.push({ address, index: i, change, type: effectiveType, sats, txCount });
+      active.push({ address, index: i, change, type, derivationBase, sats, txCount });
       totalSats += sats;
       if (!change && i > highestUsedIndex) highestUsedIndex = i;
       return true;
@@ -203,8 +239,9 @@ export async function scanUtxoHd(
   const batched = indexerBatch || nnBatch;
   const WINDOW = 25;
 
-  for (const change of [false, true]) {
-    const branchBase = `${accountBase}/${change ? 1 : 0}`;
+  for (const plan of uniquePlans) {
+   for (const change of [false, true]) {
+    const branchBase = `${plan.accountBase}/${change ? 1 : 0}`;
     let consecutiveEmpty = 0;
 
     let startIndex = 0;
@@ -216,7 +253,7 @@ export async function scanUtxoHd(
         const idxs: number[] = [];
         const addrs: string[] = [];
         for (let k = 0; k < WINDOW && i + k < maxIndex; k++) {
-          const a = deriveAt(branchBase, i + k);
+           const a = deriveAt(branchBase, i + k, plan.type);
           if (!a) continue;
           idxs.push(i + k);
           addrs.push(a);
@@ -259,7 +296,7 @@ export async function scanUtxoHd(
           }
           scanned++;
           successfulLookups++;
-          if (record(addrs[k]!, idxs[k]!, change, info)) consecutiveEmpty = 0;
+           if (record(addrs[k]!, idxs[k]!, change, plan.type, plan.accountBase, info)) consecutiveEmpty = 0;
           else consecutiveEmpty++;
         }
         i += WINDOW;
@@ -271,7 +308,7 @@ export async function scanUtxoHd(
     for (let i = startIndex; i < maxIndex; i++) {
 
       if (i >= minIndex && consecutiveEmpty >= gapLimit) break;
-      const address = deriveAt(branchBase, i);
+       const address = deriveAt(branchBase, i, plan.type);
       if (!address) {
         consecutiveEmpty++;
         continue;
@@ -284,9 +321,10 @@ export async function scanUtxoHd(
         continue;
       }
       successfulLookups++;
-      if (record(address, i, change, info)) consecutiveEmpty = 0;
+       if (record(address, i, change, plan.type, plan.accountBase, info)) consecutiveEmpty = 0;
       else consecutiveEmpty++;
-    }
+   }
+  }
   }
 
   if (successfulLookups === 0) {
@@ -516,7 +554,7 @@ export function addressBalanceSats(info: AddressInfo | null | undefined) {
 /* ─────────── send ─────────── */
 
 function inputVBytes(type: AddressType): number {
-  return type === "segwit" ? 68 : 148;
+  return type === "segwit" ? 68 : type === "wrapped-segwit" ? 91 : 148;
 }
 
 export async function buildAndSign(args: {
@@ -544,22 +582,28 @@ export async function buildAndSign(args: {
     );
   }
 
-  const isSegwit = account.type === "segwit";
+  const isSegwit = account.type !== "legacy";
   // BCH-family addresses arrive in CashAddr form — normalize before bitcoinjs-lib.
   const normalizedTo = account.chain.cashAddrPrefix ? toLegacyBch(toAddress) : toAddress;
   const prevHexes = isSegwit
     ? []
     : await Promise.all(utxos.map((u) => esplora.txHex(account.chain, u.txid)));
-  const witnessScript = isSegwit ? scriptFor(bitcoin, account.publicKey, "segwit", account.chain) : null;
+  const witnessScript = isSegwit ? scriptFor(bitcoin, account.publicKey, account.type, account.chain) : null;
 
   const psbt = new bitcoin.Psbt({ network: account.chain.network });
   utxos.forEach((u, i) => {
     if (isSegwit) {
-      psbt.addInput({
+      const input: Parameters<typeof psbt.addInput>[0] = {
         hash: u.txid,
         index: u.vout,
         witnessUtxo: { script: witnessScript!, value: BigInt(u.value) },
-      });
+      };
+      if (account.type === "wrapped-segwit") {
+        const redeem = bitcoin.payments.p2wpkh({ pubkey: account.publicKey, network: account.chain.network });
+        if (!redeem.output) throw new Error("Failed to derive wrapped SegWit script");
+        input.redeemScript = redeem.output;
+      }
+      psbt.addInput(input);
     } else {
       psbt.addInput({
         hash: u.txid,
@@ -638,6 +682,7 @@ export interface SpendableCoin extends EsploraUtxo {
   index: number;
   change: boolean;
   type: AddressType;
+  derivationBase: string;
   publicKey: Uint8Array;
   privateKey: Uint8Array;
 }
@@ -646,13 +691,17 @@ export interface SpendableCoin extends EsploraUtxo {
 export async function deriveUtxoLeaf(
   mnemonic: string,
   chain: UtxoChain,
-  opts: { change: boolean; index: number; type?: AddressType },
+  opts: { change: boolean; index: number; type?: AddressType; derivationBase?: string },
 ): Promise<{ address: string; publicKey: Uint8Array; privateKey: Uint8Array; type: AddressType }> {
   const { bitcoin } = await getLibs();
   const requested = opts.type ?? chain.defaultAddressType;
   const type: AddressType = chain.cashAddrPrefix ? "legacy" : requested;
-  const baseWithChain = type === "segwit" ? chain.bip84Base : chain.bip44Base;
-  const accountBase = baseWithChain.replace(/\/0$/, "");
+  const baseWithChain = type === "segwit"
+    ? chain.bip84Base
+    : type === "wrapped-segwit"
+      ? chain.bip44Base.replace("/44'", "/49'")
+      : chain.bip44Base;
+  const accountBase = opts.derivationBase ?? baseWithChain.replace(/\/0$/, "");
   const seed = mnemonicToSeed(mnemonic);
   const root = HDKey.fromMasterSeed(seed);
   const node = root.derive(`${accountBase}/${opts.change ? 1 : 0}/${opts.index}`);
@@ -704,7 +753,12 @@ export async function collectSpendableCoins(
         try {
           const [utxos, leaf] = await Promise.all([
             esplora.addressUtxos(chain, a.address),
-            deriveUtxoLeaf(mnemonic, chain, { change: a.change, index: a.index, type: a.type }),
+            deriveUtxoLeaf(mnemonic, chain, {
+              change: a.change,
+              index: a.index,
+              type: a.type,
+              derivationBase: a.derivationBase,
+            }),
           ]);
           return { a, utxos: utxos ?? [], leaf };
         } catch {
@@ -721,6 +775,7 @@ export async function collectSpendableCoins(
           index: r.a.index,
           change: r.a.change,
           type: r.leaf.type,
+          derivationBase: r.a.derivationBase,
           publicKey: r.leaf.publicKey,
           privateKey: r.leaf.privateKey,
         });
@@ -803,21 +858,27 @@ export async function buildAndSignCoins(args: {
 
   const prevHexes = await Promise.all(
     coins.map(async (c) =>
-      c.type === "segwit" ? null : esplora.txHex(chain, c.txid),
+      c.type !== "legacy" ? null : esplora.txHex(chain, c.txid),
     ),
   );
 
   const psbt = new bitcoin.Psbt({ network: chain.network });
   coins.forEach((c, i) => {
-    if (c.type === "segwit") {
-      psbt.addInput({
+    if (c.type !== "legacy") {
+      const input: Parameters<typeof psbt.addInput>[0] = {
         hash: c.txid,
         index: c.vout,
         witnessUtxo: {
-          script: scriptFor(bitcoin, c.publicKey, "segwit", chain),
+          script: scriptFor(bitcoin, c.publicKey, c.type, chain),
           value: BigInt(c.value),
         },
-      });
+      };
+      if (c.type === "wrapped-segwit") {
+        const redeem = bitcoin.payments.p2wpkh({ pubkey: c.publicKey, network: chain.network });
+        if (!redeem.output) throw new Error("Failed to derive wrapped SegWit script");
+        input.redeemScript = redeem.output;
+      }
+      psbt.addInput(input);
     } else {
       psbt.addInput({
         hash: c.txid,
