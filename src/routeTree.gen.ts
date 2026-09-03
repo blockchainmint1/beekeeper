@@ -40,6 +40,7 @@ import { Route as WalletChainConsolidateRouteImport } from './routes/wallet.$cha
 import { Route as ApiPublicApkRouteImport } from './routes/api.public.apk'
 import { Route as ApiPublicVectorpayWebhookRouteImport } from './routes/api.public.vectorpay.webhook'
 import { Route as ApiPublicRpcZcuRouteImport } from './routes/api.public.rpc.zcu'
+import { Route as ApiPublicApkLatestRouteImport } from './routes/api.public.apk.latest'
 import { Route as ApiPublicRpcAlchemyChainRouteImport } from './routes/api.public.rpc.alchemy.$chain'
 
 const WalletRoute = WalletRouteImport.update({
@@ -198,6 +199,11 @@ const ApiPublicRpcZcuRoute = ApiPublicRpcZcuRouteImport.update({
   path: '/api/public/rpc/zcu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicApkLatestRoute = ApiPublicApkLatestRouteImport.update({
+  id: '/latest',
+  path: '/latest',
+  getParentRoute: () => ApiPublicApkRoute,
+} as any)
 const ApiPublicRpcAlchemyChainRoute =
   ApiPublicRpcAlchemyChainRouteImport.update({
     id: '/api/public/rpc/alchemy/$chain',
@@ -225,7 +231,7 @@ export interface FileRoutesByFullPath {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
-  '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/apk': typeof ApiPublicApkRouteWithChildren
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/apk/latest': typeof ApiPublicApkLatestRoute
   '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -257,7 +264,7 @@ export interface FileRoutesByTo {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension': typeof ExtensionIndexRoute
   '/wallet': typeof WalletIndexRoute
-  '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/apk': typeof ApiPublicApkRouteWithChildren
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/apk/latest': typeof ApiPublicApkLatestRoute
   '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -292,7 +300,7 @@ export interface FileRoutesById {
   '/wallet/topup': typeof WalletTopupRoute
   '/extension/': typeof ExtensionIndexRoute
   '/wallet/': typeof WalletIndexRoute
-  '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/apk': typeof ApiPublicApkRouteWithChildren
   '/wallet/$chain/consolidate': typeof WalletChainConsolidateRoute
   '/wallet/$chain/history': typeof WalletChainHistoryRoute
   '/wallet/$chain/qr-login': typeof WalletChainQrLoginRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/wallet/$chain/sweep': typeof WalletChainSweepRoute
   '/wallet/$chain/xpub': typeof WalletChainXpubRoute
   '/wallet/order/$id': typeof WalletOrderIdRoute
+  '/api/public/apk/latest': typeof ApiPublicApkLatestRoute
   '/api/public/rpc/zcu': typeof ApiPublicRpcZcuRoute
   '/api/public/vectorpay/webhook': typeof ApiPublicVectorpayWebhookRoute
   '/api/public/rpc/alchemy/$chain': typeof ApiPublicRpcAlchemyChainRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/apk/latest'
     | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/apk/latest'
     | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/wallet/$chain/sweep'
     | '/wallet/$chain/xpub'
     | '/wallet/order/$id'
+    | '/api/public/apk/latest'
     | '/api/public/rpc/zcu'
     | '/api/public/vectorpay/webhook'
     | '/api/public/rpc/alchemy/$chain'
@@ -417,7 +429,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
-  ApiPublicApkRoute: typeof ApiPublicApkRoute
+  ApiPublicApkRoute: typeof ApiPublicApkRouteWithChildren
   ApiPublicRpcZcuRoute: typeof ApiPublicRpcZcuRoute
   ApiPublicVectorpayWebhookRoute: typeof ApiPublicVectorpayWebhookRoute
   ApiPublicRpcAlchemyChainRoute: typeof ApiPublicRpcAlchemyChainRoute
@@ -642,6 +654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRpcZcuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/apk/latest': {
+      id: '/api/public/apk/latest'
+      path: '/latest'
+      fullPath: '/api/public/apk/latest'
+      preLoaderRoute: typeof ApiPublicApkLatestRouteImport
+      parentRoute: typeof ApiPublicApkRoute
+    }
     '/api/public/rpc/alchemy/$chain': {
       id: '/api/public/rpc/alchemy/$chain'
       path: '/api/public/rpc/alchemy/$chain'
@@ -713,6 +732,18 @@ const WalletRouteChildren: WalletRouteChildren = {
 const WalletRouteWithChildren =
   WalletRoute._addFileChildren(WalletRouteChildren)
 
+interface ApiPublicApkRouteChildren {
+  ApiPublicApkLatestRoute: typeof ApiPublicApkLatestRoute
+}
+
+const ApiPublicApkRouteChildren: ApiPublicApkRouteChildren = {
+  ApiPublicApkLatestRoute: ApiPublicApkLatestRoute,
+}
+
+const ApiPublicApkRouteWithChildren = ApiPublicApkRoute._addFileChildren(
+  ApiPublicApkRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtensionRoute: ExtensionRouteWithChildren,
@@ -721,7 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WalletRoute: WalletRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
-  ApiPublicApkRoute: ApiPublicApkRoute,
+  ApiPublicApkRoute: ApiPublicApkRouteWithChildren,
   ApiPublicRpcZcuRoute: ApiPublicRpcZcuRoute,
   ApiPublicVectorpayWebhookRoute: ApiPublicVectorpayWebhookRoute,
   ApiPublicRpcAlchemyChainRoute: ApiPublicRpcAlchemyChainRoute,
