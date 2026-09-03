@@ -259,6 +259,7 @@ export function SimpleDashboard({ onLocked }: { onLocked: () => void }) {
   const historyQuery = useQuery({
     queryKey: [
       "simple-history",
+      seedKey,
       loadedRows.map((a) => `${a.chain.id}:${a.address}`).join(","),
     ],
     enabled: loadedRows.length > 0,
