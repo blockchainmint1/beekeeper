@@ -98,12 +98,13 @@ export async function fetchAllPrices(): Promise<PriceMap> {
   } catch { /* ignore */ }
 
 
-  // TXC price from its own mempool.
+  // TXC price from its own mempool. This endpoint returns a single lowercase
+  // `usd` quote (the old plural endpoint now serves the explorer HTML shell).
   try {
-    const r = await fetch("https://mempool.texitcoin.org/api/v1/prices");
+    const r = await fetch("https://mempool.texitcoin.org/api/v1/price");
     if (r.ok) {
-      const j = (await r.json()) as { USD?: number };
-      if (typeof j?.USD === "number") out["txc"] = j.USD;
+      const j = (await r.json()) as { usd?: number };
+      if (typeof j?.usd === "number" && isFinite(j.usd) && j.usd > 0) out["txc"] = j.usd;
     }
   } catch { /* ignore */ }
 

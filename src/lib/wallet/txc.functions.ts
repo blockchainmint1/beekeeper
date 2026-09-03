@@ -70,9 +70,12 @@ export const txcAddressInfo = createServerFn({ method: "POST" })
   .inputValidator(addressInput)
   .handler(async ({ data }): Promise<AddressInfoOut> => {
     const bal = (await tryGetAddressBalance(data.address)) ?? (await tryScanTxOutSet(data.address));
+    if (!bal) {
+      throw new Error("TXC balance providers are unavailable");
+    }
     const txCount = await tryGetAddressTxCount(data.address);
-    const funded = bal?.received ?? 0;
-    const balance = bal?.balance ?? 0;
+    const funded = bal.received;
+    const balance = bal.balance;
     const spent = Math.max(0, funded - balance);
     return {
       address: data.address,
