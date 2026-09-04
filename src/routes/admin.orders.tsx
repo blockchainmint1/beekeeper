@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { Download, Loader2, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Download, Loader2, RefreshCw, ShieldCheck, X, ToggleLeft } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -100,7 +101,16 @@ function AdminOrdersPage() {
 
   return (
     <WalletPage title="Order console" subtitle="Top-ups and cash-outs, mirrored from the partner">
+      <div className="flex items-center justify-end">
+        <Link
+          to="/admin/features"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition"
+        >
+          <ToggleLeft className="h-3.5 w-3.5" /> Feature flags
+        </Link>
+      </div>
       <div className="space-y-5">
+
         <Card className="space-y-3 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <ShieldCheck className="h-4 w-4 text-primary" /> Admin key

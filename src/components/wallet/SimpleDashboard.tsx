@@ -34,6 +34,8 @@ import { NectarLinkDialog } from "./NectarLinkDialog";
 import { hasNectarLink, refreshNectarLinkFromServer } from "@/lib/wallet/nectar";
 import { Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAdminFeatureStatus } from "@/lib/admin/use-admin-features";
+
 
 type PriceMap = Record<string, number>;
 
@@ -203,6 +205,8 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
     () => CHAIN_LIST.filter((c) => visibleIds.includes(c.id)),
     [visibleIds],
   );
+  const { status: adminFeatures } = useAdminFeatureStatus();
+
 
   const pricesQuery = useQuery({
     queryKey: ["prices"],
@@ -514,26 +518,35 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
         )}
       </section>
 
-      <section className="px-5 mt-5">
-        <div className="grid grid-cols-2 gap-3">
-          <Button className="h-12 rounded-2xl text-sm font-semibold" asChild>
-            <Link to="/wallet/topup">
-              <ArrowDownLeft className="mr-2 h-4 w-4" />
-              Top Up
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-12 rounded-2xl text-sm font-semibold"
-            asChild
-          >
-            <Link to="/wallet/cashout">
-              <Banknote className="mr-2 h-4 w-4" />
-              Cash Out
-            </Link>
-          </Button>
-        </div>
-      </section>
+      {!adminFeatures.topupDisabled || !adminFeatures.cashoutDisabled ? (
+        <section className="px-5 mt-5">
+          <div className={`grid gap-3 ${adminFeatures.topupDisabled || adminFeatures.cashoutDisabled ? "grid-cols-1" : "grid-cols-2"}`}>
+            {!adminFeatures.topupDisabled && (
+              <Button className="h-12 rounded-2xl text-sm font-semibold" asChild>
+                <Link to="/wallet/topup">
+                  <ArrowDownLeft className="mr-2 h-4 w-4" />
+                  Top Up
+                </Link>
+              </Button>
+            )}
+            {!adminFeatures.cashoutDisabled && (
+              <Button
+                variant="outline"
+                className="h-12 rounded-2xl text-sm font-semibold"
+                asChild
+              >
+                <Link to="/wallet/cashout">
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Cash Out
+                </Link>
+              </Button>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+
+
 
 
       <section className="px-5 mt-7">

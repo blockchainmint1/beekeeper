@@ -28,6 +28,7 @@ import { Route as WalletCashoutRouteImport } from './routes/wallet.cashout'
 import { Route as ExtensionSignRouteImport } from './routes/extension.sign'
 import { Route as ExtensionPairRouteImport } from './routes/extension.pair'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as WalletOrderIdRouteImport } from './routes/wallet.order.$id'
 import { Route as WalletChainXpubRouteImport } from './routes/wallet.$chain.xpub'
 import { Route as WalletChainSweepRouteImport } from './routes/wallet.$chain.sweep'
@@ -138,6 +139,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
   path: '/admin/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/admin/features',
+  path: '/admin/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WalletOrderIdRoute = WalletOrderIdRouteImport.update({
   id: '/order/$id',
   path: '/order/$id',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/manifesto': typeof ManifestoRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/extension/pair': typeof ExtensionPairRoute
   '/extension/sign': typeof ExtensionSignRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/wallet'
+    | '/admin/features'
     | '/admin/orders'
     | '/extension/pair'
     | '/extension/sign'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/manifesto'
     | '/privacy'
     | '/terms'
+    | '/admin/features'
     | '/admin/orders'
     | '/extension/pair'
     | '/extension/sign'
@@ -392,6 +403,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/wallet'
+    | '/admin/features'
     | '/admin/orders'
     | '/extension/pair'
     | '/extension/sign'
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRouteWithChildren
+  AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   ApiPublicApkRoute: typeof ApiPublicApkRouteWithChildren
   ApiPublicRpcZcuRoute: typeof ApiPublicRpcZcuRoute
@@ -568,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/admin/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet/order/$id': {
@@ -751,6 +771,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   WalletRoute: WalletRouteWithChildren,
+  AdminFeaturesRoute: AdminFeaturesRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   ApiPublicApkRoute: ApiPublicApkRouteWithChildren,
   ApiPublicRpcZcuRoute: ApiPublicRpcZcuRoute,
