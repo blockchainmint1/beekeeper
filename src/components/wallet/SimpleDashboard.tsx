@@ -518,7 +518,7 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
         )}
       </section>
 
-      {!adminFeatures.topupDisabled || !adminFeatures.cashoutDisabled ? (
+      {(adminFeatures.topupDisabled && adminFeatures.cashoutDisabled) ? null : (
         <section className="px-5 mt-5">
           <div className={`grid gap-3 ${adminFeatures.topupDisabled || adminFeatures.cashoutDisabled ? "grid-cols-1" : "grid-cols-2"}`}>
             {!adminFeatures.topupDisabled && (
@@ -543,7 +543,8 @@ export function SimpleDashboard({ mnemonic, onLocked }: { mnemonic: string; onLo
             )}
           </div>
         </section>
-      ) : null}
+      )}
+
 
 
 
